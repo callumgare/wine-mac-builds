@@ -139,6 +139,11 @@ jobs:
             echo "::error::release $TAG already exists; builds are never replaced"
             exit 1
           fi
-          gh release create "$TAG" --draft --target "$GITHUB_SHA" \
-            --title "$NAME" --notes "Built by run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID." \
+          # Targets the default branch for now: GITHUB_TOKEN may not create a
+          # release (or tag) on a commit whose workflow files differ from
+          # main's, and main moves on during a long build. tools/publish
+          # points it at the built commit (below) when a person publishes it.
+          gh release create "$TAG" --draft \
+            --title "$NAME" \
+            --notes "Built from commit $GITHUB_SHA by run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID." \
             dist/*
