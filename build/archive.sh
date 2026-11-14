@@ -20,9 +20,10 @@ group_start "Archive"
 deterministic_tar "$PKG" "$BUILD_ID" "$WMB_OUT_DIR/$BUILD_ID.tar.xz" "$WINE_RELEASE_EPOCH"
 deterministic_tar "$PKG" "$BUILD_ID-debug" "$WMB_OUT_DIR/$BUILD_ID-debug.tar.xz" "$WINE_RELEASE_EPOCH"
 deterministic_tar "$PKG" "$BUILD_ID-tests" "$WMB_OUT_DIR/$BUILD_ID-tests.tar.xz" "$WINE_RELEASE_EPOCH"
+deterministic_tar "$PKG" "$BUILD_ID-sources" "$WMB_OUT_DIR/$BUILD_ID-sources.tar.xz" "$WINE_RELEASE_EPOCH"
 (
     cd "$WMB_OUT_DIR"
-    shasum -a 256 "$BUILD_ID".tar.xz "$BUILD_ID"-debug.tar.xz "$BUILD_ID"-tests.tar.xz "$BUILD_ID".build-info.json "$BUILD_ID".spdx.json \
+    shasum -a 256 "$BUILD_ID".tar.xz "$BUILD_ID"-debug.tar.xz "$BUILD_ID"-tests.tar.xz "$BUILD_ID"-sources.tar.xz "$BUILD_ID".build-info.json "$BUILD_ID".spdx.json \
         > "$BUILD_ID.SHA256SUMS"
     cat "$BUILD_ID.SHA256SUMS"
     ls -l "$BUILD_ID"*

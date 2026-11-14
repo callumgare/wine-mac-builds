@@ -64,6 +64,8 @@ hash_url() { curl -fsSL "$1" | shasum -a 256 | cut -d' ' -f1; }
 G86="https://dl.winehq.org/wine/wine-gecko/$GECKO/wine-gecko-$GECKO-x86.tar.xz"
 G64="https://dl.winehq.org/wine/wine-gecko/$GECKO/wine-gecko-$GECKO-x86_64.tar.xz"
 M86="https://dl.winehq.org/wine/wine-mono/$MONO/wine-mono-$MONO-x86.tar.xz"
+GSRC="https://dl.winehq.org/wine/wine-gecko/$GECKO/wine-gecko-$GECKO-src.tar.xz"
+MSRC="https://dl.winehq.org/wine/wine-mono/$MONO/wine-mono-$MONO-src.tar.xz"
 
 PREV="$(ls "$ROOT/inputs/$FLAVOUR/$MAJOR."*.sh 2>/dev/null | sort -V | tail -1 || true)"
 PATCHES="$( [[ -n "$PREV" ]] && sed -n '/^PATCHES=(/,/^)/p' "$PREV" || printf 'PATCHES=(\n)\n')"
@@ -95,6 +97,12 @@ GECKO_X86_64_SHA256="$(hash_url "$G64")"
 MONO_VERSION="$MONO"
 MONO_URL="$M86"
 MONO_SHA256="$(hash_url "$M86")"
+# Their source, for the -sources asset (Gecko is MPL-2.0; Mono includes
+# LGPL parts).
+GECKO_SRC_URL="$GSRC"
+GECKO_SRC_SHA256="$(hash_url "$GSRC")"
+MONO_SRC_URL="$MSRC"
+MONO_SRC_SHA256="$(hash_url "$MSRC")"
 
 # Applied in order, with patch -p1.${PREV:+ Copied from $(basename "$PREV"); check each still applies and is still needed.}
 $PATCHES

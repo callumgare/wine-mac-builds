@@ -23,6 +23,12 @@ GECKO_X86_64_SHA256="fd88fc7e537d058d7a8abf0c1ebc90c574892a466de86706a26d254710a
 MONO_VERSION="11.3.0"
 MONO_URL="https://dl.winehq.org/wine/wine-mono/11.3.0/wine-mono-11.3.0-x86.tar.xz"
 MONO_SHA256="54a1b0111c3fe4b785eae688af94d27e64995707ad648b6fee8000381b80d298"
+# Their source, for the -sources asset (Gecko is MPL-2.0; Mono includes
+# LGPL parts).
+GECKO_SRC_URL="https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-src.tar.xz"
+GECKO_SRC_SHA256="bf31b6619570ce289f07298bdd670081635cd12104010050f06c16e44ccd153f"
+MONO_SRC_URL="https://dl.winehq.org/wine/wine-mono/11.3.0/wine-mono-11.3.0-src.tar.xz"
+MONO_SRC_SHA256="9f4f03285fbeed484980efbb1eba1c19069244aea401d2ff1585e3990782edf7"
 
 # Applied in order, with patch -p1.
 PATCHES=(

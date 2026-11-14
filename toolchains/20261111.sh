@@ -21,6 +21,9 @@ XCODE_VERSION="27.2"
 #   gh attestation verify <file> --repo callumgare/wine-mac-binaries
 TOOLCHAIN_ARCHIVE_REPO="callumgare/wine-mac-binaries/toolchain"
 TOOLCHAIN_ARCHIVE_SHA256="96f5094b004511d2e633a77d52fa5c010682abbcf47e0b9ecf2b6d725fc3cdd0"
+# Its sources archive (every MacPorts distfile), a layer of the same
+# artifact. The publish job copies bundled ports' sources from it.
+TOOLCHAIN_SOURCES_SHA256="2acec6af2d4d4c211557ee7f850886f88b2465ccd36e2117599de82e451b80a9"
 
 # Everything shipped inside a build carries this minimum macOS, as Gcenx's
 # Wine binaries do.
