@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+//
+// The website (wine-mac-builds.cals.cafe): a Cloudflare Worker that only
+// serves static files, the folder tools/site.py generates (with its
+// _redirects for buildless downloads). Deployed by .github/workflows/site.yml.
+// The custom domain is attached in Cloudflare's dashboard, not here, so the
+// deploy token needs no DNS permission.
+{
+  "name": "wine-mac-builds",
+  "compatibility_date": "2026-11-14",
+  "workers_dev": false,
+  "assets": {
+    "directory": "./site",
+    // /wine-11.21 -> /wine-11.21/ (its index.html)
+    "html_handling": "auto-trailing-slash"
+  }
+}

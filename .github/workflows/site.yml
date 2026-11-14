@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Regenerates the website and index (tools/site.py) from the published
-# releases and metadata/, and uploads it to Cloudflare Pages
-# (wine-mac-builds.cals.cafe). Nothing generated is committed; Cloudflare
-# keeps every deployment, with rollback.
+# releases and metadata/, and deploys it as a static-assets Cloudflare Worker
+# (wrangler.jsonc; wine-mac-builds.cals.cafe). Nothing generated is
+# committed; Cloudflare keeps every version, with rollback.
 #
-# The upload uses a Cloudflare API token that can only edit this Pages
-# project, kept in the protected "cloudflare-pages" environment (only main
+# The deploy uses a Cloudflare API token ("Workers Scripts: Edit" on the
+# account), kept in the protected "cloudflare-pages" environment (only main
 # may deploy). Until it's set up, the site is built and kept as an artifact
 # but not uploaded.
 
@@ -67,6 +67,11 @@ jobs:
     env:
       HAVE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: wrangler.jsonc
+          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: site
@@ -79,4 +84,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy site --project-name=wine-mac-builds --branch=main
+          command: deploy

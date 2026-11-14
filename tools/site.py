@@ -4,7 +4,7 @@
 
 Generates the website and index from the published releases plus metadata/
 (plan.md, "Finding builds"). Nothing it writes is committed: it can always
-be regenerated, and the site workflow uploads it to Cloudflare Pages.
+be regenerated, and the site workflow deploys it to Cloudflare (a static-assets Worker).
 
   <out>/v1/index.json         every build, and the latest per flavour,
                               channel and platform (for programs)
@@ -359,7 +359,7 @@ def main():
         write(out, f"{e['name']}/index.html", build_page(e, args.repo))
     write(out, "index.html", home_page(builds, latest))
     if len(redirects) > 1900:
-        sys.exit(f"error: {len(redirects)} redirects; Cloudflare Pages allows about 2,000 (plan.md: move to a Worker)")
+        sys.exit(f"error: {len(redirects)} redirects; Cloudflare allows 2,000 static ones (plan.md: use Bulk Redirects or Worker code)")
     write(out, "_redirects", "\n".join(redirects) + "\n")
     print(f"{len(builds)} builds, {len(buildless)} buildless names, {len(redirects)} redirects -> {out}", file=sys.stderr)
 
