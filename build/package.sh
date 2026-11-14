@@ -115,6 +115,14 @@ cp "$TC/share/vulkan/icd.d/MoltenVK_icd.json" "$T/share/vulkan/icd.d/"
 
 # GStreamer.framework, as Gcenx ships it: lib/GStreamer.framework.
 cp -Rp "$TC/Library/Frameworks/GStreamer.framework" "$T/lib/"
+# Without what only building against GStreamer needs, as Gcenx's has: static
+# libraries (~715 MB, one beside every plugin), headers (~40 MB) and
+# pkg-config files. Nothing loads them at run time.
+G="$T/lib/GStreamer.framework"
+find "$G" \( -name '*.a' -o -name '*.la' -o -name '*.pc' \) -type f -delete
+find "$G" -type d \( -name include -o -name pkgconfig \) -prune -exec rm -rf {} +
+find "$G" -name Headers -type l -delete
+find "$G" -type l ! -exec test -e {} \; -print | sed 's/^/GStreamer.framework: dangling link left: /'
 group_end
 
 # --- Run paths -----------------------------------------------------------------
