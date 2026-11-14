@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # wine-mac-builds
 
 Builds of [Wine](https://www.winehq.org) for macOS, made automatically for

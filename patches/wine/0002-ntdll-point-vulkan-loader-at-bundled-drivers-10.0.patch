@@ -1,3 +1,4 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
 From: patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers.patch,
  rebased for wine-mac-builds onto Wine 10.0's init_paths (same function, called
  after bin_dir and data_dir are set).

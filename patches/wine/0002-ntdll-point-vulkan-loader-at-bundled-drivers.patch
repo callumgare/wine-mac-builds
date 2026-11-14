@@ -1,3 +1,4 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
 From: written for wine-mac-builds, reproducing behaviour of Gcenx's 11.21 binaries
 Source: none published. Gcenx's 11.21 ntdll.so does this (read from its
  disassembly: init_paths checks VK_DRIVER_FILES, VK_ICD_FILENAMES and

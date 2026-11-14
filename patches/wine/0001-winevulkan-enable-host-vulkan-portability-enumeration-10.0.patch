@@ -1,3 +1,4 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
 From: written for wine-mac-builds: patch 0001's behaviour for Wine 10.0, where
  winevulkan (not win32u) builds the host instance's create info and there's no
  host_extensions table.
