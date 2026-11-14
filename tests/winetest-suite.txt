@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# The test units tests/winetest.sh runs by default: "dll" runs all of a
+# DLL's tests, "dll:test" one of them. A starting list (2026-11-15), to be
+# trimmed or extended once real runs show which units are slow, flaky on
+# macOS, or need a GPU or network (plan.md section 4, "Conformance").
+
+# The core every program uses
+ntdll
+kernel32
+kernelbase
+advapi32
+msvcrt
+ucrtbase
+ole32
+oleaut32
+rpcrt4
+shlwapi
+version
+
+# Windows and drawing (need the logged-in GUI session)
+user32
+gdi32
+comctl32
+
+# What this project bundles or patches
+bcrypt          # GnuTLS
+crypt32
+secur32:schannel
+mfplat          # Media Foundation, through GStreamer/FFmpeg
+mf              # Media Foundation transforms (decoders)
+quartz
+dwrite          # FreeType
+vulkan-1        # the Vulkan loader, through MoltenVK
+msi             # installers
+setupapi
