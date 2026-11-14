@@ -117,6 +117,8 @@ for line in (TC / "share/wmb/toolchain.txt").read_text().splitlines():
     if ": " in line and not line.startswith(" "):
         k, v = line.split(": ", 1)
         tc_info[k] = v
+tc_archive_sha = ((TC / ".archive-sha256").read_text().strip()
+                  if (TC / ".archive-sha256").exists() else None)
 
 for key, name, lic in (("moltenvk", "MoltenVK", "Apache-2.0"),
                        ("gstreamer", "GStreamer.framework", "LGPL-2.0-or-later")):
@@ -168,10 +170,16 @@ info = {
         "sdk": compile_env.get("SDK"),
         "cc": compile_env.get("CC_VERSION"),
         "mingw_cc": compile_env.get("MINGW_CC_VERSION"),
-        "ci_run": env.get("GITHUB_SERVER_URL", "") + "/" + env.get("GITHUB_REPOSITORY", "") +
-                  "/actions/runs/" + env["GITHUB_RUN_ID"] if env.get("GITHUB_RUN_ID") else None,
+        # No CI run here: this file is inside the tarball, and a rebuild must
+        # match it byte for byte. The run is in the release notes and the
+        # provenance attestation.
     },
-    "toolchain": {"id": env["TOOLCHAIN"], **{k: v for k, v in tc_info.items() if k != "toolchain"}},
+    "toolchain": {
+        "id": env["TOOLCHAIN"],
+        # The archive it was installed from; None if built in place.
+        "archive_sha256": tc_archive_sha,
+        **{k: v for k, v in tc_info.items() if k != "toolchain"},
+    },
     "configure": {k: compile_env.get(k) for k in (
         "CONFIGURE_ARGS", "CC", "CFLAGS", "CPPFLAGS", "LDFLAGS",
         "CROSSCFLAGS", "CROSSLDFLAGS", "CROSSDEBUG", "MACOSX_DEPLOYMENT_TARGET")},

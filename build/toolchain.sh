@@ -99,6 +99,9 @@ elif [[ $ARCHIVE -eq 0 && ( -f "$ARCHIVE_FILE" || -n "${TOOLCHAIN_ARCHIVE_SHA256
     [[ -e "$TC" ]] && die "$TC exists but is incomplete; delete it and run again"
     tar -xJf "$src" -C "$WMB_TOOLCHAINS_DIR"
     [[ -f "$TC/.complete" ]] || die "$src didn't contain a complete toolchain"
+    # Which bytes these were, for the build manifest: two builds of one
+    # toolchain id aren't byte-identical (plan.md, "Found while building").
+    sha256_of "$src" > "$TC/.archive-sha256"
     group_end
 else
     # An unfinished toolchain is resumed: each stage below skips itself if
