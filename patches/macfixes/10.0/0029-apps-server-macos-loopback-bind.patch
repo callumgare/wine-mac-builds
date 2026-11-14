@@ -1,0 +1,31 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: CrossOver 25.1.1 CW HACK 24472
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/server/sock.c)
+Upstream: no
+Why: macOS only lets sockets bind to 127.0.0.1 among the 127/8 addresses; rewrite other 127.x.x.x binds so GOG Galaxy can start.
+Evidence in 10.0_8: wineserver: 'HACK: rewriting bind loopback address to 127.0.0.1'.
+Applies to: wine 10.0
+
+diff --git a/server/sock.c b/server/sock.c
+index 32d622a..49386d4 100644
+--- a/server/sock.c
++++ b/server/sock.c
+@@ -2992,6 +2992,18 @@ static void sock_ioctl( struct fd *fd, ioctl_code_t code, struct async *async )
+ 
+         if (unix_addr.addr.sa_family == AF_INET)
+         {
++#if defined(__APPLE__)
++            /* CW Hack 24472. macOS does not support binding to any loopback
++             * address other than 127.0.0.1. This is an incomplete and incorrect
++             * rewrite, but it's enough to satisfy GOG Galaxy. */
++            if ((unix_addr.in.sin_addr.s_addr & 0xff) == 127 &&
++                unix_addr.in.sin_addr.s_addr != htonl( INADDR_LOOPBACK ))
++            {
++                fprintf(stderr, "HACK: rewriting bind loopback address to 127.0.0.1\n");
++                bind_addr.in.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
++            }
++#endif
++
+             if (!memcmp( &unix_addr.in.sin_addr, magic_loopback_addr, 4 )
+                     || bind_to_interface( sock, &unix_addr.in ))
+                 bind_addr.in.sin_addr.s_addr = htonl( INADDR_ANY );

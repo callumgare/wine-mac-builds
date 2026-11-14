@@ -38,4 +38,42 @@ PATCHES=(
     patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers-10.0.patch
     patches/wine/0003-winegcc-deterministic-temp-dir.patch
     # Sikarugir 10.0_8's changes, in this order (patches/macfixes/10.0/):
+    patches/macfixes/10.0/0001-cpu-version-tag-and-testing-warning.patch
+    patches/macfixes/10.0/0002-msync-esync-msync.patch
+    patches/macfixes/10.0/0003-msync-kernel32-tests-esync.patch
+    patches/macfixes/10.0/0004-cpu-rosetta-debug-registers.patch
+    patches/macfixes/10.0/0005-cpu-rosetta-cet-rdssp.patch
+    patches/macfixes/10.0/0006-cpu-rosetta-mxcsr.patch
+    patches/macfixes/10.0/0007-cpu-rosetta-xgetbv.patch
+    patches/macfixes/10.0/0008-cpu-rosetta-fndisi.patch
+    patches/macfixes/10.0/0009-cpu-check-invalid-gsbase.patch
+    patches/macfixes/10.0/0010-cpu-check-invalid-gsbase-macos.patch
+    patches/macfixes/10.0/0011-cpu-rosetta-wx-write-fault.patch
+    patches/macfixes/10.0/0012-cpu-simulate-writecopy.patch
+    patches/macfixes/10.0/0013-cpu-winencpu.patch
+    patches/macfixes/10.0/0014-cpu-wow64cpu-rosetta-lretq.patch
+    patches/macfixes/10.0/0015-cpu-ntdll-important-free-space.patch
+    patches/macfixes/10.0/0016-cpu-mountmgr-important-free-space.patch
+    patches/macfixes/10.0/0017-gfx-ntdll-d3dmetal-non-native-code-regions.patch
+    patches/macfixes/10.0/0018-gfx-ntdll-d3dmetal-ms-abi-syscall-thunks.patch
+    patches/macfixes/10.0/0019-gfx-ntdll-peb-at-gs-0x60-on-macos.patch
+    patches/macfixes/10.0/0020-gfx-winemac-d3dmetal-macdrv-functions.patch
+    patches/macfixes/10.0/0021-gfx-winemetal-stub-dll.patch
+    patches/macfixes/10.0/0022-gfx-setupapi-d3dmetal-gpu-luid.patch
+    patches/macfixes/10.0/0023-gfx-winemac-force-opengl-backing-store.patch
+    patches/macfixes/10.0/0024-gfx-winemac-fwd-compat-gl-context.patch
+    patches/macfixes/10.0/0025-gfx-wined3d-vulkan-renderer-on-moltenvk.patch
+    patches/macfixes/10.0/0026-apps-ntdll-cef-binary-patches.patch
+    patches/macfixes/10.0/0027-apps-advapi32-battle-net-acls.patch
+    patches/macfixes/10.0/0028-apps-server-disable-hung-hooks.patch
+    patches/macfixes/10.0/0029-apps-server-macos-loopback-bind.patch
+    patches/macfixes/10.0/0030-apps-nsiproxy-macos-change-notifications.patch
+    patches/macfixes/10.0/0031-apps-winhttp-cache-autoproxy-url.patch
+    patches/macfixes/10.0/0032-apps-kernelbase-replace-launchers.patch
+    patches/macfixes/10.0/0033-apps-kernelbase-cef-append-flags.patch
+    patches/macfixes/10.0/0034-sik-ntdll-renderer-dll-paths.patch
+    patches/macfixes/10.0/0035-sik-ntdll-launcher-metal-hud.patch
+    patches/macfixes/10.0/0036-sik-ntdll-d2r-renderer-paths.patch
+    patches/macfixes/10.0/0037-sik-kernelbase-commandline-append.patch
+    patches/macfixes/10.0/0038-sik-kernelbase-nvngx-d3dmetal.patch
 )
