@@ -49,9 +49,13 @@ def port(*args):
 
 
 def port_for(path):
-    # "port provides" answers "<path> is provided by: <port>"
+    # With -q, "port provides" prints just the port's name, or nothing if no
+    # port installed the file (without -q: "<path> is provided by: <port>").
     out = port("provides", str(path))
-    return out.rsplit(":", 1)[-1].strip() if "provided by" in out else None
+    if "provided by:" in out:
+        out = out.rsplit(":", 1)[-1]
+    out = out.strip()
+    return out if out and " " not in out else None
 
 
 def port_version(name):
@@ -102,6 +106,10 @@ for line in (W / "bundled-libs.txt").read_text().splitlines():
         seen_ports[p] = True
 
 missing_licenses = []
+# Every bundled library must come from a MacPorts port (whose licence texts
+# the toolchain kept), except MoltenVK, handled below.
+missing_licenses += [b["file"] + " (no MacPorts port)" for b in bundled
+                     if b["port"] is None and b["file"] != "lib/libMoltenVK.dylib"]
 for p in sorted(seen_ports):
     lic_src = TC / "share/wmb/licenses" / p
     lic_field = (lic_src / "MACPORTS-LICENSE-FIELD").read_text().strip() if lic_src.exists() else None
@@ -258,5 +266,7 @@ sbom = {
 }
 (OUT / f"{BUILD_ID}.spdx.json").write_text(json.dumps(sbom, indent=2) + "\n")
 
+# Shipping a library without its licence text breaks most of their licences,
+# so this stops the build rather than warning.
 if missing_licenses:
-    print("warning: no licence text for: " + ", ".join(missing_licenses), file=sys.stderr)
+    sys.exit("error: no licence text for: " + ", ".join(missing_licenses))
