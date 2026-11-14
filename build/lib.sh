@@ -111,18 +111,18 @@ load_build_inputs() {
     # shellcheck source=/dev/null
     source "$i"
     : "${TOOLCHAIN:?inputs file must set TOOLCHAIN}"
-    : "${BUILD_REVISION:?inputs file must set BUILD_REVISION}"
-    BUILD_NAME="$(build_name "$flavour" "$version" "$BUILD_REVISION")"
+    : "${BUILD_NUMBER:?inputs file must set BUILD_NUMBER}"
+    BUILD_NAME="$(build_name "$flavour" "$version" "$BUILD_NUMBER")"
     BUILD_ID="$BUILD_NAME-macos-x86_64"
 }
 
-# wine-11.21-r1, wine-staging-11.21-r1 (section 5 of plan.md).
+# wine-11.21-build1, wine-staging-11.21-build1 (plan.md, "Naming").
 build_name() {
-    local flavour="$1" version="$2" rev="$3"
+    local flavour="$1" version="$2" number="$3"
     if [[ "$flavour" == "wine" ]]; then
-        echo "wine-$version-r$rev"
+        echo "wine-$version-build$number"
     else
-        echo "wine-$flavour-$version-r$rev"
+        echo "wine-$flavour-$version-build$number"
     fi
 }
 

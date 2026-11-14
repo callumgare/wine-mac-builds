@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# tools/pin <flavour> <version> [--toolchain <id>] [--revision <n>]
+# tools/pin <flavour> <version> [--toolchain <id>] [--build <n>]
 #
 # Writes inputs/<flavour>/<version>.sh: the exact files a build of that
 # version uses, each pinned by sha256.
@@ -19,21 +19,21 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 die() { echo "pin: $*" >&2; exit 1; }
 
-[[ $# -ge 2 ]] || die "usage: tools/pin <flavour> <version> [--toolchain <id>] [--revision <n>]"
+[[ $# -ge 2 ]] || die "usage: tools/pin <flavour> <version> [--toolchain <id>] [--build <n>]"
 FLAVOUR="$1"; VERSION="$2"; shift 2
 TOOLCHAIN="$(ls "$ROOT/toolchains" | sed -n 's/\.sh$//p' | sort | tail -1)"
-REVISION=1
+NUMBER=1
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --toolchain) TOOLCHAIN="$2"; shift 2 ;;
-        --revision) REVISION="$2"; shift 2 ;;
+        --build) NUMBER="$2"; shift 2 ;;
         *) die "unknown option $1" ;;
     esac
 done
 [[ "$FLAVOUR" == wine ]] || die "only the wine flavour is supported so far"
 
 OUT="$ROOT/inputs/$FLAVOUR/$VERSION.sh"
-[[ -e "$OUT" ]] && die "$OUT exists; a pinned version is changed by hand, with a new --revision"
+[[ -e "$OUT" ]] && die "$OUT exists; a pinned version is changed by hand, with a new --build"
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 MAJOR="${VERSION%%.*}"
@@ -69,7 +69,7 @@ cat > "$OUT" <<EOF
 # Pinned inputs for $FLAVOUR $VERSION. Written by tools/pin; review changes like code.
 
 WINE_VERSION="$VERSION"
-BUILD_REVISION=$REVISION
+BUILD_NUMBER=$NUMBER
 TOOLCHAIN="$TOOLCHAIN"
 
 WINE_URL="$URL"

@@ -31,7 +31,7 @@ The same commands run on a developer's Mac and in CI:
 
 ```sh
 ./wmb vm toolchain 20261111 --archive   # once: the libraries and compilers, in a fresh VM
-./wmb vm build wine 11.21               # -> vm-share/out/wine-11.21-r1-macos-x86_64.tar.xz
+./wmb vm build wine 11.21               # -> vm-share/out/wine-11.21-build1-macos-x86_64.tar.xz
 ```
 
 `./wmb vm …` runs the command inside a clean macOS VM ([Tart](https://tart.run))

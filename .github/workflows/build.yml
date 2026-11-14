@@ -2,7 +2,7 @@
 #
 # Builds one Wine version in a fresh VM from the toolchain's pinned Tart image
 # on the self-hosted Mac, then attests the files and puts them on a draft
-# release named after the build (wine-11.21-r1).
+# release named after the build (wine-11.21-build1).
 #
 # Manual only. The self-hosted runner must never run pull-request code
 # (plan.md, section 2): don't add pull_request triggers here.

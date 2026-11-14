@@ -157,7 +157,7 @@ info = {
     "build_name": env["BUILD_NAME"],
     "flavour": env["FLAVOUR"],
     "wine_version": env["WINE_VERSION"],
-    "revision": int(env["BUILD_REVISION"]),
+    "build_number": int(env["BUILD_NUMBER"]),
     "platform": "macos-x86_64",
     "minimum_macos": env["DEPLOYMENT_TARGET"],
     "source_date_epoch": int(env["WINE_RELEASE_EPOCH"]),
@@ -200,7 +200,7 @@ Wine {env['WINE_VERSION']} for macOS (x86_64, runs under Rosetta 2 on Apple
 silicon), built by wine-mac-builds: {repo}
 
 - Flavour: `{env['FLAVOUR']}`. {env.get('FLAVOUR_DESCRIPTION', '')}
-- Build revision: r{env['BUILD_REVISION']}
+- Build number: {env['BUILD_NUMBER']}
 - Minimum macOS: {env['DEPLOYMENT_TARGET']}
 
 `BUILD-INFO.json` says exactly what went into this build: sources, patches,
