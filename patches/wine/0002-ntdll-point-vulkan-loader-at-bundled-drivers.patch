@@ -11,7 +11,7 @@ Why: the Vulkan loader only searches its build prefix, /usr/local, /etc and
  Setting VK_DRIVER_FILES (not VK_ADD_) means only the shipped MoltenVK is
  used, as in Gcenx's builds. Users can still override with any of the three
  variables.
-Applies to: wine 11.x (plain, staging)
+Applies to: wine 10.20, 11.x (plain, staging)
 
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c

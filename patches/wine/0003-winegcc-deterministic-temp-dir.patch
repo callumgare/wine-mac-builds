@@ -8,7 +8,7 @@ Why: winegcc links each PE file from a spec object in a temp directory named
  identical builds. Naming the directory after a hash of the command line makes
  the path, and so the files, the same each time. compile.sh sets TMPDIR to a
  fixed path, so it doesn't depend on the build machine's user either.
-Applies to: wine 11.x (plain, staging); doesn't change what Wine does at run time
+Applies to: wine 10.0, 10.20, 11.x (plain, staging); doesn't change what Wine does at run time
 
 --- a/tools/winegcc/winegcc.c
 +++ b/tools/winegcc/winegcc.c

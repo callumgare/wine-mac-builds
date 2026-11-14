@@ -37,7 +37,13 @@ OUT="$ROOT/inputs/$FLAVOUR/$VERSION.sh"
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 MAJOR="${VERSION%%.*}"
-URL="https://dl.winehq.org/wine/source/$MAJOR.x/wine-$VERSION.tar.xz"
+# A stable release, its release candidates and its point releases (10.0,
+# 10.0-rc1, 10.0.1) live in their own folder; development releases in N.x.
+case "$VERSION" in
+    *.0|*.0-rc*|*.0.*) DIR="$MAJOR.0" ;;
+    *) DIR="$MAJOR.x" ;;
+esac
+URL="https://dl.winehq.org/wine/source/$DIR/wine-$VERSION.tar.xz"
 curl -fsSL -o "$TMP/src.tar.xz" "$URL"
 curl -fsSL -o "$TMP/src.tar.xz.sign" "$URL.sign"
 

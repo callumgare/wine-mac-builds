@@ -1,0 +1,62 @@
+From: written for wine-mac-builds: patch 0001's behaviour for Wine 10.0, where
+ winevulkan (not win32u) builds the host instance's create info and there's no
+ host_extensions table.
+Source: none; follows Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
+Upstream: not in WineHQ as of 11.21
+Why: as patch 0001. If the host loader offers VK_KHR_portability_enumeration,
+ enable it and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, so the
+ bundled Vulkan loader doesn't hide MoltenVK. (Sikarugir's 10.0_8 doesn't need
+ this: its wrapper supplies MoltenVK as libvulkan.1.dylib, with no loader.)
+Applies to: wine 10.0
+
+--- a/dlls/winevulkan/vulkan.c
++++ b/dlls/winevulkan/vulkan.c
+@@ -635,6 +635,23 @@
+  * This function takes care of extensions handled at winevulkan layer, a Wine graphics
+  * driver is responsible for handling e.g. surface extensions.
+  */
++static BOOL host_has_instance_extension(const char *name)
++{
++    VkExtensionProperties *props;
++    uint32_t count, i;
++    BOOL ret = FALSE;
++
++    if (p_vkEnumerateInstanceExtensionProperties(NULL, &count, NULL) != VK_SUCCESS) return FALSE;
++    if (!(props = malloc(count * sizeof(*props)))) return FALSE;
++    if (p_vkEnumerateInstanceExtensionProperties(NULL, &count, props) == VK_SUCCESS)
++    {
++        for (i = 0; i < count; i++)
++            if (!strcmp(props[i].extensionName, name)) ret = TRUE;
++    }
++    free(props);
++    return ret;
++}
++
+ static VkResult wine_vk_instance_convert_create_info(struct conversion_context *ctx,
+         const VkInstanceCreateInfo *src, VkInstanceCreateInfo *dst, struct wine_instance *instance)
+ {
+@@ -695,7 +712,7 @@
+         }
+     }
+ 
+-    new_extensions = conversion_context_alloc(ctx, (src->enabledExtensionCount + 2) *
++    new_extensions = conversion_context_alloc(ctx, (src->enabledExtensionCount + 3) *
+                                               sizeof(*src->ppEnabledExtensionNames));
+     memcpy(new_extensions, src->ppEnabledExtensionNames,
+            dst->enabledExtensionCount * sizeof(*dst->ppEnabledExtensionNames));
+@@ -723,6 +740,15 @@
+         new_extensions[dst->enabledExtensionCount++] = "VK_KHR_external_memory_capabilities";
+     }
+ 
++    if (host_has_instance_extension("VK_KHR_portability_enumeration"))
++    {
++        for (i = 0; i < dst->enabledExtensionCount; i++)
++            if (!strcmp(new_extensions[i], "VK_KHR_portability_enumeration")) break;
++        if (i == dst->enabledExtensionCount)
++            new_extensions[dst->enabledExtensionCount++] = "VK_KHR_portability_enumeration";
++        dst->flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
++    }
++
+     TRACE("Enabled %u instance extensions.\n", dst->enabledExtensionCount);
+ 
+     return VK_SUCCESS;
