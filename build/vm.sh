@@ -16,8 +16,8 @@
 #   cache/  downloads (by sha256), kept between runs
 #   out/    finished artifacts, including toolchain archives
 #   logs/   one log per run
-#   ccache/ the compiler cache (build/compile.sh), kept between runs; set
-#           WMB_VM_CCACHE=0 to build without it
+#   ccache/ the compiler cache (build/compile.sh), kept between runs; off
+#           unless WMB_VM_CCACHE=1: it once returned the wrong object (plan.md)
 #
 # The build itself runs on the VM's own disk, which is faster than the share.
 #
@@ -101,7 +101,7 @@ rm -f "$EXIT_FILE"; : > "$LOG"
     echo '    cd "$HOME/wmb"'
     printf '    export WMB_CACHE_DIR=%q WMB_OUT_DIR=%q WMB_WORK_DIR="$HOME/work"\n' "$GUEST_SHARE/cache" "$GUEST_SHARE/out"
     printf '    export WMB_LANE=tart GITHUB_ACTIONS=%q\n' "${GITHUB_ACTIONS:-}"
-    if [[ "${WMB_VM_CCACHE:-1}" != 0 ]]; then printf '    export WMB_CCACHE_DIR=%q\n' "$GUEST_SHARE/ccache"; fi
+    if [[ "${WMB_VM_CCACHE:-0}" == 1 ]]; then printf '    export WMB_CCACHE_DIR=%q\n' "$GUEST_SHARE/ccache"; fi
     if [[ "$1" != toolchain ]]; then printf '    ./wmb toolchain %q\n' "$tc_id"; fi
     echo "    ./wmb$args"
     echo ')'
