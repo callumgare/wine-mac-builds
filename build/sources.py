@@ -140,6 +140,11 @@ for c in info["components"]:
     from_overlay = any(port_dir.as_posix().endswith("/" + u) for u in gcenx_used)
     tree = ({"repository": env["GCENX_PORTS_REPO"], "commit": env["GCENX_PORTS_COMMIT"]} if from_overlay else
             {"repository": env["MACPORTS_PORTS_REPO"], "commit": env["MACPORTS_PORTS_COMMIT"]})
+    # A main-tree port the toolchain patched (toolchain.sh,
+    # MACPORTS_PORT_PATCHES): macports/<port>/ holds the patched Portfile.
+    for pp in env.get("MACPORTS_PORT_PATCHES_LIST", "").split():
+        if port_dir.as_posix().endswith("/" + pp):
+            tree["patch"] = f"recipe/patches/macports/{pp}.patch"
     files = port_distfiles(port)
     for f in files:
         f["copy"] = copy_ref(port, version)

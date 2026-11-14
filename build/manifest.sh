@@ -26,6 +26,7 @@ export WMB_ROOT WMB_OUT_DIR TC BUILD_ID BUILD_NAME FLAVOUR FLAVOUR_DESCRIPTION B
     TOOLCHAIN_ARCHIVE_REPO TOOLCHAIN_SOURCES_SHA256
 # (bash can't export arrays.)
 export GCENX_PORTS_USED_LIST="${GCENX_PORTS_USED[*]}"
+export MACPORTS_PORT_PATCHES_LIST="${MACPORTS_PORT_PATCHES[*]+${MACPORTS_PORT_PATCHES[*]}}"
 # A string copy: bash can't export an array, and assigning to PATCHES itself
 # only replaced its first element, so the list never reached manifest.py.
 export PATCH_LIST="${PATCHES[*]}"

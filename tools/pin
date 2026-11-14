@@ -21,7 +21,8 @@ die() { echo "pin: $*" >&2; exit 1; }
 
 [[ $# -ge 2 ]] || die "usage: tools/pin <flavour> <version> [--toolchain <id>] [--build <n>]"
 FLAVOUR="$1"; VERSION="$2"; shift 2
-TOOLCHAIN="$(ls "$ROOT/toolchains" | sed -n 's/\.sh$//p' | sort | tail -1)"
+# Default: the newest published toolchain (one with its archive pinned).
+TOOLCHAIN="$(grep -l '^TOOLCHAIN_ARCHIVE_SHA256="[0-9a-f]' "$ROOT"/toolchains/*.sh | sed 's|.*/||; s/\.sh$//' | sort | tail -1)"
 NUMBER=1
 while [[ $# -gt 0 ]]; do
     case "$1" in

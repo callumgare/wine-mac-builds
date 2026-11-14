@@ -78,6 +78,14 @@ export MACOSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 # extra_env (below) passes it through. Only for the toolchain: Wine's build
 # also runs llvm-mingw's clang.
 export CCC_OVERRIDE_OPTIONS="# +-arch +x86_64"
+# More variables for every port's build (MACPORTS_EXTRA_ENV, NAME=value),
+# e.g. ZERO_AR_DATE=1 so the linker's debug map doesn't record object file
+# times (plan.md, "Two builds of one toolchain id aren't byte-identical").
+EXTRA_ENV_NAMES="CCC_OVERRIDE_OPTIONS"
+for kv in ${MACPORTS_EXTRA_ENV[@]+"${MACPORTS_EXTRA_ENV[@]}"}; do
+    export "${kv?}"
+    EXTRA_ENV_NAMES+=" ${kv%%=*}"
+done
 JOBS="$(sysctl -n hw.ncpu)"
 
 if [[ ! -w "$WMB_TOOLCHAINS_DIR" ]]; then
@@ -179,6 +187,16 @@ else
         mkdir -p "$PORTS/overlay/$(dirname "$p")"
         cp -R "$SRC/gcenx-ports/$p" "$PORTS/overlay/$p"
     done
+    # Main-tree ports this toolchain changes (MACPORTS_PORT_PATCHES, from
+    # toolchain 20261115-on): copied into the overlay, which comes first,
+    # with patches/macports/<category>/<port>.patch applied.
+    for p in ${MACPORTS_PORT_PATCHES[@]+"${MACPORTS_PORT_PATCHES[@]}"}; do
+        mkdir -p "$PORTS/overlay/$(dirname "$p")"
+        rm -rf "${PORTS:?}/overlay/$p"
+        cp -R "$PORTS/macports-ports/$p" "$PORTS/overlay/$p"
+        log "Patching port $p"
+        patch -d "$PORTS/overlay/$p" -p1 --forward --batch < "$WMB_ROOT/patches/macports/$p.patch"
+    done
     # The overlay has no PortGroups of its own; use the main tree's.
     ln -sfn "$PORTS/macports-ports/_resources" "$PORTS/overlay/_resources"
     cat > "$TC/etc/macports/sources.conf" <<EOF
@@ -225,8 +243,8 @@ startupitem_install         no
 # The version of \$PORTS_SDK, which the patch above makes MacPorts use.
 # (Portfiles test this version.)
 macosx_sdk_version          $PORTS_SDK_VERSION
-# CCC_OVERRIDE_OPTIONS, set above.
-extra_env                   CCC_OVERRIDE_OPTIONS
+# CCC_OVERRIDE_OPTIONS and MACPORTS_EXTRA_ENV, set above.
+extra_env                   $EXTRA_ENV_NAMES
 # Keep every port's build log (checked below, and part of the record).
 keeplogs                    yes
 EOF
@@ -346,6 +364,8 @@ EOF
         echo "ports_sdk: MacOSX$PORTS_SDK_VERSION.sdk $PORTS_SDK_SHA256 $PORTS_SDK_URL (plus libc++ headers from Xcode's SDK)"
         echo "macports_ports_commit: $MACPORTS_PORTS_COMMIT"
         echo "gcenx_ports_commit: $GCENX_PORTS_COMMIT (${GCENX_PORTS_USED[*]})"
+        echo "ports_patched: ${MACPORTS_PORT_PATCHES[*]+${MACPORTS_PORT_PATCHES[*]}} (patches/macports/)"
+        echo "ports_extra_env: ${MACPORTS_EXTRA_ENV[*]+${MACPORTS_EXTRA_ENV[*]}}"
         echo "llvm_mingw: $LLVM_MINGW_VERSION $LLVM_MINGW_SHA256"
         echo "moltenvk: $MOLTENVK_VERSION $MOLTENVK_SHA256"
         echo "gstreamer: $GSTREAMER_VERSION $GSTREAMER_SHA256"

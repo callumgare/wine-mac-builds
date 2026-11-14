@@ -1,0 +1,31 @@
+SPDX-License-Identifier: BSD-3-Clause
+wine-mac-builds: build FreeType without HarfBuzz, as Gcenx's builds have it.
+
+MacPorts' FreeType loads HarfBuzz at run time by its absolute path in the
+MacPorts prefix (FT_LIBHARFBUZZ). Wine builds don't ship HarfBuzz, so on a
+user's Mac the load fails and FreeType runs without it; on a Mac with the
+toolchain installed it would load the toolchain's copy instead.
+build/check.sh refuses that kind of path. Applied to the main tree's
+print/freetype by build/toolchain.sh (MACPORTS_PORT_PATCHES).
+
+--- a/Portfile
++++ b/Portfile
+@@ -57,17 +57,12 @@
+ 
+ # See http://trac.macports.org/ticket/18232
+ configure.cppflags-replace  -I${prefix}/include -isystem${prefix}/include
+-platform darwin {
+-    # Needs to use a full path with dlopen since ${prefix} is not
+-    # usually in the search path.
+-    configure.cppflags-append   {-DFT_LIBHARFBUZZ=\"${prefix}/lib/libharfbuzz.0.dylib\"}
+-}
+ 
+ configure.args          --with-brotli \
+                         --with-bzip2 \
+                         --with-png \
+                         --with-zlib \
+-                        --with-harfbuzz=dynamic \
++                        --with-harfbuzz=no \
+                         --without-librsvg \
+                         ac_cv_prog_AWK=/usr/bin/awk
+ 
