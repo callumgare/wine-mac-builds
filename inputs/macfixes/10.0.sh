@@ -37,6 +37,7 @@ PATCHES=(
     patches/wine/0001-winevulkan-enable-host-vulkan-portability-enumeration-10.0.patch
     patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers-10.0.patch
     patches/wine/0003-winegcc-deterministic-temp-dir.patch
+    patches/wine/0004-dwrite-tests-build-with-fno-builtin.patch
     # Sikarugir 10.0_8's changes, in this order (patches/macfixes/10.0/):
     patches/macfixes/10.0/0001-cpu-version-tag-and-testing-warning.patch
     patches/macfixes/10.0/0002-msync-esync-msync.patch

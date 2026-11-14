@@ -35,4 +35,5 @@ PATCHES=(
     patches/wine/0001-winevulkan-enable-host-vulkan-portability-enumeration-10.0.patch
     patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers-10.0.patch
     patches/wine/0003-winegcc-deterministic-temp-dir.patch
+    patches/wine/0004-dwrite-tests-build-with-fno-builtin.patch
 )
