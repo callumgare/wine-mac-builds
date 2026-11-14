@@ -247,7 +247,8 @@ done < <(find "$T/bin" "$T/lib" -path "$T/lib/GStreamer.framework" -prune -o -ty
 # at run time (the same list as Gcenx's 11.21). Anything else is a function
 # newer than the minimum macOS that configure detected anyway (see
 # NEWER_THAN_TARGET in compile.sh): on an older macOS it's NULL.
-WEAK_OK='^_(os_sync_wait_on_address|os_sync_wait_on_address_with_timeout|os_sync_wake_by_address_any|pthread_cpu_number_np|_availability_version_check)$'
+# __ulock_wait2: macfixes' msync, behind __builtin_available(macOS 11.0).
+WEAK_OK='^_(__ulock_wait2|os_sync_wait_on_address|os_sync_wait_on_address_with_timeout|os_sync_wake_by_address_any|pthread_cpu_number_np|_availability_version_check)$'
 while read -r f; do
     dyld_info -imports "$f" | grep 'weak-import.*(from libSystem)' |
         grep -o -E '_[A-Za-z0-9_$]+ \[weak-import\]' | awk '{print $1}' |
