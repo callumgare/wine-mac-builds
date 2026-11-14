@@ -27,7 +27,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A release event runs on the release's tag, which may not deploy; start
+  # the same workflow on main instead.
+  from-release:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run site.yml --repo "$GITHUB_REPOSITORY" --ref main
+
   generate:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,7 +60,7 @@ jobs:
 
   deploy:
     needs: generate
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name != 'release' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: cloudflare-pages
     permissions: {}
