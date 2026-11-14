@@ -11,7 +11,10 @@
 #   - wine --version names the version built,
 #   - wineboot makes a prefix, and cmd and reg run in it,
 #   - every library loaded is the tree's own or macOS's,
-#   - MoltenVK loads from the tree (Vulkan finds its driver).
+#   - a Vulkan program (tests/probes/vulkan.c) creates an instance and
+#     finds a GPU, and MoltenVK loads from the tree. (The probe is what
+#     starts Vulkan: Wine 11 does at startup, but 10.x only when a program
+#     asks, so without it a 10.x smoke test never touched Vulkan.)
 #
 # File comparison can't see these: a weak import of a function the minimum
 # macOS lacks crashed every process, and a Vulkan loader that only found
@@ -24,6 +27,7 @@ require_x86_64 "$@"
 [[ $# -eq 2 ]] || die "usage: smoke.sh <flavour> <version>"
 FLAVOUR="$1"; VERSION="$2"
 load_build_inputs "$FLAVOUR" "$VERSION"
+load_toolchain "$TOOLCHAIN"
 export PATH; PATH="$(clean_path)"
 
 W="$WMB_WORK_DIR/$BUILD_ID"
@@ -74,6 +78,14 @@ step "reg"
 run 120 reg "$T/bin/wine" reg query 'HKLM\Software\Microsoft\Windows NT\CurrentVersion' /v ProductName ||
     fail "reg query failed (see $LOG/reg.log)"
 grep -q ProductName "$LOG/reg.log" || fail "reg query found no ProductName (see $LOG/reg.log)"
+
+step "Vulkan (tests/probes/vulkan.c)"
+"$TC/libexec/llvm-mingw/bin/x86_64-w64-mingw32-clang" -O2 -o "$LOG/vulkan.exe" "$WMB_ROOT/tests/probes/vulkan.c" ||
+    fail "couldn't compile the Vulkan probe"
+run 120 vulkan "$T/bin/wine" "$LOG/vulkan.exe" || fail "the Vulkan probe failed (see $LOG/vulkan.log)"
+grep -a '^vulkan:' "$LOG/vulkan.log" | sed 's/^/  /' >&2
+grep -a -q -E '^vulkan: instance created, [1-9]' "$LOG/vulkan.log" ||
+    fail "Vulkan found no GPU (see $LOG/vulkan.log)"
 stop_wine
 
 # --- What was loaded --------------------------------------------------------
