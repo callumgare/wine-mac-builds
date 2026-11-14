@@ -16,6 +16,8 @@
 #   cache/  downloads (by sha256), kept between runs
 #   out/    finished artifacts, including toolchain archives
 #   logs/   one log per run
+#   ccache/ the compiler cache (build/compile.sh), kept between runs; set
+#           WMB_VM_CCACHE=0 to build without it
 #
 # The build itself runs on the VM's own disk, which is faster than the share.
 #
@@ -40,7 +42,7 @@ load_toolchain "$tc_id"
 
 command -v tart >/dev/null || die "tart isn't installed (brew install openai/tools/tart)"
 SHARE="${WMB_VM_SHARE:-$WMB_ROOT/vm-share}"
-mkdir -p "$SHARE/repo" "$SHARE/cache" "$SHARE/out" "$SHARE/logs"
+mkdir -p "$SHARE/repo" "$SHARE/cache" "$SHARE/out" "$SHARE/logs" "$SHARE/ccache"
 rsync -a --delete --exclude /vm-share --exclude /work --exclude /out --exclude /.cache \
     "$WMB_ROOT/" "$SHARE/repo/"
 
@@ -99,6 +101,7 @@ rm -f "$EXIT_FILE"; : > "$LOG"
     echo '    cd "$HOME/wmb"'
     printf '    export WMB_CACHE_DIR=%q WMB_OUT_DIR=%q WMB_WORK_DIR="$HOME/work"\n' "$GUEST_SHARE/cache" "$GUEST_SHARE/out"
     printf '    export WMB_LANE=tart GITHUB_ACTIONS=%q\n' "${GITHUB_ACTIONS:-}"
+    if [[ "${WMB_VM_CCACHE:-1}" != 0 ]]; then printf '    export WMB_CCACHE_DIR=%q\n' "$GUEST_SHARE/ccache"; fi
     if [[ "$1" != toolchain ]]; then printf '    ./wmb toolchain %q\n' "$tc_id"; fi
     echo "    ./wmb$args"
     echo ')'

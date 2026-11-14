@@ -74,6 +74,41 @@ CROSSLDFLAGS="-Wl,-Brepro -Wl,-pdbaltpath:%_PDB%"
 # A .pdb per Windows-side module, collected by package.sh.
 CROSSDEBUG="pdb"
 
+# --- Compiler cache ------------------------------------------------------------
+# ccache, when WMB_CCACHE_DIR is set (vm.sh points it at the share, so it
+# outlives the VM). It changes how long a build takes, not what it makes: a
+# hit returns the object the same compile produced before. The key covers
+# the preprocessed source, the arguments and the compiler; /usr/bin/clang is
+# only Xcode's shim, so the namespace adds the Xcode and SDK versions. The
+# reproducibility check (two builds, identical SHA256SUMS) would show it if
+# a cached build ever differed. Settings from dappermint/winecx-gptk
+# (plan.md section 9). Not part of the toolchain, as it ships nothing.
+CCACHE_VERSION="4.14.2"
+CCACHE_URL="https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-darwin.tar.gz"
+CCACHE_SHA256="cf240009630b605b775c7c5c7b7105a3b196c79f31af322c1557969aa28003fc"
+MINGW_CC="$TC/libexec/llvm-mingw/bin/clang"
+CC_LAUNCH=""
+if [[ -n "${WMB_CCACHE_DIR:-}" ]]; then
+    tar -xzf "$(fetch "$CCACHE_URL" "$CCACHE_SHA256")" -C "$W"
+    CCACHE="$W/ccache-$CCACHE_VERSION-darwin/ccache"
+    export CCACHE_DIR="$WMB_CCACHE_DIR"
+    export CCACHE_MAXSIZE="${WMB_CCACHE_MAXSIZE:-25G}"
+    export CCACHE_BASEDIR="$W"
+    export CCACHE_COMPILERCHECK=content
+    export CCACHE_SLOPPINESS=time_macros
+    export CCACHE_NAMESPACE="xcode-$(xcodebuild -version | sed -n 's/^Build version //p')-sdk-$(xcrun --show-sdk-version)"
+    "$CCACHE" --zero-stats >/dev/null
+    CC_LAUNCH="$CCACHE "
+    # configure's --with-mingw takes one path, ending in /clang, so a
+    # wrapper of that name launches the Windows-side compiler. It execs the
+    # real clang, which finds lld and its headers next to itself as before.
+    mkdir -p "$W/ccache-mingw"
+    printf '#!/bin/sh\nexec %q %q "$@"\n' "$CCACHE" "$MINGW_CC" > "$W/ccache-mingw/clang"
+    chmod +x "$W/ccache-mingw/clang"
+    MINGW_CC="$W/ccache-mingw/clang"
+    log "ccache $CCACHE_VERSION, cache $CCACHE_DIR ($CCACHE_NAMESPACE)"
+fi
+
 # GStreamer and FFmpeg from GStreamer.framework, as the Portfile's
 # +gstreamer variant does.
 FW="$TC/Library/Frameworks/GStreamer.framework"
@@ -103,9 +138,9 @@ group_start "Configure"
     cd "$SRC"
     ./configure \
         --prefix="$PREFIX" \
-        --with-mingw="$TC/libexec/llvm-mingw/bin/clang" \
+        --with-mingw="$MINGW_CC" \
         "${CONFIGURE_ARGS[@]}" \
-        CC="$CC" CXX="$CXX" \
+        CC="$CC_LAUNCH$CC" CXX="$CC_LAUNCH$CXX" \
         CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" \
         CROSSCFLAGS="$CROSSCFLAGS" CROSSLDFLAGS="$CROSSLDFLAGS" CROSSDEBUG="$CROSSDEBUG" \
         FFMPEG_CFLAGS="$FFMPEG_CFLAGS" FFMPEG_LIBS="$FFMPEG_LIBS" \
@@ -130,6 +165,11 @@ group_end
 group_start "Build"
 make -C "$SRC" -j"$(sysctl -n hw.ncpu)"
 group_end
+if [[ -n "$CC_LAUNCH" ]]; then
+    group_start "ccache"
+    "$CCACHE" --show-stats | tee "$W/ccache-stats.txt"
+    group_end
+fi
 
 group_start "Install"
 rm -rf "$INSTALL"
@@ -148,6 +188,7 @@ group_end
     echo "CROSSDEBUG=$CROSSDEBUG"
     echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
     echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH"
+    echo "CCACHE=${CC_LAUNCH:+ccache $CCACHE_VERSION}"
     echo "CONFIGURE_ARGS=${CONFIGURE_ARGS[*]} --with-mingw=<toolchain>/libexec/llvm-mingw/bin/clang"
     echo "MINGW_CC_VERSION=$("$TC/libexec/llvm-mingw/bin/clang" --version | head -1)"
     echo "CC_VERSION=$(/usr/bin/clang --version | head -1)"
