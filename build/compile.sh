@@ -67,7 +67,10 @@ CROSSCFLAGS="-O2 -g $PREFIX_MAP"
 # Wine links its PE files in MSVC mode (-target *-windows), so with lld-link,
 # which doesn't know MinGW ld's --no-insert-timestamp. -Brepro is lld-link's
 # way: the PE timestamp becomes a hash of the output, not the build time.
-CROSSLDFLAGS="-Wl,-Brepro"
+# -pdbaltpath:%_PDB% records just the .pdb's file name in each module, not
+# its path in the build VM (debuggers find it by name and GUID; Gcenx's
+# builds have no path either). check.sh fails on build paths.
+CROSSLDFLAGS="-Wl,-Brepro -Wl,-pdbaltpath:%_PDB%"
 # A .pdb per Windows-side module, collected by package.sh.
 CROSSDEBUG="pdb"
 
