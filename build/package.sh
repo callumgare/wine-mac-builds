@@ -4,7 +4,9 @@
 # package.sh <flavour> <version>
 #
 # Turns work/<build id>/install into the release tree (layout: plan.md
-# section 5), then writes out/<build id>.tar.xz and out/<build id>-debug.tar.xz.
+# section 5), its debug symbols (<build id>-debug) and Wine's tests
+# (<build id>-tests), all under work/<build id>/pkg. archive.sh makes the
+# tarballs.
 #
 #   <build id>/
 #     bin/ lib/ lib/wine/ share/wine/   Wine's own install layout
@@ -29,6 +31,7 @@ SRC="$W/src"
 PKG="$W/pkg"
 T="$PKG/$BUILD_ID"                 # the release tree
 D="$PKG/$BUILD_ID-debug"           # its debug symbols
+TS="$PKG/$BUILD_ID-tests"          # Wine's own test programs
 INSTALLED="$W/install/opt/wmb/wine"
 [[ -d "$INSTALLED/lib/wine" ]] || die "nothing installed at $INSTALLED; run compile.sh first"
 
@@ -166,11 +169,38 @@ while read -r f; do
     strip -S "$f"
 done < <(wine_machos)
 
-(cd "$SRC" && find . -name '*.pdb' -path '*-windows/*') | while read -r p; do
+# (Not the test programs': those belong to the -tests asset, and nobody
+# debugs them from a release.)
+(cd "$SRC" && find . -name '*.pdb' -path '*-windows/*' -not -path '*/tests/*' -not -path './programs/winetest/*') | while read -r p; do
     arch="$(basename "$(dirname "$p")")"     # i386-windows, x86_64-windows
     mkdir -p "$D/lib/wine/$arch"
     cp "$SRC/$p" "$D/lib/wine/$arch/"
 done
+group_end
+
+# --- Tests ---------------------------------------------------------------------
+# winetest.exe, per architecture, with every test program built in: what
+# WineHQ's own test runs use. Kept as a release asset so any build can be
+# tested, or compared with another, later (plan.md section 3).
+group_start "Tests"
+mkdir -p "$TS"
+for arch in i386 x86_64; do
+    exe="$SRC/programs/winetest/$arch-windows/winetest.exe"
+    [[ -f "$exe" ]] || die "no $exe: was Wine configured with its tests?"
+    mkdir -p "$TS/$arch-windows"
+    cp "$exe" "$TS/$arch-windows/"
+done
+cat > "$TS/README.md" <<EOF
+# Wine's tests for $BUILD_ID
+
+\`winetest.exe\` with every one of Wine's test programs built in, from the same
+build as $BUILD_ID. Run it with that build:
+
+    wine x86_64-windows/winetest.exe -h     # options
+    wine i386-windows/winetest.exe -h       # the 32-bit tests
+
+Not needed to use Wine; it's for testing a build or comparing two.
+EOF
 group_end
 
 # --- Gecko and Mono ------------------------------------------------------------

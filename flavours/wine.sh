@@ -45,7 +45,6 @@ CONFIGURE_ARGS=(
     --with-vulkan
     --without-wayland
     --without-x
-    --disable-tests
     --disable-winebth_sys
 )
 
