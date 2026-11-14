@@ -100,6 +100,12 @@ elif [[ $ARCHIVE -eq 0 && ( -f "$ARCHIVE_FILE" || -n "${TOOLCHAIN_ARCHIVE_SHA256
     # A local archive (just built), else the published one, pinned by sha256
     # in toolchains/<id>.sh.
     src="$ARCHIVE_FILE"
+    # Once pinned, only the pinned bytes: two builds of one toolchain id
+    # differ, so a stale local archive would change the build.
+    if [[ -f "$src" && -n "${TOOLCHAIN_ARCHIVE_SHA256:-}" && "$(sha256_of "$src")" != "$TOOLCHAIN_ARCHIVE_SHA256" ]]; then
+        log "Not using $src: it isn't the pinned archive (sha256 $TOOLCHAIN_ARCHIVE_SHA256)"
+        src=""
+    fi
     if [[ ! -f "$src" ]]; then
         src="$(fetch_ghcr_blob "$TOOLCHAIN_ARCHIVE_REPO" "$TOOLCHAIN_ARCHIVE_SHA256" "$(basename "$ARCHIVE_FILE")")"
     fi
