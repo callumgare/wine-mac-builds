@@ -111,7 +111,11 @@ load_build_inputs() {
     # shellcheck source=/dev/null
     source "$i"
     : "${TOOLCHAIN:?inputs file must set TOOLCHAIN}"
-    : "${BUILD_NUMBER:?inputs file must set BUILD_NUMBER}"
+    # The build number isn't an input: CI assigns the next unused one for
+    # this flavour and version (build.yml) and passes it in. Local builds
+    # are build0, a number never published.
+    BUILD_NUMBER="${WMB_BUILD_NUMBER:-0}"
+    [[ "$BUILD_NUMBER" =~ ^(0|[1-9][0-9]*)$ ]] || die "WMB_BUILD_NUMBER='$BUILD_NUMBER' isn't a number"
     BUILD_NAME="$(build_name "$flavour" "$version" "$BUILD_NUMBER")"
     BUILD_ID="$BUILD_NAME-macos-x86_64"
 }

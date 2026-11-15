@@ -22,7 +22,7 @@
 # The build itself runs on the VM's own disk, which is faster than the share.
 #
 # Environment: TART_HOME (where Tart keeps images), WMB_VM_CPUS,
-# WMB_VM_MEMORY_MB.
+# WMB_VM_MEMORY_MB, WMB_BUILD_NUMBER (passed into the VM; default 0).
 
 source "$(dirname "$0")/lib.sh"
 
@@ -100,7 +100,7 @@ rm -f "$EXIT_FILE"; : > "$LOG"
     echo '    set -euo pipefail'
     echo '    cd "$HOME/wmb"'
     printf '    export WMB_CACHE_DIR=%q WMB_OUT_DIR=%q WMB_WORK_DIR="$HOME/work"\n' "$GUEST_SHARE/cache" "$GUEST_SHARE/out"
-    printf '    export WMB_LANE=tart GITHUB_ACTIONS=%q\n' "${GITHUB_ACTIONS:-}"
+    printf '    export WMB_LANE=tart GITHUB_ACTIONS=%q WMB_BUILD_NUMBER=%q\n' "${GITHUB_ACTIONS:-}" "${WMB_BUILD_NUMBER:-0}"
     if [[ "${WMB_VM_CCACHE:-0}" == 1 ]]; then printf '    export WMB_CCACHE_DIR=%q\n' "$GUEST_SHARE/ccache"; fi
     if [[ "$1" != toolchain ]]; then printf '    ./wmb toolchain %q\n' "$tc_id"; fi
     echo "    ./wmb$args"

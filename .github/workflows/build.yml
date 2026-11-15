@@ -27,15 +27,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Refuse a build name that already has a release before spending an hour
-  # building it (the publish job would refuse it anyway). Here rather than in
-  # the build job because seeing draft releases needs contents: write, which
-  # the self-hosted job shouldn't hold.
-  name-is-free:
+  # The build number: one more than the highest release (drafts included)
+  # of this flavour and version, so a rebuild never needs a commit and can't
+  # reuse a name (plan.md, "Naming"). Drafts are only visible with
+  # contents: write, which the self-hosted job shouldn't hold, so it's
+  # worked out here. The workflow-wide concurrency group keeps two runs of
+  # the same version from picking the same number.
+  number:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
+    outputs:
+      build_number: ${{ steps.next.outputs.build_number }}
     env:
       FLAVOUR: ${{ inputs.flavour }}
       VERSION: ${{ inputs.version }}
@@ -45,18 +49,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check no release has this build's name
+      - id: next
+        name: Next unused build number
         run: |
           source build/lib.sh
           load_build_inputs "$FLAVOUR" "$VERSION"
-          if gh release view "$BUILD_ID" >/dev/null 2>&1; then
-            echo "::error::release $BUILD_ID already exists; raise BUILD_NUMBER in inputs/$FLAVOUR/$VERSION.sh"
-            exit 1
-          fi
-          echo "$BUILD_ID is free"
+          prefix="$(build_name "$FLAVOUR" "$VERSION" "")"
+          tags="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" -q '.[].tag_name')"
+          last="$(grep -E "^${prefix//./\\.}[0-9]+-" <<<"$tags" | sed -E "s/^${prefix//./\\.}([0-9]+)-.*/\1/" | sort -n | tail -1 || true)"
+          n=$(( ${last:-0} + 1 ))
+          echo "Releases of $prefix*: highest ${last:-none}, so this is build$n"
+          echo "build_number=$n" >> "$GITHUB_OUTPUT"
 
   build:
-    needs: name-is-free
+    needs: number
     runs-on: [self-hosted, wmb-tart]
     timeout-minutes: 300
     permissions:
@@ -66,6 +72,7 @@ jobs:
     env:
       FLAVOUR: ${{ inputs.flavour }}
       VERSION: ${{ inputs.version }}
+      WMB_BUILD_NUMBER: ${{ needs.number.outputs.build_number }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
