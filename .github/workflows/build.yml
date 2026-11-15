@@ -55,7 +55,12 @@ jobs:
           source build/lib.sh
           load_build_inputs "$FLAVOUR" "$VERSION"
           prefix="$(build_name "$FLAVOUR" "$VERSION" "")"
-          tags="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" -q '.[].tag_name')"
+          # Retried: one run failed on a passing HTTP 502 from the API.
+          for try in 1 2 3 4 5; do
+            tags="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" -q '.[].tag_name')" && break
+            [[ $try -lt 5 ]] || exit 1
+            sleep $((try * 10))
+          done
           last="$(grep -E "^${prefix//./\\.}[0-9]+-" <<<"$tags" | sed -E "s/^${prefix//./\\.}([0-9]+)-.*/\1/" | sort -n | tail -1 || true)"
           n=$(( ${last:-0} + 1 ))
           echo "Releases of $prefix*: highest ${last:-none}, so this is build$n"
