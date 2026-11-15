@@ -77,4 +77,7 @@ PATCHES=(
     patches/macfixes/10.0/0037-sik-kernelbase-commandline-append.patch
     patches/macfixes/10.0/0038-sik-kernelbase-nvngx-d3dmetal.patch
     patches/macfixes/10.0/0039-cpu-map-files-without-exec-then-mprotect.patch
+    patches/macfixes/10.0/0040-cpu-rosetta-fs-addr32.patch
+    patches/macfixes/10.0/0041-winemac-cocoa-start-wait.patch
+    patches/macfixes/10.0/0042-ntdll-clear-inherited-exception-ports.patch
 )

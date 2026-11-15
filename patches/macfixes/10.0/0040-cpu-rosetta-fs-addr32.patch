@@ -1,0 +1,138 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: written for wine-mac-builds (not in Sikarugir). Behaviour of Second
+ Chance's binary patch of 32-bit ntdll (RosettaFaultFix, part 1 only), done
+ in the Unix-side fault handler instead.
+Upstream: no (candidate, kept on Second Chance's list for later)
+Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
+ 32-bit code (fs:[disp16]) instead of running it. Armadillo, the DRM in Big
+ Fish games, unlinks its exception handlers with "pop dword fs:[0000]"
+ (64 67 8F 06 00 00); left linked, its next fault calls a dead handler and
+ the game crashes. Emulate pop/push/mov fs:[disp16] and mov eax<->fs:[moffs16]
+ against the 32-bit TEB, for 32-bit code only, on general-protection and
+ page faults, and step over the instruction. Part 2 of Second Chance's patch
+ (skipping int 68h/41h) differs from Windows on purpose and isn't here.
+Status: untested; not yet compiled (2026-11-15).
+Applies to: wine 10.0 (macfixes, after 0039)
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 770bef5..8a40639 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -1936,6 +1936,89 @@ static inline BOOL emulate_xgetbv( ucontext_t *sigcontext, CONTEXT *context )
+     TRACE_(seh)( "emulated an XGETBV instruction\n" );
+     return TRUE;
+ }
++
++/***********************************************************************
++ *           emulate_fs_addr32
++ *
++ * Rosetta raises a fault for an %fs: access with the 0x67 address-size
++ * prefix in 32-bit code (16-bit addressing: fs:[disp16]) instead of running
++ * it. Armadillo, the DRM in many Big Fish games, unlinks its exception
++ * handlers with "pop dword fs:[0000]" (64 67 8F 06 00 00); left linked, its
++ * next fault calls a dead handler. Perform the access against the 32-bit
++ * TEB (what %fs points at in 32-bit code) and step over the instruction.
++ * Handles pop/push/mov with [disp16], and mov eax <-> fs:[moffs16].
++ * Not in Sikarugir; written for wine-mac-builds.
++ */
++static BOOL emulate_fs_addr32( ucontext_t *sigcontext )
++{
++    BYTE instr[6];
++    BYTE *teb32;
++    DWORD *reg, *esp_reg, value, esp;
++    WORD disp;
++    unsigned int len;
++
++    if (!cs32_sel || CS_sig(sigcontext) != cs32_sel) return FALSE;
++    if (!NtCurrentTeb()->WowTebOffset) return FALSE;
++    len = virtual_uninterrupted_read_memory( (BYTE *)(ULONG_PTR)(DWORD)RIP_sig(sigcontext), instr, sizeof(instr) );
++    if (len < 5 || instr[0] != 0x64 || instr[1] != 0x67) return FALSE;
++    teb32 = (BYTE *)NtCurrentTeb() + NtCurrentTeb()->WowTebOffset;
++
++#define REG32(n) ((DWORD *)((n) == 0 ? (void *)&RAX_sig(sigcontext) : (n) == 1 ? (void *)&RCX_sig(sigcontext) : \
++                            (n) == 2 ? (void *)&RDX_sig(sigcontext) : (n) == 3 ? (void *)&RBX_sig(sigcontext) : \
++                            (n) == 4 ? (void *)&RSP_sig(sigcontext) : (n) == 5 ? (void *)&RBP_sig(sigcontext) : \
++                            (n) == 6 ? (void *)&RSI_sig(sigcontext) : (void *)&RDI_sig(sigcontext)))
++    esp_reg = REG32(4);
++
++    if (instr[2] == 0xa1 || instr[2] == 0xa3)  /* mov eax, fs:[moffs16] / mov fs:[moffs16], eax */
++    {
++        disp = instr[3] | (instr[4] << 8);
++        if (instr[2] == 0xa1)
++        {
++            if (virtual_uninterrupted_read_memory( teb32 + disp, &value, 4 ) != 4) return FALSE;
++            *REG32(0) = value;
++        }
++        else if (virtual_uninterrupted_write_memory( teb32 + disp, REG32(0), 4 )) return FALSE;
++        len = 5;
++    }
++    else
++    {
++        BYTE modrm = instr[3];
++        int r = (modrm >> 3) & 7;
++
++        if (len < 6 || (modrm & 0xc7) != 0x06) return FALSE;  /* only [disp16] */
++        disp = instr[4] | (instr[5] << 8);
++        reg = REG32(r);
++        esp = *esp_reg;
++        if (instr[2] == 0x8f && r == 0)  /* pop dword fs:[disp16] */
++        {
++            if (virtual_uninterrupted_read_memory( (void *)(ULONG_PTR)esp, &value, 4 ) != 4) return FALSE;
++            if (virtual_uninterrupted_write_memory( teb32 + disp, &value, 4 )) return FALSE;
++            *esp_reg = esp + 4;
++        }
++        else if (instr[2] == 0xff && r == 6)  /* push dword fs:[disp16] */
++        {
++            if (virtual_uninterrupted_read_memory( teb32 + disp, &value, 4 ) != 4) return FALSE;
++            if (virtual_uninterrupted_write_memory( (void *)(ULONG_PTR)(esp - 4), &value, 4 )) return FALSE;
++            *esp_reg = esp - 4;
++        }
++        else if (instr[2] == 0x89)  /* mov fs:[disp16], r32 */
++        {
++            value = *reg;
++            if (virtual_uninterrupted_write_memory( teb32 + disp, &value, 4 )) return FALSE;
++        }
++        else if (instr[2] == 0x8b)  /* mov r32, fs:[disp16] */
++        {
++            if (virtual_uninterrupted_read_memory( teb32 + disp, &value, 4 ) != 4) return FALSE;
++            *reg = value;
++        }
++        else return FALSE;
++        len = 6;
++    }
++#undef REG32
++    RIP_sig(sigcontext) += len;
++    TRACE_(seh)( "emulated an fs: addr32 instruction (%02x) at %#x\n", instr[2], (DWORD)(RIP_sig(sigcontext) - len) );
++    return TRUE;
++}
+ #endif
+ 
+ /***********************************************************************
+@@ -2290,6 +2373,13 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *sigcontext )
+     case TRAP_x86_PROTFLT:   /* General protection fault */
+         {
+             WORD err = ERROR_sig(ucontext);
++#ifdef __APPLE__
++            if (emulate_fs_addr32( ucontext ))
++            {
++                leave_handler( ucontext );
++                return;
++            }
++#endif
+             if (!err && (rec.ExceptionCode = is_privileged_instr( &context.c ))) break;
+             if ((err & 7) == 2 && handle_interrupt( ucontext, &rec, &context )) return;
+             rec.ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
+@@ -2307,6 +2397,13 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *sigcontext )
+             leave_handler( ucontext );
+             return;
+         }
++#ifdef __APPLE__
++        if (emulate_fs_addr32( ucontext ))
++        {
++            leave_handler( ucontext );
++            return;
++        }
++#endif
+         if (rec.ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
+             rec.ExceptionInformation[0] == EXCEPTION_EXECUTE_FAULT)
+         {
