@@ -1,7 +1,7 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Allocate TLS expansion slots up front and expose them at %gs:0x1780
 Category: cpu
-Kind: fix
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 18756 (dlls/ntdll/loader.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/loader.c)
