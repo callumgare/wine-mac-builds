@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: More kernel32 synchronisation tests, from esync (tests only)
+Category: build
+Kind: tests
 Origin: crossover
 From: CrossOver 25.1.1 (crossover-sources-25.1.1.tar.gz, sources/wine/dlls/kernel32/tests/sync.c); no CodeWeavers hack number (wine-staging's eventfd_synchronization tests)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
 Upstream: no
-Runtime: no (changes only how Wine builds or its tests)
 Why: The kernel32 sync tests that come with esync: more mutex/event/semaphore/wait/APC coverage, and todo_wine_if(getenv("WINEESYNC")) for two known differences. Tests only; nothing in the shipped binaries changes.
 Evidence: Sikarugir 10.0_8: none possible (10.0_8 ships no tests); taken because CX ships it alongside 0001 and we build a -tests asset. Drop it if only binary-verified changes are wanted.
 Applies to: wine 10.0 (after 0001-esync-msync.patch)

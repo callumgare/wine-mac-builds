@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Report the same free disk space in mountmgr's volume queries
+Category: system
+Kind: fix
 Origin: winehq
 From: upstream commits 361b82c32e093e4cb9fe4a886289bdebb823a408 and a32e9be3d5e6771a3ad76d7477307f79bcac8edf (Tim Clem)
 Source: https://gitlab.winehq.org/wine/wine/-/commit/361b82c32e093e4cb9fe4a886289bdebb823a408 ; https://gitlab.winehq.org/wine/wine/-/commit/a32e9be3d5e6771a3ad76d7477307f79bcac8edf
 Upstream: yes, commits 361b82c32e (in Wine 11.2) and a32e9be3d5 (in Wine 11.7)
-Runtime: yes
 Why: The same "important usage" free space for mountmgr's volume size queries, so both paths agree.
 Evidence: Sikarugir 10.0_8: mountmgr.so imports kCFURLVolumeAvailableCapacityForImportantUsageKey; the "space == 0 -> -1" fallback is in its disassembly
 Applies to: wine 10.0

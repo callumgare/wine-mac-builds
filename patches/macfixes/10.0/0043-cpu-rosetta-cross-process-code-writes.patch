@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: make it notice code written into another process
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 18947 (dlls/ntdll/unix/virtual.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/virtual.c)
 CW-Hack: 18947
 Upstream: no
-Runtime: yes
 Why: NtWriteVirtualMemory writes another process's memory with
  mach_vm_write from wineserver, and Rosetta doesn't notice code changed
  that way: the target keeps running its old translation. After the write,

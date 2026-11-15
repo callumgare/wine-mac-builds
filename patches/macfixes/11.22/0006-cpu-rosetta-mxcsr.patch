@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
+Category: cpu
+Kind: workaround
 Origin: crossover (ported here)
 From: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
 CW-Hack: 24256, 24265
 Upstream: no
-Runtime: yes
 Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
 Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
 Port: to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:

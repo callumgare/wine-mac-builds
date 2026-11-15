@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: EnableMouseInPointer semi-stub: turn it on and send WM_POINTER messages for mouse input
+Category: input
+Kind: feature
 Origin: winehq
 From: WineHQ 71b686ce9fdce65416080c834a9103a743dc095c (backport), Rémi Bernon, "win32u: Implement NtUserEnableMouseInPointer semi-stub."
 Source: https://gitlab.winehq.org/wine/wine/-/commit/71b686ce9fdce65416080c834a9103a743dc095c
 Upstream: yes, since wine-11.3 (committed 2026-02-19)
-Runtime: yes
 Why: EnableMouseInPointer and IsMouseInPointerEnabled were stubs that
  failed. Now the first EnableMouseInPointer call sets the process-wide
  state, a later call asking for the opposite fails with

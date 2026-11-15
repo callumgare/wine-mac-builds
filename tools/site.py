@@ -264,8 +264,6 @@ def patch_row(p, rec, commit):
     name = p["file"].rsplit("/", 1)[-1]
     link = f"<a href=\"{esc(rec.get('repository'))}/blob/{esc(commit)}/{esc(p['file'])}\"><code>{esc(name)}</code></a>"
     what = esc(p.get("summary", ""))
-    if p.get("runtime") is False:
-        what += " <span class=muted>(build only)</span>"
     if p.get("uncertain"):
         what += f" <span class=warn title=\"{esc(p['uncertain'])}\">(uncertain)</span>"
     origin = esc(ORIGINS.get(p.get("origin"), p.get("origin", "")))
@@ -273,7 +271,34 @@ def patch_row(p, rec, commit):
         origin += " <span class=muted>(ported here)</span>"
     if p.get("cw_hacks"):
         origin += "<br><span class=muted>hack " + ", ".join(str(n) for n in p["cw_hacks"]) + "</span>"
-    return f"<tr><td>{link}</td><td>{what}</td><td>{origin}</td><td>{esc(p.get('upstream_status', ''))}</td></tr>"
+    kinds = esc(", ".join(p.get("kinds", [])))
+    return (f"<tr><td>{link}</td><td>{what}</td><td>{kinds}</td><td>{origin}</td>"
+            f"<td>{esc(p.get('upstream_status', ''))}</td></tr>")
+
+
+# build/patch_header.py's categories, in the order the build page shows them.
+CATEGORIES = {"cpu": "CPU, Rosetta 2 and memory", "sync": "Thread synchronisation",
+              "graphics": "Direct3D, D3DMetal, OpenGL and Vulkan", "input": "Windows, focus, mouse and keyboard",
+              "system": "Files, network, processes and version", "apps": "Fixes for specific programs",
+              "build": "How Wine builds, and its tests"}
+
+
+def patches_section(patches, rec, commit):
+    # One table per category, each in the order the patches are applied.
+    # Builds from before headers were recorded have no category: one table.
+    head = ("<div class=wrap><table><tr><th>Patch</th><th>What it does</th><th>Kind</th>"
+            "<th>Origin</th><th>In WineHQ</th></tr>")
+    groups = {}
+    for p in patches:
+        groups.setdefault(p.get("category"), []).append(p)
+    out = [f"<p>{len(patches)} patches, applied in order.</p>"]
+    for cat in [*CATEGORIES, *(c for c in groups if c not in CATEGORIES)]:
+        if cat not in groups:
+            continue
+        if cat is not None:
+            out.append(f"<h3>{esc(CATEGORIES.get(cat, cat))} <span class=muted>({len(groups[cat])})</span></h3>")
+        out += [head, *[patch_row(p, rec, commit) for p in groups[cat]], "</table></div>"]
+    return out
 
 
 def build_page(e, repo):
@@ -305,9 +330,7 @@ def build_page(e, repo):
     if e["known_issues"]:
         body += ["<h2>Known issues</h2><ul>", *[f"<li>{esc(i)}</li>" for i in e["known_issues"]], "</ul>"]
     if e["patches"]:
-        body += ["<h2>Patches</h2><div class=wrap><table><tr><th>Patch</th><th>What it does</th>"
-                 "<th>Origin</th><th>In WineHQ</th></tr>",
-                 *[patch_row(p, rec, commit) for p in e["patches"]], "</table></div>"]
+        body += ["<h2>Patches</h2>", *patches_section(e["patches"], rec, commit)]
     if e["components"]:
         body += ["<h2>Components</h2><div class=wrap><table><tr><th>Name</th><th>Version</th><th>Licence</th></tr>",
                  *[f"<tr><td>{esc(c['name'])}</td><td>{esc(c['version'])}</td><td>{esc(c['license'])}</td></tr>"

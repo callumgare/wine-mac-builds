@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Per-program extra command-line arguments from the registry (CommandLineAppend)
+Category: system
+Kind: feature
 Origin: reconstructed
 From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): kernelbase.dll sikarugir_append_command_line (inlined into CreateProcessInternalW; x86_64 0x174015cc8-0x174015ed6)
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
-Runtime: yes
 Why: Per-application extra command-line arguments set from the registry, so users and the Sikarugir app can add game options without editing shortcuts: when a process is created, the REG_SZ value HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend (if non-empty) is appended to its command line after a space. A FIXME is logged when it happens.
 Uncertain: limits copied from 10.0_8: exe names of 260+ characters are skipped and values over 2048 bytes (1023 characters) are ignored (the query fails). REG_EXPAND_SZ values are ignored, as in 10.0_8.
 Port: unchanged from 10.0 apart from the #include "winreg.h" hunk, which moved because

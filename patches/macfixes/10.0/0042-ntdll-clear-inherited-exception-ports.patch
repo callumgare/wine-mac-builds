@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Clear Mach exception ports inherited from the parent, such as a crash reporter's
+Category: system
+Kind: fix
 Origin: wine-mac-builds
 From: written for wine-mac-builds (not in Sikarugir). Second Chance does
  the same in the parent before exec today.
 Source: none published
 Upstream: no (candidate, kept on Second Chance's list for later)
-Runtime: yes
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,
  Crashpad), faults in the Wine process go to it rather than becoming the

@@ -1,12 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Point the Vulkan loader at the bundled MoltenVK driver
+Category: graphics
+Kind: fix
 Origin: wine-mac-builds
 From: patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers.patch,
  rebased for wine-mac-builds onto Wine 10.0's init_paths (same function, called
  after bin_dir and data_dir are set).
 Source: none published; see the 11.x patch's header.
 Upstream: no
-Runtime: yes
 Why: as the 11.x patch: without it the bundled Vulkan loader finds no driver
  manifest, so no MoltenVK.
 Applies to: wine 10.0

@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Retry write faults on pages mapped both writable and executable
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 24945 (dlls/ntdll/unix/virtual.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/virtual.c)
 CW-Hack: 24945
 Upstream: no
-Runtime: yes
 Why: On macOS a write fault can hit a page that is mapped w|x; drop and re-add exec on the page and retry instead of raising an exception.
 Evidence: Sikarugir 10.0_8: ntdll.so: "HACK: write fault on a w|x page, addr %p"
 Port: to 11.21: CX 26.3.0's form, which differs from 25.1.1's only in putting the done: label under #ifdef __APPLE__. CX 26.3.0 also adds CW Hack 25719 (same treatment for an exec fault on an executable page) next to it; not taken, since 10.0_8 does not have it.

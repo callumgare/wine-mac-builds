@@ -1,5 +1,7 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Point the Vulkan loader at the bundled MoltenVK driver
+Category: graphics
+Kind: fix
 Origin: wine-mac-builds
 From: written for wine-mac-builds, reproducing behaviour of Gcenx's 11.21 binaries
 Source: none published. Gcenx's 11.21 ntdll.so does this (read from its
@@ -8,7 +10,6 @@ Source: none published. Gcenx's 11.21 ntdll.so does this (read from its
  if that's a directory), but it isn't in his macports-wine overlay (any commit),
  WineHQ 11.21 or master, or wine-staging, as of 2026-11-12.
 Upstream: no
-Runtime: yes
 Why: the Vulkan loader only searches its build prefix, /usr/local, /etc and
  ~/.config for driver manifests, so without this a relocatable build finds no
  Vulkan driver (MoltenVK) at all: "vkCreateInstance: Found no drivers!".

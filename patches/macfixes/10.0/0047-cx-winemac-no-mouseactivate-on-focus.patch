@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Activate a focused window without a simulated WM_MOUSEACTIVATE (for Unity games, per CrossOver)
+Category: input
+Kind: workaround
 Origin: crossover
 From: CrossOver 25.1.1 CrossOver Hack #18896 (dlls/winemac.drv/window.c, cocoa_window.m)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/winemac.drv/window.c, cocoa_window.m)
 CW-Hack: 18896
 Upstream: no
-Runtime: yes
 Why: When a Mac window gains focus, winemac used to send the window a
  simulated WM_MOUSEACTIVATE (a click on its menu) to ask whether it wants
  to be activated; CrossOver says this breaks Unity games. The hack makes

@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: report success when setting debug registers instead of failing
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 25.1.1 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c) and CX HACK 21217 (server/mach.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c, sources/wine/server/mach.c)
 CW-Hack: 22131, 21217
 Upstream: no
-Runtime: yes
 Why: Rosetta 2 cannot set or read x86 debug registers; report success (ntdll) and return zeroed debug registers (wineserver) instead of failing, so anti-debug/DRM checks and debuggers don't abort.
 Evidence: Sikarugir 10.0_8: ntdll.so: "Setting debug registers is not supported under Rosetta, faking success"; wineserver: "%04x: thread_get_state failed on Apple Silicon - faking zero debug registers"
 Applies to: wine 10.0

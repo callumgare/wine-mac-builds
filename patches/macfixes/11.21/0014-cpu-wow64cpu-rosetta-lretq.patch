@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: switch between 32- and 64-bit code with lcall/lretq to avoid a race
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 20760 (dlls/wow64cpu/cpu.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/wow64cpu/cpu.c)
 CW-Hack: 20760
 Upstream: no
-Runtime: yes
 Why: Under Rosetta 2 (CPU brand "VirtualApple") use lcall/lretq rather than ljmp for 32-to-64-bit transitions, to avoid a SIGUSR1 race.
 Evidence: Sikarugir 10.0_8: wow64cpu.dll: "VirtualApple"; two lretq in its disassembly
 Port: to 11.21: unchanged from 10.0 (CX 26.3.0's hack is identical to 25.1.1's and applies to 11.21 as-is).

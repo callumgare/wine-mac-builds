@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Send only key-downs to a Mac input method
+Category: input
+Kind: fix
 Origin: crossover
 From: CrossOver 25.1.1, no hack number (dlls/winemac.drv/keyboard.c, cocoa_window.m, macdrv_cocoa.h)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/winemac.drv/keyboard.c, cocoa_window.m, macdrv_cocoa.h)
 Upstream: yes, in a different form: WineHQ 11.x's ime.c only sends key-downs
  to macdrv_send_keydown_to_input_source, with the same comment. Not in 10.0.
-Runtime: yes
 Why: When a Mac input method (IME) is active, macdrv_ImeProcessKey passed
  key-ups as well as key-downs to the Cocoa input context. Only key-downs go
  there now; key-ups go through as ordinary WM_KEYUP. The Cocoa function is

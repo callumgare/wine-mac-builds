@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Diablo II: Resurrected: leave out the DXVK and DXMT DLL paths
+Category: apps
+Kind: workaround
 Origin: reconstructed
 From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so set_dll_path (inlined into init_paths, 0x1e4b3-0x1e760)
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
-Runtime: yes
 Why: Diablo II: Resurrected (D2R.exe, matched by substring on argv[1]) never gets the WINEDLLPATH_DXVK or WINEDLLPATH_DXMT directories, and also skips WINEDLLPATH_D3DMETAL when SIKARUGIR_D2R_FORCE_VKD3D is set, so it falls through to vkd3d/wined3d instead.
 Uncertain: SIKARUGIR_D2R_FORCE_VKD3D is tested for presence only (any value, even "0", counts), as in 10.0_8. The DXVK/DXMT exclusion for D2R is unconditional in 10.0_8 and is kept that way.
 Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are

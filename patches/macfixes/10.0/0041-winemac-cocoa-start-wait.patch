@@ -1,12 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Wait longer for the Cocoa app to start on a busy Mac
+Category: system
+Kind: fix
 Origin: wine-mac-builds
 From: written for wine-mac-builds (not in Sikarugir), after Second Chance's
  in-process helper that lengthens the same wait.
 Source: none published
 Upstream: no (candidate, kept on Second Chance's list for later). The bug is
  in WineHQ 10.0 to master and in CrossOver 25.1.
-Runtime: yes
 Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
  Cocoa app. On a Mac with every core busy, under Rosetta, that can be
  missed: the process then has no display driver ("Failed to start Cocoa app

@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: WINE_SIMULATE_WRITECOPY: report copy-on-write pages as Windows does
+Category: cpu
+Kind: feature
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 22996 (without CW HACK 24067's default-visibility export, which 10.0_8 does not have)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/loader.c, virtual.c, unix_private.h)
 CW-Hack: 22996
 Upstream: no
-Runtime: yes
 Why: With WINE_SIMULATE_WRITECOPY=1, pages changed away from PAGE_(EXECUTE_)WRITECOPY report the old protection as PAGE_(EXECUTE_)READWRITE, as on Windows after a copy-on-write.
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
 Port: to 11.21: code unchanged (CX 26.3.0's is the same as 25.1.1's); hacks_init() is called right after 11.21's server_init_process( data ) in start_main_thread(), before msync_init(), as CX 26.3.0 orders them.

@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: skip the obsolete x87 FNDISI instruction (WineHQ bug 56441)
+Category: cpu
+Kind: workaround
 Origin: other
 From: dblark/macos-wine-build patches/0002-macos-hacks.patch (handle_fndisi), the workaround for WineHQ bug 56441
 Source: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae ; https://bugs.winehq.org/show_bug.cgi?id=56441
 Upstream: no
-Runtime: yes
 Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy said "RDSSPD/RDSSPQ".)
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks
 Applies to: wine 10.0

@@ -23,12 +23,13 @@ on every push. `build/manifest.py` records each patch's header in
 ```text
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: report success when setting debug registers instead of failing
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
 CW-Hack: 22131
 Upstream: partly (the wineserver half)
-Runtime: yes
 Why: Rosetta 2 cannot set or read x86 debug registers; report success from
  NtSetContextThread instead of failing, so anti-debug/DRM checks don't abort.
 Applies to: wine 11.21
@@ -42,12 +43,13 @@ Keys must appear in this order. Each may appear only once.
 | --- | --- | --- |
 | `SPDX-License-Identifier` | yes | The patch's licence. |
 | `Summary` | yes | One line, at most 100 characters, no full stop. What the patch does, for the build page's patch list. |
+| `Category` | yes | What part of Wine it changes, one of the values below. The build page groups patches by it. |
+| `Kind` | yes | What sort of change it is: one or more of the values below, comma-separated, e.g. `fix, performance`. |
 | `Origin` | yes | Where the change comes from, one of the values below. Add ` (ported here)` when this project rewrote someone else's change for another Wine version or file, e.g. `gcenx (ported here)`; `From` and `Port` say how. |
 | `From` | yes | Exactly where: commit, CrossOver version and files, wine-staging patch name, or the binary and function it was rebuilt from. |
 | `Source` | yes | A URL for that source, or `none published`. |
 | `CW-Hack` | no | CodeWeavers hack numbers the patch carries, comma-separated: `22131, 21217`. |
 | `Upstream` | yes | `yes`, `no` or `partly`, then optional detail: is the change in WineHQ's own tree? |
-| `Runtime` | yes | `yes`, or `no` for a patch that changes only how Wine builds or its tests. |
 | `Why` | yes | What problem it fixes, and how. |
 | `Uncertain` | no | What isn't known for sure. The build page flags these patches. |
 | `Evidence` | no | What shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
@@ -55,6 +57,30 @@ Keys must appear in this order. Each may appear only once.
 | `Expects before it` | no | Patches it depends on. |
 | `Applies to` | yes | Which Wine versions and flavours. |
 | `Status` | no | A dated working note (built? tested?). Not published: it can be out of date in a build. |
+
+`Category` values. `apps` is for changes that take effect only for
+specific named programs (they check the program's name or its files); every
+other patch goes by what part of Wine it changes, whoever it was written for.
+
+| Value | Covers |
+| --- | --- |
+| `cpu` | CPU, Rosetta 2 and memory |
+| `sync` | Thread synchronisation |
+| `graphics` | Direct3D, D3DMetal, OpenGL and Vulkan |
+| `input` | Windows, focus, mouse and keyboard |
+| `system` | Files, network, processes and version |
+| `apps` | Fixes for specific programs |
+| `build` | How Wine builds, and its tests; nothing changes at run time |
+
+`Kind` values:
+
+| Value | Meaning |
+| --- | --- |
+| `fix` | Makes Wine behave correctly where it didn't |
+| `workaround` | Works around a limit or bug outside Wine: macOS, Rosetta 2, or a program's own expectations |
+| `feature` | Adds an option, interface or capability |
+| `performance` | Makes something faster |
+| `tests` | Adds or changes tests only |
 
 `Origin` values:
 

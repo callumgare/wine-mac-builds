@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: report success when setting debug registers instead of failing
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
 CW-Hack: 22131
 Upstream: partly (the wineserver half)
-Runtime: yes
 Why: Rosetta 2 cannot set or read x86 debug registers; report success from NtSetContextThread / the wow64 set-context path instead of failing, so anti-debug/DRM checks and debuggers don't abort.
 Evidence: Sikarugir 10.0_8: ntdll.so: "Setting debug registers is not supported under Rosetta, faking success"; wineserver: "%04x: thread_get_state failed on Apple Silicon - faking zero debug registers"
 Port: to 11.21: ntdll half is CX 26.3.0's CW HACK 22131, identical to 25.1.1's. The 10.0 patch's wineserver half (CX HACK 21217, fake zero debug registers in server/mach.c get_thread_context) is dropped: WineHQ 11.21 already has it as is_rosetta() in server/mach.c (get_thread_context returns zeroed debug registers, set_thread_context returns STATUS_UNSUCCESSFUL, which this hack turns into success), and CX 26.3.0 no longer carries 21217.

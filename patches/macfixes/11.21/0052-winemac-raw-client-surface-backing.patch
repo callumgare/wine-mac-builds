@@ -1,10 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Fix a zoomed or cropped OpenGL picture after a program changes the display mode
+Category: graphics
+Kind: fix
 Origin: wine-mac-builds
 From: ours (wine-mac-builds), 2026-11-15
 Source: none published
 Upstream: no (WineHQ master still uses virtual_rect here, checked 2026-11-15)
-Runtime: yes
 Why: when a program changes the display mode under EmulateModeset, win32u
  creates the window's GL client surface "raw" and renders into a
  framebuffer surface (an FBO of the emulated, virtual size) that it blits

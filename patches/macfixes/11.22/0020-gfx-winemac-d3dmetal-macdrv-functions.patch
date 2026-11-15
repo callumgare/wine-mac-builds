@@ -1,5 +1,7 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: D3DMetal and DXMT: export winemac's function table for Metal views
+Category: graphics
+Kind: feature
 Origin: crossover
 From: CrossOver 26.3.0 CW HACK 22435 (dlls/winemac.drv/d3dmetal.c, d3dmetal_objc.[hm] and
  the hooks in cocoa_window.m, event.c, window.c, macdrv.h, macdrv_cocoa.h, plus the registry
@@ -8,7 +10,6 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.
  (10.0 form: CrossOver 25.1.1; dblark 0003-d3dmetal-hacks.patch)
 CW-Hack: 22435
 Upstream: no
-Runtime: yes
 Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so to get
  at the window's Cocoa view and create Metal views/layers, and call a few user32/advapi32
  functions through it from Unix code (registry calls go back to the PE side through

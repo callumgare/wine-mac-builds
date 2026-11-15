@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Decode BC7 textures on the CPU, which macOS OpenGL lacks (Tomb Raider I-III Remastered)
+Category: graphics
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CX HACK 23422 (dlls/winemac.drv/opengl.c, opengl_bcdec.h)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/winemac.drv/)
 CW-Hack: 23422
 Upstream: no
-Runtime: yes
 Why: macOS OpenGL has no BC7 (BPTC). Tomb Raider I-III Remastered upload
  BC7 2D-array textures; decode them on the CPU (bcdec) and upload RGBA8.
  Hooks glCompressedTexImage3D and glCompressedTexSubImage3D; other formats

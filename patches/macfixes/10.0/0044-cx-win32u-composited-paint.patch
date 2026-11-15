@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Deliver WM_PAINT for composited windows straight away in one PeekMessage case
+Category: input
+Kind: workaround
 Origin: crossover
 From: CrossOver 26.3.0 CXHACK 19488 (dlls/win32u/message.c, peek_message)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/win32u/message.c)
 CW-Hack: 19488
 Upstream: no
-Runtime: yes
 Why: When a program peeks with exactly PM_REMOVE | PM_QS_INPUT |
  PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE and gets WM_PAINT for
  a WS_EX_COMPOSITED window, send the paint to the window straight away and

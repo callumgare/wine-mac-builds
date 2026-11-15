@@ -24,12 +24,13 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FIELDS = [
     ("SPDX-License-Identifier", True),
     ("Summary", True),
+    ("Category", True),
+    ("Kind", True),
     ("Origin", True),
     ("From", True),
     ("Source", True),
     ("CW-Hack", False),
     ("Upstream", True),
-    ("Runtime", True),
     ("Why", True),
     ("Uncertain", False),
     ("Evidence", False),
@@ -48,9 +49,28 @@ ORIGINS = {
     "reconstructed": "rebuilt from a compiled binary with no published source",
     "wine-mac-builds": "written for this project",
 }
+# What part of Wine a patch changes. "apps" is for changes that take effect
+# only for specific named programs; everything else goes by what it changes.
+CATEGORIES = {
+    "cpu": "CPU, Rosetta 2 and memory",
+    "sync": "Thread synchronisation",
+    "graphics": "Direct3D, D3DMetal, OpenGL and Vulkan",
+    "input": "Windows, focus, mouse and keyboard",
+    "system": "Files, network, processes and version",
+    "apps": "Fixes for specific programs",
+    "build": "How Wine builds, and its tests",
+}
+# What sort of change it is; one or more, comma-separated.
+KINDS = {
+    "fix": "makes Wine behave correctly where it didn't",
+    "workaround": "works around a limit or bug outside Wine: macOS, Rosetta 2 or a program",
+    "feature": "adds an option, interface or capability",
+    "performance": "makes something faster",
+    "tests": "adds or changes tests only",
+}
 SUMMARY_MAX = 100
 KEY_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 -]*): ?(.*)$")
-# Upstream and Runtime start with a word from a fixed set, then optional text.
+# Upstream starts with a word from a fixed set, then optional text.
 # Origin is one of ORIGINS, plus " (ported here)" when this project rewrote
 # someone else's change for another Wine version or file.
 ORIGIN_RE = re.compile(r"^([a-z-]+)( \(ported here\))?$")
@@ -60,7 +80,8 @@ LEAD_RE = re.compile(r"^(yes|no|partly)(?:$|[ ,.;:(])")
 # out of date in a published build, so it isn't published.
 JSON_KEYS = {
     "Summary": "summary", "Origin": "origin", "From": "from", "Source": "source",
-    "CW-Hack": "cw_hacks", "Upstream": "upstream", "Runtime": "runtime", "Why": "why",
+    "Category": "category", "Kind": "kinds",
+    "CW-Hack": "cw_hacks", "Upstream": "upstream", "Why": "why",
     "Uncertain": "uncertain", "Evidence": "evidence", "Port": "port",
     "Expects before it": "expects_before", "Applies to": "applies_to",
 }
@@ -152,11 +173,15 @@ def _check(h):
             h.error(at["Origin"], "'(ported here)' is for someone else's change")
     if "CW-Hack" in f and not re.fullmatch(r"\d+(, \d+)*", f["CW-Hack"]):
         h.error(at["CW-Hack"], "CW-Hack is CodeWeavers hack numbers, comma-separated: 22131, 24265")
-    for key in ("Upstream", "Runtime"):
-        if key in f and not LEAD_RE.match(f[key]):
-            h.error(at[key], f"{key} starts with yes, no or partly, then optional text")
-    if "Runtime" in f and f["Runtime"].startswith("partly"):
-        h.error(at["Runtime"], "Runtime is yes or no")
+    if "Upstream" in f and not LEAD_RE.match(f["Upstream"]):
+        h.error(at["Upstream"], "Upstream starts with yes, no or partly, then optional text")
+    if "Category" in f and f["Category"] not in CATEGORIES:
+        h.error(at["Category"], f"Category {f['Category']!r} isn't one of: {', '.join(CATEGORIES)}")
+    if "Kind" in f:
+        kinds = f["Kind"].split(", ")
+        bad = [k for k in kinds if k not in KINDS]
+        if bad or len(set(kinds)) != len(kinds):
+            h.error(at["Kind"], f"Kind is one or more of {', '.join(KINDS)}, comma-separated, each once")
 
 
 def lead(value):
@@ -173,8 +198,8 @@ def to_json(h):
         value = h.fields[key]
         if key == "CW-Hack":
             value = [int(n) for n in value.split(", ")]
-        elif key == "Runtime":
-            value = lead(value) == "yes"
+        elif key == "Kind":
+            value = value.split(", ")
         elif key == "Origin":
             m = ORIGIN_RE.match(value)
             value = m.group(1)

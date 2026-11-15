@@ -1,11 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Map executable file sections without PROT_EXEC, then add it (old 32-bit installers)
+Category: cpu
+Kind: workaround
 Origin: crossover
 From: CrossOver 25.1.1 (wine_mmap in dlls/ntdll/unix/virtual.c, with CrossOver Hack #22011's utsname include)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/unix/virtual.c)
 CW-Hack: 22011
 Upstream: no (Wine 11 maps files without PROT_EXEC anyway)
-Runtime: yes
 Why: macOS refuses an mmap of a file with PROT_EXEC on a shared mapping, so
  in 10.0 every executable or force-exec (DEP off, as for old 32-bit
  installers) section view failed: "failed to set PROT_EXEC on file map,
