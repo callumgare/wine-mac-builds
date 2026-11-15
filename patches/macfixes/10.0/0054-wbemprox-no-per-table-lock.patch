@@ -10,7 +10,8 @@ Why: On 10.0, Big Fish trial games' WMI queries hang on "dlls\wbemprox\builtin.c
 Evidence: second-chance-78's Big Fish trials (White Wolf, Waverly Academy) on macfixes-10.0-build4 logged six such timeouts.
 Port: Upstream's patch, unchanged; it applies to 10.0 with only a line offset in builtin.c. Five of the six files it touches are identical in 10.0 and in its upstream parent (50b1a253d6). builtin.c differs only in code unrelated to the tables' lock.
 Applies to: wine 10.0
-Status: not yet built.
+Status: built in macfixes-10.0-build5. 2026-11-16: no table.cs timeouts in
+ 10 Big Fish trial launches (White Wolf, Waverly Academy, Deadly Device), all passing.
 
 diff --git a/dlls/wbemprox/builtin.c b/dlls/wbemprox/builtin.c
 index a3f0d9afcce..2e3c3ce041e 100644
