@@ -24,10 +24,13 @@ Port: same hunks as CX 26.3.0's CW HACK 18311 (identical code to 25.1.1), placed
  places them in the Wine 11 code: the driver-properties chain goes after the new
  sampler-filter-minmax properties, and the two extension-table entries stay after
  VK_KHR_swapchain. The same CX hunks as before are still left out (10.0_8 lacks them).
+ To 11.22: WineHQ 11.22 folded WINED3D_PIXEL_CENTER_INTEGER and the other
+ pre-d3d10 flags into WINED3D_LEGACY (same bit, 0x80), so the d3d10 test uses
+ WINED3D_LEGACY.
 Applies to: wine 11.22
 
 diff --git a/dlls/wined3d/adapter_vk.c b/dlls/wined3d/adapter_vk.c
-index b761f4c..ca87893 100644
+index b761f4c..275c424 100644
 --- a/dlls/wined3d/adapter_vk.c
 +++ b/dlls/wined3d/adapter_vk.c
 @@ -2426,6 +2426,8 @@ static bool wined3d_adapter_vk_init_device_extensions(struct wined3d_adapter_vk
@@ -56,7 +59,7 @@ index b761f4c..ca87893 100644
 +    /* CW HACK 18311: Use the Vulkan renderer on macOS for d3d10/11. */
 +    if (wined3d_settings.renderer == WINED3D_RENDERER_AUTO)
 +    {
-+        bool d3d10 = !(wined3d_creation_flags & WINED3D_PIXEL_CENTER_INTEGER);
++        bool d3d10 = !(wined3d_creation_flags & WINED3D_LEGACY);
 +        bool moltenvk = adapter_vk->driver_properties.driverID == VK_DRIVER_ID_MOLTENVK;
 +
 +        if (!moltenvk || !d3d10)
