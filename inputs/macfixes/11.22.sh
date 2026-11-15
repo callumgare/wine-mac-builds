@@ -73,4 +73,7 @@ PATCHES=(
     patches/macfixes/11.22/0041-winemac-cocoa-start-wait.patch
     patches/macfixes/11.22/0042-ntdll-clear-inherited-exception-ports.patch
     patches/macfixes/11.22/0043-cpu-rosetta-cross-process-code-writes.patch
+    patches/macfixes/11.22/0044-cx-win32u-composited-paint.patch
+    patches/macfixes/11.22/0045-cx-ntdll-export-wine-unix-call.patch
+    patches/macfixes/11.22/0046-cx-winemac-bc7-texture-decode.patch
 )
