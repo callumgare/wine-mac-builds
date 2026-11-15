@@ -89,4 +89,5 @@ PATCHES=(
     patches/macfixes/10.0/0049-cx-winemac-ime-keydowns-only.patch
     patches/macfixes/10.0/0050-cx-wine-inf-d3dmetal-fake-dlls.patch
     patches/macfixes/10.0/0051-win32u-enable-mouse-in-pointer-semi-stub.patch
+    patches/macfixes/10.0/0053-cpu-rosetta-skip-9x-debugger-probes.patch
 )
