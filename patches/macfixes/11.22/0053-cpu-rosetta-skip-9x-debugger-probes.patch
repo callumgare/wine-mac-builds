@@ -19,9 +19,9 @@ Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  as 9x would. On NT they'd fault, but no NT program runs in that segment
  expecting that: the segment is what makes these checks misfire.
 Applies to: wine 11.22 (macfixes, after 0052)
-Status: not yet built. Second Chance's binary patch, which does the same,
- makes White Wolf's launcher (wqxgxgg.exe) start the game on
- macfixes-10.0-build3; without it the launcher stalls.
+Status: not yet built for this version. Confirmed on 10.0
+ (macfixes-10.0-build4, 2026-11-16): without Second Chance's binary patch,
+ White Wolf's launcher (wqxgxgg.exe) starts the game and Iji launches.
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 9553ebf..264e98c 100644
