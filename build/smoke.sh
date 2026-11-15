@@ -15,6 +15,12 @@
 #     finds a GPU, and MoltenVK loads from the tree. (The probe is what
 #     starts Vulkan: Wine 11 does at startup, but 10.x only when a program
 #     asks, so without it a 10.x smoke test never touched Vulkan.)
+#   - a 64-bit and a 32-bit program open a window and draw in it
+#     (tests/probes/window.c),
+#   - Media Foundation can create its H.264 and AAC decoders
+#     (tests/probes/media.c),
+#   - sound plays (tests/probes/audio.c), unless the Mac has no audio
+#     output device at all.
 #
 # File comparison can't see these: a weak import of a function the minimum
 # macOS lacks crashed every process, and a Vulkan loader that only found
@@ -79,13 +85,56 @@ run 120 reg "$T/bin/wine" reg query 'HKLM\Software\Microsoft\Windows NT\CurrentV
     fail "reg query failed (see $LOG/reg.log)"
 grep -q ProductName "$LOG/reg.log" || fail "reg query found no ProductName (see $LOG/reg.log)"
 
+# probe <arch> <name> [libs...]: compile tests/probes/<name>.c to
+# $LOG/<name>-<arch>.exe with the toolchain's llvm-mingw.
+probe() {
+    local arch="$1" name="$2"; shift 2
+    "$TC/libexec/llvm-mingw/bin/$arch-w64-mingw32-clang" -O2 -o "$LOG/$name-$arch.exe" \
+        "$WMB_ROOT/tests/probes/$name.c" "$@" || fail "couldn't compile the $name probe for $arch"
+}
+# show <log name> <prefix>: echo the probe's own lines (not dyld's).
+show() { grep -a "^$2:" "$LOG/$1.log" | sed 's/^/  /' >&2 || true; }
+
 step "Vulkan (tests/probes/vulkan.c)"
-"$TC/libexec/llvm-mingw/bin/x86_64-w64-mingw32-clang" -O2 -o "$LOG/vulkan.exe" "$WMB_ROOT/tests/probes/vulkan.c" ||
-    fail "couldn't compile the Vulkan probe"
-run 120 vulkan "$T/bin/wine" "$LOG/vulkan.exe" || fail "the Vulkan probe failed (see $LOG/vulkan.log)"
-grep -a '^vulkan:' "$LOG/vulkan.log" | sed 's/^/  /' >&2
+probe x86_64 vulkan
+run 120 vulkan "$T/bin/wine" "$LOG/vulkan-x86_64.exe" || fail "the Vulkan probe failed (see $LOG/vulkan.log)"
+show vulkan vulkan
 grep -a -q -E '^vulkan: instance created, [1-9]' "$LOG/vulkan.log" ||
     fail "Vulkan found no GPU (see $LOG/vulkan.log)"
+stop_wine
+
+# A window that shows what was painted, from a 64-bit and a 32-bit program
+# (the 32-bit one also proves WoW64 runs programs, not just cmd).
+for arch in x86_64 i686; do
+    step "a window opens and draws ($arch, tests/probes/window.c)"
+    probe "$arch" window -mwindows -lgdi32 -luser32
+    run 120 "window-$arch" "$T/bin/wine" "$LOG/window-$arch.exe" ||
+        { show "window-$arch" window; fail "the $arch window probe failed (see $LOG/window-$arch.log)"; }
+    show "window-$arch" window
+done
+stop_wine
+
+step "Media Foundation has working decoders (tests/probes/media.c)"
+probe x86_64 media -lmfplat -lmfuuid -lole32
+run 300 media "$T/bin/wine" "$LOG/media-x86_64.exe" ||
+    { show media media; fail "Media Foundation couldn't create a decoder (see $LOG/media.log)"; }
+show media media
+stop_wine
+
+step "sound plays (tests/probes/audio.c)"
+probe x86_64 audio -lwinmm
+rc=0; run 120 audio "$T/bin/wine" "$LOG/audio-x86_64.exe" || rc=$?
+show audio audio
+if [[ $rc -eq 2 ]]; then
+    # Wine saw no output device. Fine only if the Mac has none either
+    # (a VM may not); otherwise the CoreAudio driver is broken.
+    if system_profiler SPAudioDataType 2>/dev/null | grep -q 'Output Channels'; then
+        fail "the Mac has an audio output device but Wine sees none (see $LOG/audio.log)"
+    fi
+    log "smoke: WARNING: no audio output device on this Mac, so sound wasn't tested"
+elif [[ $rc -ne 0 ]]; then
+    fail "the audio probe failed (see $LOG/audio.log)"
+fi
 stop_wine
 
 # --- What was loaded --------------------------------------------------------
