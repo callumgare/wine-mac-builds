@@ -2,7 +2,7 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: keep Armadillo DRM (Big Fish games) running by emulating fs:[disp16] accesses
 Category: cpu
 Kind: workaround
-Origin: other (ported here)
+Origin: wine-mac-builds
 From: written for wine-mac-builds (not in Sikarugir). Behaviour of Second
  Chance's binary patch of 32-bit ntdll (RosettaFaultFix, part 1 only), done
  in the Unix-side fault handler instead.
