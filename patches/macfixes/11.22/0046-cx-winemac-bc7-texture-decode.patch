@@ -1,18 +1,22 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Decode BC7 textures on the CPU, which macOS OpenGL lacks (Tomb Raider I-III Remastered)
+Origin: crossover
 From: CrossOver 26.3.0 CX HACK 23422 (dlls/winemac.drv/opengl.c, opengl_bcdec.h)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/winemac.drv/)
+CW-Hack: 23422
 Upstream: no
+Runtime: yes
 Why: macOS OpenGL has no BC7 (BPTC). Tomb Raider I-III Remastered upload
  BC7 2D-array textures; decode them on the CPU (bcdec) and upload RGBA8.
  Hooks glCompressedTexImage3D and glCompressedTexSubImage3D; other formats
  and targets pass straight through. opengl_bcdec.h is bcdec 0.96 by Sergii
  Kudlai (MIT or Unlicense, at the user's choice; text at its end).
-Port to 11.22: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
-Evidence in 10.0_8: winemac.so's init_opengl looks up both functions, and
+Evidence: Sikarugir 10.0_8: winemac.so's init_opengl looks up both functions, and
  it has the bcdec BC7 decoder and two wrappers ours lacked (found by
  comparing functions, 2026-11-15).
-Status: not yet built (2026-11-15).
+Port: to 11.22: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
 Applies to: wine 11.22 (macfixes, after 0045)
+Status: not yet built (2026-11-15).
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 index c84f0a4..a67010a 100644

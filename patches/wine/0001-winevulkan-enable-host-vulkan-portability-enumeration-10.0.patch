@@ -1,9 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Let Wine's Vulkan find MoltenVK (portability enumeration)
+Origin: wine-mac-builds
 From: written for wine-mac-builds: patch 0001's behaviour for Wine 10.0, where
  winevulkan (not win32u) builds the host instance's create info and there's no
  host_extensions table.
 Source: none; follows Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
-Upstream: not in WineHQ as of 11.21
+Upstream: no (not in WineHQ as of 11.21)
+Runtime: yes
 Why: as patch 0001. If the host loader offers VK_KHR_portability_enumeration,
  enable it and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, so the
  bundled Vulkan loader doesn't hide MoltenVK. (Sikarugir's 10.0_8 doesn't need

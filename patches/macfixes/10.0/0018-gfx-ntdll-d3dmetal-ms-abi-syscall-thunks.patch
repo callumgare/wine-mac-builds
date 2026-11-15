@@ -1,13 +1,17 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: D3DMetal: let libd3dshared call ntdll's syscalls with the Microsoft ABI
+Origin: crossover
 From: CrossOver 25.1.1 CW HACK 23015 (dlls/ntdll/unix/unix_private.h, server.c, sync.c,
  thread.c), without the esync/msync hunks CrossOver has in the same functions
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+CW-Hack: 23015
 Upstream: no
+Runtime: yes
 Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
  ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an
  ms_abi thunk when the caller's return address is inside libd3dshared, and to the normal
  (renamed sysv_*) function otherwise. Needs 0001 (libd3dshared_load_addr/_code_end).
-Evidence in 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
+Evidence: Sikarugir 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
  NtCreateEvent, NtSetEvent, NtResetEvent, NtClearEvent, NtPulseEvent and NtCreateThreadEx
  (and no other Nt* export) start with the wrapper: push %rax; push %rcx; compare the return
  address against two globals; jmp to one of two bodies

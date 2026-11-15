@@ -1,16 +1,20 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+CW-Hack: 24256, 24265
 Upstream: no
+Runtime: yes
 Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
-Evidence in 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
-Applies to: wine 11.22
-Port to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:
+Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
+Port: to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:
  CX's __restore_mxcsr_thunk reads the TEB from %gs:0x30 and stashes the value in amd64_thread_data()->mxcsr (offset 0x33c). In 11.21 both are wrong: 0x33c is upstream's
  "Unix-side mxcsr" slot (saved at thread start, loaded on every syscall entry), so CX's thunk would leave Unix code running with the Windows MXCSR; and after a signal
  handler on macOS %gs is the pthread TSD, not the TEB. The thunk now loads the value from the syscall frame instead (frame->xsave.MxCsr, 0xd8(%rcx); %rcx is the frame
  when sigsys_handler resumes at __wine_syscall_dispatcher_prolog_end), and the dispatcher overwrites that field with the live MXCSR right after. The 10.0 patch's
  amd64_thread_data mxcsr field is therefore not added. Not compiled or run here: check a raw-syscall app under Rosetta.
+Applies to: wine 11.22
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 774a142..eed47c9 100644

@@ -253,6 +253,27 @@ def downloads_table(e, repo):
             f"</table></div><p class=muted>Check where a file came from: <code>{esc(verify)}</code></p>")
 
 
+ORIGINS = {"winehq": "WineHQ", "wine-staging": "wine-staging", "crossover": "CrossOver",
+           "gcenx": "Gcenx", "other": "other project", "reconstructed": "reconstructed",
+           "wine-mac-builds": "this project"}
+
+
+def patch_row(p, rec, commit):
+    # The header fields come from build/patch_header.py via BUILD-INFO.json;
+    # builds made before headers were recorded have only file and sha256.
+    name = p["file"].rsplit("/", 1)[-1]
+    link = f"<a href=\"{esc(rec.get('repository'))}/blob/{esc(commit)}/{esc(p['file'])}\"><code>{esc(name)}</code></a>"
+    what = esc(p.get("summary", ""))
+    if p.get("runtime") is False:
+        what += " <span class=muted>(build only)</span>"
+    if p.get("uncertain"):
+        what += f" <span class=warn title=\"{esc(p['uncertain'])}\">(uncertain)</span>"
+    origin = esc(ORIGINS.get(p.get("origin"), p.get("origin", "")))
+    if p.get("cw_hacks"):
+        origin += "<br><span class=muted>hack " + ", ".join(str(n) for n in p["cw_hacks"]) + "</span>"
+    return f"<tr><td>{link}</td><td>{what}</td><td>{origin}</td><td>{esc(p.get('upstream_status', ''))}</td></tr>"
+
+
 def build_page(e, repo):
     status = []
     if e["draft"]:
@@ -282,9 +303,9 @@ def build_page(e, repo):
     if e["known_issues"]:
         body += ["<h2>Known issues</h2><ul>", *[f"<li>{esc(i)}</li>" for i in e["known_issues"]], "</ul>"]
     if e["patches"]:
-        body += ["<h2>Patches</h2><ul>",
-                 *[f"<li><a href=\"{esc(rec.get('repository'))}/blob/{esc(commit)}/{esc(p['file'])}\">"
-                   f"{esc(p['file'].rsplit('/', 1)[-1])}</a></li>" for p in e["patches"]], "</ul>"]
+        body += ["<h2>Patches</h2><div class=wrap><table><tr><th>Patch</th><th>What it does</th>"
+                 "<th>Origin</th><th>In WineHQ</th></tr>",
+                 *[patch_row(p, rec, commit) for p in e["patches"]], "</table></div>"]
     if e["components"]:
         body += ["<h2>Components</h2><div class=wrap><table><tr><th>Name</th><th>Version</th><th>Licence</th></tr>",
                  *[f"<tr><td>{esc(c['name'])}</td><td>{esc(c['version'])}</td><td>{esc(c['license'])}</td></tr>"

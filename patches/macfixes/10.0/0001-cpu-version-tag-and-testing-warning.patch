@@ -1,10 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Add "(macfixes)" to the version string and warn that this is a testing build
+Origin: wine-staging
 From: wine-staging patches/Staging/0001-ntdll-Print-a-warning-message-specifying-the-wine-st.patch and 0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch (Sebastian Lackner), as Sikarugir's 10.0_8 carries them, with this project's name instead of Sikarugir's
 Source: https://gitlab.winehq.org/wine/wine-staging/-/tree/v10.0/patches/Staging
 Upstream: no
+Runtime: yes
 Why: Marks the build as patched: the version string reads "wine-10.0 (macfixes)", and staging's once-per-session warning says this is a testing version and where to report bugs (this project, not WineHQ or Sikarugir: this is not Sikarugir's build).
       Names: WINE_BUILD_NAME/WINE_BUG_REPORTS_TO in dlls/ntdll/loader.c, and the " (macfixes)" suffix in configure.ac and configure (both patched, so no autoreconf is needed).
-Evidence in 10.0_8: the same mechanism, branded "wine-10.0 (Sikarugir)" and "wine-sikarugir %s is a testing version containing experimental patches."
+Evidence: Sikarugir 10.0_8: the same mechanism, branded "wine-10.0 (Sikarugir)" and "wine-sikarugir %s is a testing version containing experimental patches."
 Applies to: wine 10.0
 
 diff --git a/configure b/configure

@@ -1,10 +1,14 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: ForceOpenGLBackingStore registry option, against flicker in some OpenGL games
+Origin: wine-staging
 From: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases; CrossOver Hack 14364)
 Source: https://github.com/wine-staging/wine-staging/blob/v10.0/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
+CW-Hack: 14364
 Upstream: no
+Runtime: yes
 Why: adds the Mac Driver registry option ForceOpenGLBackingStore, which requests a
  backing store for every GL context and stops flicker in some GL games.
-Evidence in 10.0_8: winemac.so contains L"ForceOpenGLBackingStore"
+Evidence: Sikarugir 10.0_8: winemac.so contains L"ForceOpenGLBackingStore"
 Applies to: wine 10.0
 
 diff --git a/dlls/winemac.drv/macdrv.h b/dlls/winemac.drv/macdrv.h

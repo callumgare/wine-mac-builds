@@ -1,25 +1,29 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Use wined3d's Vulkan renderer for Direct3D 10 and 11 on MoltenVK
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 18311 (dlls/wined3d/adapter_vk.c, directx.c, swapchain.c,
  wined3d_vk.h), without the hunks 10.0_8 lacks: GTA IV/V (CW 19355/19356), multithread_safe,
  MoltenVK multiple-viewport disable, render-area trim (CX 20098), zero-size swapchain (CX 23854)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
  (similar: dblark 0006-wined3d-moltenvk-hacks.patch at a6e452f, https://github.com/dblark/macos-wine-build)
+CW-Hack: 18311
 Upstream: no
+Runtime: yes
 Why: with renderer=auto, d3d10/11 apps get wined3d's Vulkan renderer when the Vulkan
  driver is MoltenVK (else OpenGL as before); Vulkan swapchains on MoltenVK get 3 images
  (CW bug 18838).
-Evidence in 10.0_8: wined3d.dll strings "Using the Vulkan renderer for d3d10/11
+Evidence: Sikarugir 10.0_8: wined3d.dll strings "Using the Vulkan renderer for d3d10/11
  applications.", "Not running on MoltenVK, defaulting to the OpenGL backend.",
  "Application using < d3d10 API, defaulting to the OpenGL backend."; its device-extension
  table has 14 entries ending VK_EXT_host_query_reset, VK_KHR_driver_properties (CrossOver's
  two additions, the first a duplicate of an existing entry); the Vulkan swapchain code
  compares driverID with 14 (MoltenVK); multiple_viewports is set without a driverID check
  and there is no "No attachments, trimming render area" string
-Applies to: wine 11.21
 Port: same hunks as CX 26.3.0's CW HACK 18311 (identical code to 25.1.1), placed as CX 26
  places them in the Wine 11 code: the driver-properties chain goes after the new
  sampler-filter-minmax properties, and the two extension-table entries stay after
  VK_KHR_swapchain. The same CX hunks as before are still left out (10.0_8 lacks them).
+Applies to: wine 11.21
 
 diff --git a/dlls/wined3d/adapter_vk.c b/dlls/wined3d/adapter_vk.c
 index b761f4c..ca87893 100644

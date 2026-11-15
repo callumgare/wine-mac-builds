@@ -1,6 +1,10 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Size the OpenGL backing to the raw surface when a program changes display mode
+Origin: wine-mac-builds
 From: ours (wine-mac-builds), 2026-11-15
+Source: none published
 Upstream: no (WineHQ master still uses virtual_rect here, checked 2026-11-15)
+Runtime: yes
 Why: when a program changes the display mode under EmulateModeset, win32u
  creates the window's GL client surface "raw" and renders into a
  framebuffer surface (an FBO of the emulated, virtual size) that it blits
@@ -14,8 +18,8 @@ Why: when a program changes the display mode under EmulateModeset, win32u
  shows "Using experimental framebuffer OpenGL surface" and the picture
  overflows the window. Wine 10.0 has no framebuffer surface, so this is
  11.x only.
-Status: not yet built or tested.
 Applies to: wine 11.22 (macfixes, after 0050)
+Status: not yet built or tested.
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 index a67010a..e5e50dc 100644

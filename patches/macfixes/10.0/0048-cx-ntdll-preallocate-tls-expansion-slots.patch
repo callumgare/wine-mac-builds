@@ -1,7 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Allocate TLS expansion slots up front and expose them at %gs:0x1780
+Origin: crossover
 From: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/loader.c)
+CW-Hack: 18756
 Upstream: no
+Runtime: yes
 Why: On x86_64 macOS, allocate the thread's TLS expansion slots
  (TEB->TlsExpansionSlots) up front in loader_init and also store the
  pointer at %gs:0x1780 (that field's offset). Otherwise kernelbase
@@ -10,13 +14,13 @@ Why: On x86_64 macOS, allocate the thread's TLS expansion slots
  64-entry TLS bitmap as used, so every TlsAlloc hands out an expansion
  slot. Not for WoW64 threads. is_macos() checks wine_get_host_version
  for "Darwin".
-Evidence in 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
+Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
  movq %rax, %gs:0x1780; ours had neither.
-Port to 10.0: placed after 0001's testing-version warning, just before
+Port: to 10.0: placed after 0001's testing-version warning, just before
  FlsSlots is set up (in CX it sits right after the else block above
  that warning).
-Status: not yet built (2026-11-15).
 Applies to: wine 10.0 (macfixes, after 0047)
+Status: not yet built (2026-11-15).
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 index f10caaa..7839c4f 100644

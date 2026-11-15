@@ -32,6 +32,9 @@ mv "$W/wine-$WINE_VERSION" "$SRC"
 group_end
 
 group_start "Patches"
+# Each patch's header must follow patches/README.md: manifest.py publishes it.
+/usr/bin/python3 -I "$WMB_ROOT/build/patch_header.py" "${PATCHES[@]/#/$WMB_ROOT/}" \
+    || die "patch headers don't follow patches/README.md"
 for p in "${PATCHES[@]}"; do
     log "Applying $p"
     patch -d "$SRC" -p1 --forward --batch < "$WMB_ROOT/$p"

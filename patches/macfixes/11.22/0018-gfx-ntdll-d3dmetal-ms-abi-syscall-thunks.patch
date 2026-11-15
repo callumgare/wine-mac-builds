@@ -1,18 +1,21 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: D3DMetal: let libd3dshared call ntdll's syscalls with the Microsoft ABI
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 23015 (dlls/ntdll/unix/unix_private.h, server.c, sync.c,
  thread.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+CW-Hack: 23015
 Upstream: no
+Runtime: yes
 Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
  ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an
  ms_abi thunk when the caller's return address is inside libd3dshared, and to the normal
  (renamed sysv_*) function otherwise. Needs 0017 (libd3dshared_load_addr/_code_end).
-Evidence in 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
+Evidence: Sikarugir 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
  NtCreateEvent, NtSetEvent, NtResetEvent, NtClearEvent, NtPulseEvent and NtCreateThreadEx
  (and no other Nt* export) start with the wrapper: push %rax; push %rcx; compare the return
  address against two globals; jmp to one of two bodies
-Applies to: wine 11.22 (after 0002)
-Port to 11.21: GPT_ABI_WRAPPER is CX 26.3.0's: a plain asm() block with only .globl, because
+Port: to 11.21: GPT_ABI_WRAPPER is CX 26.3.0's: a plain asm() block with only .globl, because
  Wine 11's __ASM_GLOBAL_FUNC also emits .private_extern, which would hide the wrappers from
  libd3dshared. NtReleaseSemaphore's count is LONG in 11.21 (ULONG in 10.0 and CX 26.3.0), so
  the sysv_/msthunk_ signatures use LONG. The NtSetEvent thunk sits after
@@ -21,6 +24,7 @@ Port to 11.21: GPT_ABI_WRAPPER is CX 26.3.0's: a plain asm() block with only .gl
  with TEB fields poked into it). If D3DMetal's PE side calls into libd3dshared, and so into
  these ntdll.so functions, directly rather than through a syscall, that Unix code would run
  with %gs = TEB and libc's TSD accesses would break. Untested; D3DMetal on 11.21 needs a run.
+Applies to: wine 11.22 (after 0002)
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 index c80226f..4815226 100644

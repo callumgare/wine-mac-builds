@@ -1,9 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: WINENCPU: cap the number of processors reported to programs
+Origin: crossover
 From: CrossOver 25.1.1 CW HACK 24711
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/unix/system.c)
+CW-Hack: 24711
 Upstream: no
+Runtime: yes
 Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
-Evidence in 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
+Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
 Applies to: wine 10.0
 
 diff --git a/dlls/ntdll/unix/system.c b/dlls/ntdll/unix/system.c

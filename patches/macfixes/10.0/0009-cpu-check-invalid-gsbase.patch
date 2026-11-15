@@ -1,9 +1,12 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Repair an invalid gs_base in the segfault handler (WineHQ bug 57444)
+Origin: winehq
 From: upstream commit 94447cee6194e99b75989503c67ef48263ea5cca (William Horvath), "ntdll: Check for invalid gs_base in the 64-bit segv_handler."
 Source: https://gitlab.winehq.org/wine/wine/-/commit/94447cee6194e99b75989503c67ef48263ea5cca
 Upstream: yes, commit 94447cee61 (in Wine 10.14)
+Runtime: yes
 Why: PE code that reloads %gs clears gs_base; repair it in the segv handler instead of recursing (WineHQ bug 57444). Includes the upstream test.
-Evidence in 10.0_8: ntdll.so: "check_invalid_gsbase", "gsbase %016lx teb %p at instr %p, fixing up"
+Evidence: Sikarugir 10.0_8: ntdll.so: "check_invalid_gsbase", "gsbase %016lx teb %p at instr %p, fixing up"
 Applies to: wine 10.0
 
 diff --git a/dlls/ntdll/tests/exception.c b/dlls/ntdll/tests/exception.c

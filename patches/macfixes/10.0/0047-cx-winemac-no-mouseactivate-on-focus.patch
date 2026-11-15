@@ -1,7 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Activate a focused window without a simulated WM_MOUSEACTIVATE (Unity games)
+Origin: crossover
 From: CrossOver 25.1.1 CrossOver Hack #18896 (dlls/winemac.drv/window.c, cocoa_window.m)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/winemac.drv/window.c, cocoa_window.m)
+CW-Hack: 18896
 Upstream: no
+Runtime: yes
 Why: When a Mac window gains focus, winemac used to send the window a
  simulated WM_MOUSEACTIVATE (a click on its menu) to ask whether it wants
  to be activated; CrossOver says this breaks Unity games. The hack makes
@@ -9,12 +13,12 @@ Why: When a Mac window gains focus, winemac used to send the window a
  events when Wine itself focuses a window (makeFocused discarded them),
  and no longer skips windowGotFocus in windowDidBecomeKey when Wine caused
  the window to become key.
-Evidence in 10.0_8: its macdrv_window_got_focus makes no
+Evidence: Sikarugir 10.0_8: its macdrv_window_got_focus makes no
  NtUserGetAncestor or NtUserMessageCall call (125 vs 142 instructions,
  function comparison 2026-11-15). The cocoa_window.m parts were not checked
  separately; they ship together in CX.
-Status: not yet built (2026-11-15).
 Applies to: wine 10.0 (macfixes, after 0046)
+Status: not yet built (2026-11-15).
 
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 index ce8b571..4e31590 100644

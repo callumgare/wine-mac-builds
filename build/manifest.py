@@ -15,6 +15,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I
+import patch_header  # noqa: E402
+
 SCHEMA_VERSION = 1
 
 env = os.environ
@@ -74,6 +77,13 @@ def git(*args):
         return None
 
 
+def patch_info(path):
+    h = patch_header.parse(path)
+    if h.errors:  # compile.sh checked these already; a change since then is a bug
+        sys.exit(f"error: {path}: {h.errors[0][1]} (patches/README.md)")
+    return patch_header.to_json(h)
+
+
 # --- Components ---------------------------------------------------------------
 components = []
 
@@ -83,7 +93,9 @@ components.append({
     "license": "LGPL-2.1-or-later",
     "source": {"url": env["WINE_URL"], "sha256": env["WINE_SHA256"],
                "signed_by": env.get("WINE_SIGNING_KEY")},
-    "patches": [{"file": p, "sha256": sha256(ROOT / p)}
+    # Each patch's parsed header (patches/README.md) goes in too, so the
+    # build's page can say what each patch does and where it came from.
+    "patches": [{"file": p, "sha256": sha256(ROOT / p), **patch_info(ROOT / p)}
                 for p in env["PATCH_LIST"].split() if p],
 })
 

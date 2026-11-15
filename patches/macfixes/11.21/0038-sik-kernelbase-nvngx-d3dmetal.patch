@@ -1,17 +1,20 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Redirect reads of nvngx.dll to D3DMetal's copy, for DLSS
+Origin: reconstructed
 From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): kernelbase.dll redirect_nvngx_to_d3dmetal (inlined into CreateFileW; x86_64 0x174014120-0x1740146a3)
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
+Runtime: yes
 Why: DLSS-capable games (NVIDIA's Streamline/NGX loader) open c:\windows\system32\nvngx.dll directly with CreateFileW(GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING) to read it; that open is redirected to D3DMetal's copy at $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that file exists. Any other open, or a missing/unset path, goes through unchanged.
 Uncertain: the path suffix is hard-coded to x86_64-windows in both of 10.0_8's x86_64 and i386 kernelbase, kept as is. 10.0_8 looks up wine_unix_to_nt_file_name with GetProcAddress; this calls ntdll's export directly (same function). Only exact access/sharing/disposition values trigger it, as in 10.0_8; ntdll's LoadLibrary path is not affected.
-Expects before it: nothing in code. At run time it needs CX_D3DMETALPATH set (as with the D3DMetal hooks patches) and D3DMetal's nvngx.dll present.
-Applies to: wine 11.21
 Port: hand-ported. WineHQ 11.x no longer exports wine_unix_to_nt_file_name() from ntdll,
  so the D3DMetal file is named through the \??\unix\ device (as 11.21's kernel32
  wine_get_dos_file_name() does) and the NT name is built with RtlCreateUnicodeString;
  the checks, the CX_D3DMETALPATH lookup and the CreateFileW hook are unchanged. A relative
  CX_D3DMETALPATH is now ignored. Sikarugir-only behaviour: no CX 26, staging or upstream
  equivalent.
+Expects before it: nothing in code. At run time it needs CX_D3DMETALPATH set (as with the D3DMetal hooks patches) and D3DMetal's nvngx.dll present.
+Applies to: wine 11.21
 
 diff --git a/dlls/kernelbase/file.c b/dlls/kernelbase/file.c
 index 7b0f0a6..06362b6 100644

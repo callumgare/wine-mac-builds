@@ -1,12 +1,16 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Rewrite binds to 127.x.x.x addresses macOS refuses, for GOG Galaxy
+Origin: crossover
 From: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/server/sock.c)
+CW-Hack: 24472
 Upstream: no
+Runtime: yes
 Why: macOS only lets sockets bind to 127.0.0.1 among the 127/8 addresses; rewrite other 127.x.x.x binds so GOG Galaxy can start.
-Evidence in 10.0_8: wineserver: 'HACK: rewriting bind loopback address to 127.0.0.1'.
-Applies to: wine 11.21
+Evidence: Sikarugir 10.0_8: wineserver: 'HACK: rewriting bind loopback address to 127.0.0.1'.
 Port: unchanged from 10.0 (applies with offsets); CX 26.3.0's server/sock.c has the
  identical hunk.
+Applies to: wine 11.21
 
 diff --git a/server/sock.c b/server/sock.c
 index caa32a3..a1a2327 100644

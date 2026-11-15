@@ -1,7 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Rosetta 2: make it notice code written into another process
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 18947 (dlls/ntdll/unix/virtual.c)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/virtual.c)
+CW-Hack: 18947
 Upstream: no
+Runtime: yes
 Why: NtWriteVirtualMemory writes another process's memory with
  mach_vm_write from wineserver, and Rosetta doesn't notice code changed
  that way: the target keeps running its old translation. After the write,
@@ -11,13 +15,13 @@ Why: NtWriteVirtualMemory writes another process's memory with
  child's entry point, waits for the child to reach it, then writes the
  original bytes back; without this the child spins on the stale "jmp $"
  for ever and activation fails.
-Evidence in 10.0_8: its NtWriteVirtualMemory calls NtQueryVirtualMemory and
+Evidence: Sikarugir 10.0_8: its NtWriteVirtualMemory calls NtQueryVirtualMemory and
  NtProtectVirtualMemory twice after the server call (disassembly). The
  inventory missed it because it adds no strings of its own.
+Applies to: wine 10.0 (macfixes, after 0042)
 Status: confirmed 2026-11-15 by hand: toggling the entry page's protection
  inside a stuck gmActivator child (lldb, mprotect) let it continue exactly
  as on Sikarugir 10.0_8. Not yet built.
-Applies to: wine 10.0 (macfixes, after 0042)
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index 4044c62..56eb799 100644

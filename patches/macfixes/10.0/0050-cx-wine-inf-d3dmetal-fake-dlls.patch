@@ -1,17 +1,21 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Install stub AMD and NVIDIA DLLs in 64-bit prefixes, for D3DMetal
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 22435, the wine.inf part (loader/wine.inf.in)
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/loader/wine.inf.in)
+CW-Hack: 22435
 Upstream: no
+Runtime: yes
 Why: Have wineboot put fake (stub) atidxx64.dll, nvapi64.dll and nvngx.dll
  in a 64-bit prefix's system32. CX's comment says only "for D3DMetal";
  presumably D3DMetal, or games running on it, check that these AMD/NVIDIA
  DLLs exist. No builtin DLLs have those names, so setupapi writes generic
  fake DLLs.
-Evidence in 10.0_8: its share/wine/wine.inf has these lines with this
+Evidence: Sikarugir 10.0_8: its share/wine/wine.inf has these lines with this
  comment; it is the only difference in share/.
-Port to 10.0: CX 25.1.1 lacks this; CX 26.3's lines added to 10.0's [FakeDllsWin64] unchanged.
-Status: not yet built (2026-11-15).
+Port: to 10.0: CX 25.1.1 lacks this; CX 26.3's lines added to 10.0's [FakeDllsWin64] unchanged.
 Applies to: wine 10.0 (macfixes, after 0049)
+Status: not yet built (2026-11-15).
 
 diff --git a/loader/wine.inf.in b/loader/wine.inf.in
 index e3426b7..6386816 100644

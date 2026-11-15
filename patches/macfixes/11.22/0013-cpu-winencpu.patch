@@ -1,11 +1,15 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: WINENCPU: cap the number of processors reported to programs
+Origin: crossover
 From: CrossOver 26.3.0 CW HACK 24711 (dlls/ntdll/unix/system.c), adapted
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/system.c)
+CW-Hack: 24711
 Upstream: no
+Runtime: yes
 Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
-Evidence in 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
+Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
+Port: to 11.21: the create_logical_proc_info() hunks are CX's. 11.21's init_cpu_info() no longer sets peb->NumberOfProcessors from a local "num": the count lives in the global cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical processor info), so the WINENCPU override now lowers cpu_count.
 Applies to: wine 11.22
-Port to 11.21: the create_logical_proc_info() hunks are CX's. 11.21's init_cpu_info() no longer sets peb->NumberOfProcessors from a local "num": the count lives in the global cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical processor info), so the WINENCPU override now lowers cpu_count.
 
 diff --git a/dlls/ntdll/unix/system.c b/dlls/ntdll/unix/system.c
 index 83084b8..d1b5679 100644

@@ -1,11 +1,14 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Add a winemetal.dll stub so DXMT's DLLs can load
+Origin: other
 From: dblark 0004-add-winemetal-stub.patch (configure regenerated with autoconf 2.72
  via tools/make_makefiles, as WineHQ's own new-DLL commits do)
 Source: https://github.com/dblark/macos-wine-build/blob/71877c1/patches/0004-add-winemetal-stub.patch
 Upstream: no
+Runtime: yes
 Why: DXMT's d3d11/dxgi import winemetal.dll; the stub lets the builtin load until the
  user drops in DXMT's own winemetal.dll/.so.
-Evidence in 10.0_8: lib/wine/{x86_64,i386}-windows/winemetal.dll, whose only export is
+Evidence: Sikarugir 10.0_8: lib/wine/{x86_64,i386}-windows/winemetal.dll, whose only export is
  WineMetalEntry (a stub)
 Applies to: wine 10.0
 

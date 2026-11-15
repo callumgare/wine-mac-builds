@@ -1,13 +1,17 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Skip the launchers of ELDEN RING, Armored Core VI and Baldur's Gate 3; run Witcher 3's DX11 build
+Origin: crossover
 From: CrossOver 24.0.7 CW HACKs 22686, 22753, 22704; witcher3 entry reproduced from 10.0_8's table
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz (sources/wine/dlls/kernelbase/process.c)
+CW-Hack: 22686, 22753, 22704
 Upstream: no
+Runtime: yes
 Why: Start ELDEN RING / Armored Core VI without EasyAntiCheat's start_protected_game.exe, Baldur's Gate 3 without its Larian launcher, and The Witcher 3's DX11 build instead of DX12. Copy into name[] is bounded with lstrcpynW (CX uses lstrcpyW).
-Evidence in 10.0_8: kernelbase.dll (both arches): 'HACK: replacing %s with %s', 'app %s cmdline %s after all hacks', function name hack_replace_command_line, and a 4-entry {substring, replacement} table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE VI, Baldurs Gate 3, \bin\x64_dx12\witcher3.exe -> \bin\x64\witcher3.exe.
-Applies to: wine 11.22
+Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): 'HACK: replacing %s with %s', 'app %s cmdline %s after all hacks', function name hack_replace_command_line, and a 4-entry {substring, replacement} table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE VI, Baldurs Gate 3, \bin\x64_dx12\witcher3.exe -> \bin\x64\witcher3.exe.
 Port: unchanged from 10.0 (applies with offsets; CreateProcessInternalW still has the
  same app_name/tidy_cmdline handling). CX 26 no longer carries these launcher replacements
  and wine-staging has none, so the 10.0 form is kept.
+Applies to: wine 11.22
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index c58e977..baa4c08 100644

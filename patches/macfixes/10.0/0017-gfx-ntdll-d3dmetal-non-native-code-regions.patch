@@ -1,12 +1,16 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: D3DMetal: register PE modules with libd3dshared, if the user supplies D3DMetal
+Origin: crossover
 From: CrossOver 25.1.1 CW HACK 22434 (dlls/ntdll/loader.c, dlls/ntdll/unixlib.h,
  dlls/ntdll/unix/loader.c), D3DMetal parts only
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+CW-Hack: 22434
 Upstream: no
+Runtime: yes
 Why: D3DMetal (Apple's Game Porting Toolkit) needs every native PE module registered
  as a "non-native code region" with libd3dshared.dylib. Only active when the user sets
  CX_APPLEGPTK_LIBD3DSHARED_PATH to their own copy of libd3dshared.dylib, on macOS 14+.
-Evidence in 10.0_8: ntdll.so strings CX_APPLEGPTK_LIBD3DSHARED_PATH,
+Evidence: Sikarugir 10.0_8: ntdll.so strings CX_APPLEGPTK_LIBD3DSHARED_PATH,
  register_non_native_code_region, supports_non_native_code_regions,
  init_non_native_support, "Marking non_native_code_region: %p-%p",
  "Loaded libd3dshared.dylib, does%s support non-native code regions"

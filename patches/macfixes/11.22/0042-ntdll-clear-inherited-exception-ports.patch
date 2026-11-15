@@ -1,7 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Clear Mach exception ports inherited from the parent, such as a crash reporter's
+Origin: wine-mac-builds
 From: written for wine-mac-builds (not in Sikarugir). Second Chance does
  the same in the parent before exec today.
+Source: none published
 Upstream: no (candidate, kept on Second Chance's list for later)
+Runtime: yes
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,
  Crashpad), faults in the Wine process go to it rather than becoming the
@@ -9,9 +13,9 @@ Why: Mach task exception ports are inherited across fork and exec. When
  at its third fault. ntdll now clears the ports for bad access, bad
  instruction and arithmetic exceptions when it sets up signal handling,
  except under a debugger (P_TRACED), which uses them.
-Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+Port: to 11.21: same code; called at the start of signal_init_process( TEB * ), which 11.21 already includes <sys/sysctl.h> for.
 Applies to: wine 11.22 (macfixes, after 0041)
-Port to 11.21: same code; called at the start of signal_init_process( TEB * ), which 11.21 already includes <sys/sysctl.h> for.
+Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 3a38af0..9553ebf 100644
