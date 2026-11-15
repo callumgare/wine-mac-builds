@@ -3,3 +3,4 @@
 /.cache/
 /vm-share/
 __pycache__/
+.local
