@@ -27,7 +27,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Refuse a build name that already has a release before spending an hour
+  # building it (the publish job would refuse it anyway). Here rather than in
+  # the build job because seeing draft releases needs contents: write, which
+  # the self-hosted job shouldn't hold.
+  name-is-free:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      FLAVOUR: ${{ inputs.flavour }}
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check no release has this build's name
+        run: |
+          source build/lib.sh
+          load_build_inputs "$FLAVOUR" "$VERSION"
+          if gh release view "$BUILD_ID" >/dev/null 2>&1; then
+            echo "::error::release $BUILD_ID already exists; raise BUILD_NUMBER in inputs/$FLAVOUR/$VERSION.sh"
+            exit 1
+          fi
+          echo "$BUILD_ID is free"
+
   build:
+    needs: name-is-free
     runs-on: [self-hosted, wmb-tart]
     timeout-minutes: 300
     permissions:
