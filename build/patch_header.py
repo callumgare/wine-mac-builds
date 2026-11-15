@@ -51,6 +51,9 @@ ORIGINS = {
 SUMMARY_MAX = 100
 KEY_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 -]*): ?(.*)$")
 # Upstream and Runtime start with a word from a fixed set, then optional text.
+# Origin is one of ORIGINS, plus " (ported here)" when this project rewrote
+# someone else's change for another Wine version or file.
+ORIGIN_RE = re.compile(r"^([a-z-]+)( \(ported here\))?$")
 LEAD_RE = re.compile(r"^(yes|no|partly)(?:$|[ ,.;:(])")
 
 # The JSON names manifest.py publishes. Status is a working note that can be
@@ -140,8 +143,13 @@ def _check(h):
             h.error(at["Summary"], f"Summary is {len(s)} characters; keep it to {SUMMARY_MAX}")
         if s.endswith("."):
             h.error(at["Summary"], "Summary has no full stop")
-    if "Origin" in f and f["Origin"] not in ORIGINS:
-        h.error(at["Origin"], f"Origin {f['Origin']!r} isn't one of: {', '.join(ORIGINS)}")
+    if "Origin" in f:
+        m = ORIGIN_RE.match(f["Origin"])
+        if not m or m.group(1) not in ORIGINS:
+            h.error(at["Origin"], f"Origin {f['Origin']!r} isn't one of: {', '.join(ORIGINS)}"
+                    " (optionally followed by ' (ported here)')")
+        elif m.group(2) and m.group(1) == "wine-mac-builds":
+            h.error(at["Origin"], "'(ported here)' is for someone else's change")
     if "CW-Hack" in f and not re.fullmatch(r"\d+(, \d+)*", f["CW-Hack"]):
         h.error(at["CW-Hack"], "CW-Hack is CodeWeavers hack numbers, comma-separated: 22131, 24265")
     for key in ("Upstream", "Runtime"):
@@ -167,6 +175,10 @@ def to_json(h):
             value = [int(n) for n in value.split(", ")]
         elif key == "Runtime":
             value = lead(value) == "yes"
+        elif key == "Origin":
+            m = ORIGIN_RE.match(value)
+            value = m.group(1)
+            out["ported"] = bool(m.group(2))
         out[name] = value
     if "Upstream" in h.fields:
         out["upstream_status"] = lead(h.fields["Upstream"])

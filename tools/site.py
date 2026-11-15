@@ -269,6 +269,8 @@ def patch_row(p, rec, commit):
     if p.get("uncertain"):
         what += f" <span class=warn title=\"{esc(p['uncertain'])}\">(uncertain)</span>"
     origin = esc(ORIGINS.get(p.get("origin"), p.get("origin", "")))
+    if p.get("ported"):
+        origin += " <span class=muted>(ported here)</span>"
     if p.get("cw_hacks"):
         origin += "<br><span class=muted>hack " + ", ".join(str(n) for n in p["cw_hacks"]) + "</span>"
     return f"<tr><td>{link}</td><td>{what}</td><td>{origin}</td><td>{esc(p.get('upstream_status', ''))}</td></tr>"

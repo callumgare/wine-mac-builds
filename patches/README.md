@@ -42,7 +42,7 @@ Keys must appear in this order. Each may appear only once.
 | --- | --- | --- |
 | `SPDX-License-Identifier` | yes | The patch's licence. |
 | `Summary` | yes | One line, at most 100 characters, no full stop. What the patch does, for the build page's patch list. |
-| `Origin` | yes | Where the change comes from, one of the values below. |
+| `Origin` | yes | Where the change comes from, one of the values below. Add ` (ported here)` when this project rewrote someone else's change for another Wine version or file, e.g. `gcenx (ported here)`; `From` and `Port` say how. |
 | `From` | yes | Exactly where: commit, CrossOver version and files, wine-staging patch name, or the binary and function it was rebuilt from. |
 | `Source` | yes | A URL for that source, or `none published`. |
 | `CW-Hack` | no | CodeWeavers hack numbers the patch carries, comma-separated: `22131, 21217`. |
