@@ -11,7 +11,7 @@ Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
  against the 32-bit TEB, for 32-bit code only, on general-protection and
  page faults, and step over the instruction. Part 2 of Second Chance's patch
  (skipping int 68h/41h) differs from Windows on purpose and isn't here.
-Status: untested; not yet compiled (2026-11-15).
+Status: built in macfixes-10.0-build2 and macfixes-11.21-build1. Confirmed 2026-11-15: removes Armadillo's stack overflow in Big Fish games (traces show "emulated an fs: addr32 instruction (8f)").
 Applies to: wine 11.21 (macfixes, after 0038)
 Port to 11.21: uses the handler's thread_data->teb (11.x switches %gs inside signal handlers, so NtCurrentTeb() isn't the TEB there) and leave_handler(data, ...).
 

@@ -1,0 +1,110 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: CrossOver 24.0.7 CW HACKs 22686, 22753, 22704; witcher3 entry reproduced from 10.0_8's table
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz (sources/wine/dlls/kernelbase/process.c)
+Upstream: no
+Why: Start ELDEN RING / Armored Core VI without EasyAntiCheat's start_protected_game.exe, Baldur's Gate 3 without its Larian launcher, and The Witcher 3's DX11 build instead of DX12. Copy into name[] is bounded with lstrcpynW (CX uses lstrcpyW).
+Evidence in 10.0_8: kernelbase.dll (both arches): 'HACK: replacing %s with %s', 'app %s cmdline %s after all hacks', function name hack_replace_command_line, and a 4-entry {substring, replacement} table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE VI, Baldurs Gate 3, \bin\x64_dx12\witcher3.exe -> \bin\x64\witcher3.exe.
+Applies to: wine 11.22
+Port: unchanged from 10.0 (applies with offsets; CreateProcessInternalW still has the
+ same app_name/tidy_cmdline handling). CX 26 no longer carries these launcher replacements
+ and wine-staging has none, so the 10.0 form is kept.
+
+diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
+index c58e977..baa4c08 100644
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -520,6 +520,66 @@ done:
+     return ret;
+ }
+ 
++/* CROSSOVER HACK: start the game itself instead of a launcher that doesn't
++ * work in Wine; see the table for the bugs. */
++static WCHAR *hack_replace_command_line( const WCHAR *cmd )
++{
++    static const struct
++    {
++        const WCHAR *substring;
++        const WCHAR *replacement;
++    }
++    replacements[] =
++    {
++        /* CW HACK 22686 */
++        { L"\\ELDEN RING\\Game\\start_protected_game.exe",
++          L"\\ELDEN RING\\Game\\eldenring.exe" },
++
++        /* CW HACK 22753 */
++        { L"\\ARMORED CORE VI FIRES OF RUBICON\\Game\\start_protected_game.exe",
++          L"\\ARMORED CORE VI FIRES OF RUBICON\\Game\\armoredcore6.exe" },
++
++        /* CW HACK 22704 */
++        { L"\\Baldurs Gate 3\\Launcher\\LariLauncher.exe",
++          L"\\Baldurs Gate 3\\bin\\bg3_dx11.exe" },
++
++        /* Sikarugir: run The Witcher 3's DX11 build instead of the DX12 one */
++        { L"\\bin\\x64_dx12\\witcher3.exe",
++          L"\\bin\\x64\\witcher3.exe" },
++    };
++    WCHAR *new_command, *pos;
++    SIZE_T substring_len, replacement_len, new_len;
++    unsigned int i;
++
++    if (!cmd) return NULL;
++
++    for (i = 0; i < ARRAY_SIZE(replacements); ++i)
++    {
++        pos = wcsstr( cmd, replacements[i].substring );
++        if (!pos) continue;
++
++        substring_len = lstrlenW( replacements[i].substring );
++        replacement_len = lstrlenW( replacements[i].replacement );
++        new_len = lstrlenW( cmd );
++        if (replacement_len > substring_len)
++            new_len += replacement_len - substring_len;
++
++        new_command = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(WCHAR) * (new_len + 1) );
++        if (!new_command) return NULL;
++
++        lstrcpyW( new_command, cmd );
++        new_command[pos - cmd] = 0;
++        lstrcatW( new_command, replacements[i].replacement );
++        lstrcatW( new_command, pos + substring_len );
++
++        FIXME( "HACK: replacing %s with %s\n", debugstr_w(cmd), debugstr_w(new_command) );
++
++        return new_command;
++    }
++
++    return NULL;
++}
++
+ /**********************************************************************
+  *           CreateProcessInternalW   (kernelbase.@)
+  */
+@@ -560,6 +620,27 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+         app_name = name;
+     }
+ 
++    /* CROSSOVER HACK: various; see hack_replace_command_line */
++    {
++        WCHAR *new_cmd;
++
++        if ((new_cmd = hack_replace_command_line( app_name )))
++        {
++            lstrcpynW( name, new_cmd, ARRAY_SIZE(name) );
++            app_name = name;
++            RtlFreeHeap( GetProcessHeap(), 0, new_cmd );
++        }
++
++        if ((new_cmd = hack_replace_command_line( tidy_cmdline )))
++        {
++            if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++            tidy_cmdline = new_cmd;
++        }
++    }
++    /* end CROSSOVER HACK */
++
++    TRACE( "app %s cmdline %s after all hacks\n", debugstr_w(app_name), debugstr_w(tidy_cmdline) );
++
+     /* Warn if unsupported features are used */
+ 
+     if (flags & (IDLE_PRIORITY_CLASS | HIGH_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS |

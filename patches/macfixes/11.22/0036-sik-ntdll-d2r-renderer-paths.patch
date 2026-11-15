@@ -1,0 +1,72 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so set_dll_path (inlined into init_paths, 0x1e4b3-0x1e760)
+Source: none published; behaviour read from the compiled 10.0_8 binary
+Upstream: no
+Why: Diablo II: Resurrected (D2R.exe, matched by substring on argv[1]) never gets the WINEDLLPATH_DXVK or WINEDLLPATH_DXMT directories, and also skips WINEDLLPATH_D3DMETAL when SIKARUGIR_D2R_FORCE_VKD3D is set, so it falls through to vkd3d/wined3d instead.
+Uncertain: SIKARUGIR_D2R_FORCE_VKD3D is tested for presence only (any value, even "0", counts), as in 10.0_8. The DXVK/DXMT exclusion for D2R is unconditional in 10.0_8 and is kept that way.
+Expects before it: 0001-ntdll-renderer-dll-paths.patch, 0002-ntdll-launcher-metal-hud.patch
+Applies to: wine 11.22
+Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are
+ unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
+
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+index b3ab993..33689ad 100644
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -329,18 +329,33 @@ static BOOL is_launcher_process(void)
+     return FALSE;
+ }
+ 
++/* Sikarugir: Diablo II: Resurrected runs on vkd3d rather than DXVK or DXMT, and
++ * also rather than D3DMetal when SIKARUGIR_D2R_FORCE_VKD3D is set */
++static BOOL is_d2r_process(void)
++{
++    return main_argc >= 2 && strstr( main_argv[1], "D2R.exe" );
++}
++
++enum d2r_rule
++{
++    D2R_USE,             /* used for D2R */
++    D2R_SKIP,            /* never used for D2R */
++    D2R_SKIP_IF_FORCED,  /* not used for D2R if SIKARUGIR_D2R_FORCE_VKD3D is set */
++};
++
+ /* Sikarugir: per-renderer DLL directories, searched before the builtin ones */
+ static const struct
+ {
+     const char *var;
+     BOOL skip_for_launchers;
++    enum d2r_rule d2r;
+ } renderer_dll_paths[] =
+ {
+-    { "WINEDLLPATH_D3DMETAL", TRUE },
+-    { "WINEDLLPATH_CNCD",     FALSE },
+-    { "WINEDLLPATH_D9VK",     TRUE },
+-    { "WINEDLLPATH_DXVK",     TRUE },
+-    { "WINEDLLPATH_DXMT",     FALSE },
++    { "WINEDLLPATH_D3DMETAL", TRUE,  D2R_SKIP_IF_FORCED },
++    { "WINEDLLPATH_CNCD",     FALSE, D2R_USE },
++    { "WINEDLLPATH_D9VK",     TRUE,  D2R_USE },
++    { "WINEDLLPATH_DXVK",     TRUE,  D2R_SKIP },
++    { "WINEDLLPATH_DXMT",     FALSE, D2R_SKIP },
+ };
+ 
+ static BOOL use_renderer_dll_path( unsigned int idx )
+@@ -351,6 +366,17 @@ static BOOL use_renderer_dll_path( unsigned int idx )
+         if (!getenv( "SIKARUGIR_KEEP_METAL_HUD" )) unsetenv( "MTL_HUD_ENABLED" );
+         return FALSE;
+     }
++    switch (renderer_dll_paths[idx].d2r)
++    {
++    case D2R_USE:
++        break;
++    case D2R_SKIP_IF_FORCED:
++        if (!getenv( "SIKARUGIR_D2R_FORCE_VKD3D" )) break;
++        /* fall through */
++    case D2R_SKIP:
++        if (is_d2r_process()) return FALSE;
++        break;
++    }
+     return TRUE;
+ }
+ 

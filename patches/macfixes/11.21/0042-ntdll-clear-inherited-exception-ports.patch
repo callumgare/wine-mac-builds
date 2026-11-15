@@ -9,7 +9,7 @@ Why: Mach task exception ports are inherited across fork and exec. When
  at its third fault. ntdll now clears the ports for bad access, bad
  instruction and arithmetic exceptions when it sets up signal handling,
  except under a debugger (P_TRACED), which uses them.
-Status: untested; not yet compiled (2026-11-15).
+Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
 Applies to: wine 11.21 (macfixes, after 0041)
 Port to 11.21: same code; called at the start of signal_init_process( TEB * ), which 11.21 already includes <sys/sysctl.h> for.
 
