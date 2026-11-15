@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 # Toolchain 20261115: everything a build needs besides macOS and Xcode.
 #
-# Not built yet. 20261111 with two fixes, everything else pinned the same,
-# so any difference in a Wine build is down to them:
+# Installed at /opt/wmb/toolchains/20261115 by build/toolchain.sh, and
+# published to ghcr.io/callumgare/wine-mac-builds/toolchain:20261115 by
+# run https://github.com/callumgare/wine-mac-builds/actions/runs/43664512764.
+# It is 20261111 with two fixes, everything else pinned the same, so any
+# difference in a Wine build is down to them:
 #   - ZERO_AR_DATE=1 for every port, so two builds of this toolchain give
 #     byte-identical libraries (MACPORTS_EXTRA_ENV);
 #   - FreeType without HarfBuzz, as Gcenx's (MACPORTS_PORT_PATCHES).
-# To publish: run the toolchain workflow with id 20261115, then fill in
-# TOOLCHAIN_ARCHIVE_SHA256 and TOOLCHAIN_SOURCES_SHA256 from its summary.
 #
 # Built inside: ghcr.io/cirruslabs/macos-tahoe-xcode:27.2 (see TART_IMAGE).
 
@@ -17,11 +18,15 @@
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f627daf64ab2c4e11d29a4d267953902a16151ee28fcdd7185927c317"
 XCODE_VERSION="27.2"
 
-# The published archive, pushed by the toolchain workflow (filled in once
-# it's published; until then toolchain.sh builds it from source).
+# The published archive: an OCI artifact on GitHub's container registry,
+# pushed by the toolchain workflow (tag 20261115). Builds without a local
+# archive download its layer by this sha256 (from the artifact's
+# SHA256SUMS).
 TOOLCHAIN_ARCHIVE_REPO="callumgare/wine-mac-builds/toolchain"
-TOOLCHAIN_ARCHIVE_SHA256=""
-TOOLCHAIN_SOURCES_SHA256=""
+TOOLCHAIN_ARCHIVE_SHA256="2476eb388c9bf41e8fd767e941b1bde8eb4f8845aa17f5c701d2b128c90dc695"
+# Its sources archive (every MacPorts distfile), a layer of the same
+# artifact. The publish job copies bundled ports' sources from it.
+TOOLCHAIN_SOURCES_SHA256="8af142bb65963e805e10443438dad8b908d8cb3e46056da785d10d82be596ce3"
 
 # Everything shipped inside a build carries this minimum macOS, as Gcenx's
 # Wine binaries do.

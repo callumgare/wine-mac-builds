@@ -3,7 +3,7 @@
 # Pinned inputs for wine 11.21. Written by tools/pin; review changes like code.
 
 WINE_VERSION="11.21"
-TOOLCHAIN="20261111"
+TOOLCHAIN="20261115"
 
 WINE_URL="https://dl.winehq.org/wine/source/11.x/wine-11.21.tar.xz"
 WINE_SHA256="5a40f593432d81fd3a1646db503f21ce42b8894d6d80c34c3a48b886edc54e3d"

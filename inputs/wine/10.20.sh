@@ -3,7 +3,7 @@
 # Pinned inputs for wine 10.20. Written by tools/pin; review changes like code.
 
 WINE_VERSION="10.20"
-TOOLCHAIN="20261111"
+TOOLCHAIN="20261115"
 
 WINE_URL="https://dl.winehq.org/wine/source/10.x/wine-10.20.tar.xz"
 WINE_SHA256="81b4a153958f6247fe5041d5df65eadcbbeea1b6ba8cda24eb7e3d7ce2d1fe3c"

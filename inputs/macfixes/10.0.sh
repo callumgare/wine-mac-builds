@@ -5,7 +5,7 @@
 # Review changes like code.
 
 WINE_VERSION="10.0"
-TOOLCHAIN="20261111"
+TOOLCHAIN="20261115"
 
 WINE_URL="https://dl.winehq.org/wine/source/10.0/wine-10.0.tar.xz"
 WINE_SHA256="c5e0b3f5f7efafb30e9cd4d9c624b85c583171d33549d933cd3402f341ac3601"
