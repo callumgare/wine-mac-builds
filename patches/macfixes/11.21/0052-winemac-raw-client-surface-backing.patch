@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Size the OpenGL backing to the raw surface when a program changes display mode
+Summary: Fix a zoomed or cropped OpenGL picture after a program changes the display mode
 Origin: wine-mac-builds
 From: ours (wine-mac-builds), 2026-11-15
 Source: none published

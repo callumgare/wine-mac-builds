@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: msync: faster in-process synchronisation on macOS, off unless WINEMSYNC=1
+Summary: msync: waits without wineserver round trips on macOS, off unless WINEMSYNC=1
 Origin: crossover
 From: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] verbatim, and the msync hunks of dlls/ntdll/{Makefile.in,unix/{loader,sync}.c}, server/{Makefile.in,inproc_sync.c,main.c,thread.c,protocol.def}); no CodeWeavers hack number. include/wine/server_protocol.h, server/request_{handlers,trace}.h regenerated with tools/make_requests.
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz

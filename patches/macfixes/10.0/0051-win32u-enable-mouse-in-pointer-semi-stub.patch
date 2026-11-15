@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Implement EnableMouseInPointer
+Summary: EnableMouseInPointer semi-stub: turn it on and send WM_POINTER messages for mouse input
 Origin: winehq
 From: WineHQ 71b686ce9fdce65416080c834a9103a743dc095c (backport), Rémi Bernon, "win32u: Implement NtUserEnableMouseInPointer semi-stub."
 Source: https://gitlab.winehq.org/wine/wine/-/commit/71b686ce9fdce65416080c834a9103a743dc095c
