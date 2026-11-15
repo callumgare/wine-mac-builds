@@ -84,4 +84,9 @@ PATCHES=(
     patches/macfixes/10.0/0044-cx-win32u-composited-paint.patch
     patches/macfixes/10.0/0045-cx-ntdll-export-wine-unix-call.patch
     patches/macfixes/10.0/0046-cx-winemac-bc7-texture-decode.patch
+    patches/macfixes/10.0/0047-cx-winemac-no-mouseactivate-on-focus.patch
+    patches/macfixes/10.0/0048-cx-ntdll-preallocate-tls-expansion-slots.patch
+    patches/macfixes/10.0/0049-cx-winemac-ime-keydowns-only.patch
+    patches/macfixes/10.0/0050-cx-wine-inf-d3dmetal-fake-dlls.patch
+    patches/macfixes/10.0/0051-win32u-enable-mouse-in-pointer-semi-stub.patch
 )

@@ -76,4 +76,7 @@ PATCHES=(
     patches/macfixes/11.22/0044-cx-win32u-composited-paint.patch
     patches/macfixes/11.22/0045-cx-ntdll-export-wine-unix-call.patch
     patches/macfixes/11.22/0046-cx-winemac-bc7-texture-decode.patch
+    patches/macfixes/11.22/0047-cx-winemac-no-mouseactivate-on-focus.patch
+    patches/macfixes/11.22/0048-cx-ntdll-preallocate-tls-expansion-slots.patch
+    patches/macfixes/11.22/0050-cx-wine-inf-d3dmetal-fake-dlls.patch
 )

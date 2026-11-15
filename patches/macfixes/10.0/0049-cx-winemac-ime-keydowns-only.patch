@@ -1,0 +1,87 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: CrossOver 25.1.1, no hack number (dlls/winemac.drv/keyboard.c, cocoa_window.m, macdrv_cocoa.h)
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/winemac.drv/keyboard.c, cocoa_window.m, macdrv_cocoa.h)
+Upstream: yes, in a different form: WineHQ 11.x's ime.c only sends key-downs
+ to macdrv_send_keydown_to_input_source, with the same comment. Not in 10.0.
+Why: When a Mac input method (IME) is active, macdrv_ImeProcessKey passed
+ key-ups as well as key-downs to the Cocoa input context. Only key-downs go
+ there now; key-ups go through as ordinary WM_KEYUP. The Cocoa function is
+ renamed macdrv_send_keydown_to_input_source, drops its "pressed"
+ argument and always builds a key-down CGEvent.
+Evidence in 10.0_8: its macdrv_send_text_input_event takes five register
+ arguments (ours six) and its macdrv_ImeProcessKey differs (disassembly).
+Status: not yet built (2026-11-15).
+Applies to: wine 10.0 (macfixes, after 0048)
+
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+index 4e31590..b482cb5 100644
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -3996,9 +3996,13 @@ uint32_t macdrv_window_background_color(void)
+ }
+ 
+ /***********************************************************************
+- *              macdrv_send_text_input_event
++ *              macdrv_send_keydown_to_input_source
++ *
++ * Sends a key down event to the active window's inputContext so that it can be
++ * processed by input sources (AKA IMEs). This is only called when there is an
++ * active non-keyboard input source.
+  */
+-void macdrv_send_text_input_event(int pressed, unsigned int flags, int repeat, int keyc, void* himc, int* done)
++void macdrv_send_keydown_to_input_source(unsigned int flags, int repeat, int keyc, void* himc, int* done)
+ {
+     OnMainThreadAsync(^{
+         BOOL ret;
+@@ -4023,7 +4027,7 @@ void macdrv_send_text_input_event(int pressed, unsigned int flags, int repeat, i
+             // An NSEvent created with +keyEventWithType:... is internally marked
+             // as synthetic and doesn't get sent through input methods.  But one
+             // created from a CGEvent doesn't have that problem.
+-            c = CGEventCreateKeyboardEvent(NULL, keyc, pressed);
++            c = CGEventCreateKeyboardEvent(NULL, keyc, true);
+             CGEventSetFlags(c, localFlags);
+             CGEventSetIntegerValueField(c, kCGKeyboardEventAutorepeat, repeat);
+             event = [NSEvent eventWithCGEvent:c];
+diff --git a/dlls/winemac.drv/keyboard.c b/dlls/winemac.drv/keyboard.c
+index fe4f7d7..f06f98f 100644
+--- a/dlls/winemac.drv/keyboard.c
++++ b/dlls/winemac.drv/keyboard.c
+@@ -1239,6 +1239,14 @@ UINT macdrv_ImeProcessKey(HIMC himc, UINT wparam, UINT lparam, const BYTE *key_s
+ 
+     if (!macdrv_using_input_method()) return 0;
+ 
++    if (!pressed)
++    {
++        /* Only key down events should be sent to the Cocoa input context. We do
++           not handle key ups, and instead let those go through as a normal
++           WM_KEYUP. */
++        return 0;
++    }
++
+     switch (vkey)
+     {
+         case VK_SHIFT:
+@@ -1274,7 +1282,7 @@ UINT macdrv_ImeProcessKey(HIMC himc, UINT wparam, UINT lparam, const BYTE *key_s
+ 
+     TRACE("flags 0x%08x keyc 0x%04x\n", flags, keyc);
+ 
+-    macdrv_send_text_input_event(pressed, flags, repeat, keyc, himc, &done);
++    macdrv_send_keydown_to_input_source(flags, repeat, keyc, himc, &done);
+     while (!done) NtUserMsgWaitForMultipleObjectsEx(0, NULL, INFINITE, QS_POSTMESSAGE | QS_SENDMESSAGE, 0);
+ 
+     return done > 0;
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index 9f8a011..a940a1d 100644
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -569,8 +569,8 @@ extern void macdrv_order_cocoa_window(macdrv_window w, macdrv_window prev,
+ extern int macdrv_get_view_backing_size(macdrv_view v, int backing_size[2]);
+ extern void macdrv_set_view_backing_size(macdrv_view v, const int backing_size[2]);
+ extern uint32_t macdrv_window_background_color(void);
+-extern void macdrv_send_text_input_event(int pressed, unsigned int flags, int repeat, int keyc,
+-                                         void* data, int* done);
++extern void macdrv_send_keydown_to_input_source(unsigned int flags, int repeat, int keyc,
++                                                void* data, int* done);
+ extern int macdrv_is_any_wine_window_visible(void);
+ 
+ 

@@ -1,0 +1,29 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+From: CrossOver 26.3.0 CW HACK 22435, the wine.inf part (loader/wine.inf.in)
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/loader/wine.inf.in)
+Upstream: no
+Why: Have wineboot put fake (stub) atidxx64.dll, nvapi64.dll and nvngx.dll
+ in a 64-bit prefix's system32. CX's comment says only "for D3DMetal";
+ presumably D3DMetal, or games running on it, check that these AMD/NVIDIA
+ DLLs exist. No builtin DLLs have those names, so setupapi writes generic
+ fake DLLs.
+Evidence in 10.0_8: its share/wine/wine.inf has these lines with this
+ comment; it is the only difference in share/.
+Status: not yet built (2026-11-15).
+Applies to: wine 11.22 (macfixes, after 0048)
+
+diff --git a/loader/wine.inf.in b/loader/wine.inf.in
+index 9288b58..7c491f5 100644
+--- a/loader/wine.inf.in
++++ b/loader/wine.inf.in
+@@ -746,6 +746,10 @@ HKLM,SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86,"Version",2,"14.51.362
+ [FakeDllsWin64]
+ 10,twain_64,sane.ds
+ 10,twain_64,gphoto2.ds
++; CW HACK 22435: fake DLLs for D3DMetal
++11,,atidxx64.dll,*
++11,,nvapi64.dll,*
++11,,nvngx.dll,*
+ 
+ ; Wow64-only fake dlls
+ [FakeDllsWow64]
