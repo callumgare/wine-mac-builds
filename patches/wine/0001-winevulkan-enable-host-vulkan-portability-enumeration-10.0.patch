@@ -1,8 +1,9 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Let Wine's Vulkan find MoltenVK (portability enumeration)
-Origin: wine-mac-builds
-From: written for wine-mac-builds: patch 0001's behaviour for Wine 10.0, where
- winevulkan (not win32u) builds the host instance's create info and there's no
+Origin: gcenx (ported here)
+From: Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
+ (patch 0001), rewritten for wine-mac-builds for Wine 10.0, where winevulkan
+ (not win32u) builds the host instance's create info and there's no
  host_extensions table.
 Source: none; follows Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
 Upstream: no (not in WineHQ as of 11.21)

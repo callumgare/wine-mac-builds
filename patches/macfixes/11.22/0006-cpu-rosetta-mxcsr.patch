@@ -1,6 +1,6 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
-Origin: crossover
+Origin: crossover (ported here)
 From: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
 CW-Hack: 24256, 24265
