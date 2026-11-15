@@ -72,4 +72,5 @@ PATCHES=(
     patches/macfixes/11.22/0040-cpu-rosetta-fs-addr32.patch
     patches/macfixes/11.22/0041-winemac-cocoa-start-wait.patch
     patches/macfixes/11.22/0042-ntdll-clear-inherited-exception-ports.patch
+    patches/macfixes/11.22/0043-cpu-rosetta-cross-process-code-writes.patch
 )
