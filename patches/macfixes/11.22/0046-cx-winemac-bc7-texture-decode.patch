@@ -19,19 +19,25 @@ Applies to: wine 11.22 (macfixes, after 0045)
 Status: not yet built (2026-11-15).
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
-index c84f0a4..a67010a 100644
+index c84f0a4..5ec8867 100644
 --- a/dlls/winemac.drv/opengl.c
 +++ b/dlls/winemac.drv/opengl.c
-@@ -65,6 +65,8 @@ static const GLubyte *(*pglGetString)(GLenum name);
+@@ -65,6 +65,14 @@ static const GLubyte *(*pglGetString)(GLenum name);
  static PFN_glGetIntegerv pglGetIntegerv;
  static void (*pglReadPixels)(GLint x, GLint y, GLsizei width, GLsizei height,
                               GLenum format, GLenum type, void *pixels);
 +static void (*pglTexImage3D)( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels );
 +static void (*pglTexSubImage3D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels );
++static void (*pglCompressedTexImage3D)(GLenum target, GLint level, GLenum internalformat,
++                                       GLsizei width, GLsizei height, GLsizei depth, GLint border,
++                                       GLsizei imageSize, const void *data);
++static void (*pglCompressedTexSubImage3D)(GLenum target, GLint level, GLint xoffset, GLint yoffset,
++                                          GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
++                                          GLenum format, GLsizei imageSize, const void *data);
  
  
  struct color_mode {
-@@ -2107,6 +2109,11 @@ UINT macdrv_OpenGLInit(UINT version, const struct opengl_funcs *opengl_funcs, co
+@@ -2107,6 +2115,11 @@ UINT macdrv_OpenGLInit(UINT version, const struct opengl_funcs *opengl_funcs, co
      LOAD_FUNCPTR(glGetString);
      LOAD_FUNCPTR(glReadPixels);
      LOAD_FUNCPTR(glCopyColorTable);
@@ -43,7 +49,7 @@ index c84f0a4..a67010a 100644
  
      if (!init_gl_info())
          goto failed;
-@@ -2225,6 +2232,96 @@ static BOOL macdrv_context_destroy(struct opengl_context *base)
+@@ -2225,6 +2238,89 @@ static BOOL macdrv_context_destroy(struct opengl_context *base)
      return TRUE;
  }
  
@@ -57,13 +63,6 @@ index c84f0a4..a67010a 100644
 +#define BCDEC_STATIC
 +#include "opengl_bcdec.h"
 +
-+static void (*pglCompressedTexImage3D)(GLenum target, GLint level, GLenum internalformat,
-+                                       GLsizei width, GLsizei height, GLsizei depth, GLint border,
-+                                       GLsizei imageSize, const void *data);
-+
-+static void (*pglCompressedTexSubImage3D)(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-+                                          GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
-+                                          GLenum format, GLsizei imageSize, const void *data);
 +
 +static void *decode_bptc_unorm_to_rgba(const void *data, GLsizei width, GLsizei height, GLsizei depth)
 +{
@@ -140,7 +139,7 @@ index c84f0a4..a67010a 100644
  static void *macdrv_get_proc_address(const char *name)
  {
      /* redirect some standard OpenGL functions */
-@@ -2234,6 +2331,9 @@ static void *macdrv_get_proc_address(const char *name)
+@@ -2234,6 +2330,9 @@ static void *macdrv_get_proc_address(const char *name)
  
      /* redirect some OpenGL extension functions */
      if (!strcmp(name, "glCopyColorTable")) return macdrv_glCopyColorTable;
