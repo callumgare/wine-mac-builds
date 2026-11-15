@@ -79,4 +79,5 @@ PATCHES=(
     patches/macfixes/11.22/0047-cx-winemac-no-mouseactivate-on-focus.patch
     patches/macfixes/11.22/0048-cx-ntdll-preallocate-tls-expansion-slots.patch
     patches/macfixes/11.22/0050-cx-wine-inf-d3dmetal-fake-dlls.patch
+    patches/macfixes/11.22/0052-winemac-raw-client-surface-backing.patch
 )
