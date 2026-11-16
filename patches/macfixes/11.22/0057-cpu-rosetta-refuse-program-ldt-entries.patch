@@ -1,0 +1,56 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Rosetta 2: refuse a program's own LDT entries, as Wine 10 did, instead of hanging
+Category: cpu
+Kind: workaround
+Origin: wine-mac-builds
+From: written for wine-mac-builds
+Source: none published
+Upstream: no
+Why: Wine 11 implements NtSetLdtEntries for wow64 processes and passes the
+ entry to i386_set_ldt. Rosetta 2 accepts only the entries Wine sets up
+ itself (32-bit code and %fs, which don't go through NtSetLdtEntries); for
+ others, such as a 16-bit data selector, it prints "rosetta error: LDT ...
+ not supported" and the thread spins for ever. Wine 10's NtSetLdtEntries
+ returned STATUS_NOT_IMPLEMENTED on 64-bit macOS, and programs carried on.
+ Under Rosetta, return that again.
+ Seen in Bioscopia (Director 8): it stops on its first title frame after
+ "rosetta error: LDT 0xf00f3210488323f not supported" (base 0x0f210488,
+ limit 0x323f, 16-bit data, DPL 3).
+Evidence: a 32-bit test program calling NtSetLdtEntries with that
+ descriptor: on macfixes 11.22-build3 Rosetta prints the error and the
+ process spins at 100% CPU; with this patch the call returns 0xc0000002
+ and the program continues.
+Expects before it: 0043 (is_apple_silicon)
+Applies to: wine 11.22 (macfixes, after 0056)
+Status: 2026-11-16: ntdll.so rebuilt with this patch in the build VM; the
+ test program above passes. Not yet tried with Bioscopia.
+
+diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
+index dfa8f2f..b608594 100644
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -4153,6 +4153,10 @@ NTSTATUS ldt_get_entry( WORD sel, CLIENT_ID client_id, LDT_ENTRY *entry )
+     return status;
+ }
+ 
++#ifdef __APPLE__
++static int is_apple_silicon(void);
++#endif
++
+ /******************************************************************************
+  *           NtSetLdtEntries   (NTDLL.@)
+  *           ZwSetLdtEntries   (NTDLL.@)
+@@ -4163,6 +4167,13 @@ NTSTATUS WINAPI NtSetLdtEntries( ULONG sel1, ULONG entry1_low, ULONG entry1_high
+     union { LDT_ENTRY entry; ULONG ul[2]; } entry;
+ 
+     if (is_win64 && !is_wow64()) return STATUS_NOT_IMPLEMENTED;
++#ifdef __APPLE__
++    /* Rosetta 2 serves only the LDT entries Wine sets up itself (32-bit code
++     * and %fs). It stops the whole process on others, such as a program's
++     * 16-bit data selector ("rosetta error: LDT ... not supported"). Refuse
++     * them, as Wine 10 did on 64-bit macOS. */
++    if (is_apple_silicon()) return STATUS_NOT_IMPLEMENTED;
++#endif
+     if (sel1 >> 16 || sel2 >> 16) return STATUS_INVALID_LDT_DESCRIPTOR;
+ 
+     server_enter_uninterrupted_section( &virtual_mutex, &sigset );
