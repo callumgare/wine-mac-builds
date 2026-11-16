@@ -16,23 +16,22 @@ Why: A WineOpenGLContext's view, latent view and update flags are changed
  hold it while it waits for the main thread (OnMainThread), so viewWillDraw
  only tries the lock. If it's busy, the context stays pending and the view
  asks to be drawn again.
- Wine 11's framebuffer GL surfaces (EmulateModeset) create a new view for
- each drawable, so this happens much more often there. Upstream winemac has
- the same code in 10.0 and 11.x.
- Seen in Nancy Drew games under Second Chance (DirectDraw through cnc-ddraw
- on OpenGL): a crash in a non-Windows thread at objc_release+34, then exit
- code 5, shortly after "Using experimental framebuffer OpenGL surface" or a
- switch away and back.
-Evidence: Crashes at libobjc 0x7ff8062b2622 = objc_release+34 in Crystal
- Skull and Castle Malloy on 11.22-build4, and in Shadow Ranch and Old Clock
- on 11.22-build6 (2 of 33 games on kiya). A winemac instrumented to count
- threads inside each context's functions reported about 40 overlaps in 15 s
- of a stress program (one context switched between two windows on render
- threads while the main thread hides and shows them, EmulateModeset on).
- All of them were viewWillDraw's update on the main thread while a GL
- thread was inside, and there were none with this patch. The stress program
- doesn't crash, as the double release needs a narrower interleaving, so
- there is no regression test.
+ It needs a GL context made current on a view that isn't drawable yet,
+ which Wine 11's framebuffer GL surfaces (EmulateModeset) cause when two
+ threads draw to one window: each gets its own surface and view.
+ Upstream winemac has the same code in 10.0 and 11.x.
+ Found while chasing a crash at objc_release+34 in Nancy Drew games
+ ("Pattern A"), but it isn't that crash: an instrumented build logged no
+ pending-context update and no overlap in any of the games' launches,
+ crashed or not.
+Evidence: A winemac instrumented to count threads inside each context's
+ functions reported about 40 overlaps in 15 s of a stress program (one
+ context per render thread, two render threads switching between two
+ windows while the main thread hides and shows them, EmulateModeset on).
+ All were viewWillDraw's update on the main thread while a GL thread was
+ inside. There were none with this patch. The stress program doesn't
+ crash, as the double release needs a narrower interleaving, so there is
+ no regression test.
 Applies to: wine 11.21 (macfixes, after 0058)
 Status: 2026-11-17: not yet built. The same change as 11.22's.
 
