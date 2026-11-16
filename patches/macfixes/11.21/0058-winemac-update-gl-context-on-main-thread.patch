@@ -29,7 +29,9 @@ Evidence: samples of the hung game (Second Chance integration run on
  thread.
 Applies to: wine 11.21 (macfixes, after 0057)
 Status: built in macfixes-11.21-build6 (2026-11-17); the regression suite
- passes on it. Not yet confirmed with White Wolf.
+ passes on it. Confirmed 2026-11-17 on 11.22-build5: White Wolf's Big Fish
+ trial on meeka (macOS 26) ran 10 of 10 launches without a hang, against 4
+ hangs in 7 launches on builds 2 and 4.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index c15aefe..5488840 100644
