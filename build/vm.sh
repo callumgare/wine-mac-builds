@@ -33,7 +33,7 @@ if [[ "${1:-}" == "--keep" ]]; then KEEP=1; shift; fi
 # Which image: the toolchain's.
 case "$1" in
     toolchain) tc_id="${2:?toolchain id}" ;;
-    build|compile|package|manifest|archive)
+    build|compile|package|smoke|regress|manifest|archive)
         load_build_inputs "${2:?flavour}" "${3:?version}"
         tc_id="$TOOLCHAIN" ;;
     *) die "vm: don't know which image '$1' needs" ;;

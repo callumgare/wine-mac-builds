@@ -4,7 +4,9 @@
 # wmb: the one entry point, used the same way locally and in CI.
 #
 #   ./wmb toolchain <id> [--archive]     assemble toolchain <id> at /opt/wmb/toolchains/<id>
-#   ./wmb build <flavour> <version>      compile, package, smoke, manifest, check, archive -> out/
+#   ./wmb build <flavour> <version>      compile, package, smoke, regress, manifest, check,
+#                                        archive -> out/
+#   ./wmb regress --tree <release dir>   run the regression tests on an unpacked release
 #   ./wmb vm <command...>                run any of the above in a fresh Tart VM
 #                                        from the toolchain's pinned image
 #
@@ -24,14 +26,15 @@ case "$cmd" in
         "$ROOT/build/compile.sh" "$@"
         "$ROOT/build/package.sh" "$@"
         "$ROOT/build/smoke.sh" "$@"
+        "$ROOT/build/regress.sh" "$@"
         "$ROOT/build/manifest.sh" "$@"
         "$ROOT/build/check.sh" "$@"
         "$ROOT/build/archive.sh" "$@" ;;
-    compile|package|smoke|manifest|check|archive)
+    compile|package|smoke|regress|manifest|check|archive)
         exec "$ROOT/build/$cmd.sh" "$@" ;;
     vm)
         exec "$ROOT/build/vm.sh" "$@" ;;
     *)
-        sed -n '4,13p' "$0" | sed 's/^# \{0,1\}//' >&2
+        sed -n '4,15p' "$0" | sed 's/^# \{0,1\}//' >&2
         exit 2 ;;
 esac
