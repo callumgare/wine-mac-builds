@@ -1,0 +1,18 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# unserviced-exception-port <command> [args...]: compiles
+# unserviced-exception-port.c (see there) once per version of it, and
+# becomes it. Skips the test (77) when there's no C compiler for the Mac.
+set -e
+src="$(dirname "$0")/unserviced-exception-port.c"
+bin="${TMPDIR:-/tmp}/wmb-unserviced-exception-port-$(/sbin/md5 -q "$src")"
+if [[ ! -x $bin ]]; then
+    if ! /usr/bin/xcrun --find clang >/dev/null 2>&1; then
+        echo "unserviced-exception-port: skipped (no Mac C compiler; install the Xcode command line tools)"
+        exit 77
+    fi
+    /usr/bin/xcrun clang -O2 -o "$bin.$$" "$src"
+    mv -f "$bin.$$" "$bin"
+fi
+exec "$bin" "$@"

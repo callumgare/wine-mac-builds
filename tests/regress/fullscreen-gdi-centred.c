@@ -85,6 +85,7 @@ static int child(void)
                            pick.dmPelsWidth, pick.dmPelsHeight, NULL, NULL, NULL, NULL);
     UpdateWindow(hwnd);
     GetMonitorInfoA(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+    printf(NAME ": EXPECT aspect=%.4f\n", (double)pick.dmPelsWidth / pick.dmPelsHeight);
     printf(NAME ": monitor %ldx%ld\n", mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
 
     for (end = GetTickCount() + 2000; GetTickCount() < end; Sleep(20))
@@ -107,6 +108,7 @@ int main(int argc, char **argv)
     PROCESS_INFORMATION pi;
     HKEY key;
 
+    setvbuf(stdout, NULL, _IONBF, 0);
     if (argc > 1 && !strcmp(argv[1], "child")) return child();
 
     /* EmulateModeset is read when a process starts, so set it, then start the copy. */
@@ -117,7 +119,12 @@ int main(int argc, char **argv)
 
     GetModuleFileNameA(NULL, self, sizeof(self));
     snprintf(cmd, sizeof(cmd), "\"%s\" child", self);
-    if (CreateProcessA(self, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+    /* The copy's output must reach the runner's log: it watches for SCREENSHOT. */
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    if (CreateProcessA(self, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
     {
         WaitForSingleObject(pi.hProcess, INFINITE);
         GetExitCodeProcess(pi.hProcess, &code);

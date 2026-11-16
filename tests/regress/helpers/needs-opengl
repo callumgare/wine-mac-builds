@@ -1,0 +1,20 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# needs-opengl <command...>: run the command if macOS offers OpenGL, else
+# skip the test (exit 77). Tart VMs have no accelerated OpenGL (only Apple's
+# software renderer, which winemac doesn't take): CGLChoosePixelFormat
+# fails there, so every OpenGL test would fail for a reason that isn't
+# Wine's. Asking macOS directly, outside Wine, keeps a build that broke
+# Wine's own OpenGL from being skipped.
+if ! /usr/bin/python3 -I -c '
+import ctypes, sys
+cgl = ctypes.CDLL("/System/Library/Frameworks/OpenGL.framework/OpenGL")
+attrs = (ctypes.c_int * 2)(73, 0)  # kCGLPFAAccelerated, as winemac asks; end
+pix, n = ctypes.c_void_p(), ctypes.c_int()
+err = cgl.CGLChoosePixelFormat(attrs, ctypes.byref(pix), ctypes.byref(n))
+sys.exit(0 if err == 0 and pix.value else 1)' 2>/dev/null; then
+    echo "needs-opengl: this Mac offers no OpenGL (CGLChoosePixelFormat failed; a VM?); skipped"
+    exit 77
+fi
+exec "$@"

@@ -1,0 +1,13 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# prefix-env NAME=<path> ... <wine> <exe>: run "<wine> <exe>" with each NAME
+# set to $WINEPREFIX/<path>, for a variable that must hold an absolute Unix
+# path from the start of the process (the header's Env: values are taken as
+# is). WMB_WINE is set to <wine>, for a test that starts a program the way
+# a Unix launcher script does.
+args=()
+while [[ $# -gt 0 && $1 == *=* ]]; do
+    args+=("${1%%=*}=$WINEPREFIX/${1#*=}"); shift
+done
+exec /usr/bin/env "${args[@]}" WMB_WINE="$1" "$@"

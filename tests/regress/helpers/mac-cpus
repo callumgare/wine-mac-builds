@@ -1,0 +1,7 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# mac-cpus <command...>: run the command with WMB_MAC_CPUS set to the Mac's
+# number of logical processors, for a test that needs the real count while
+# Wine is told to report fewer.
+WMB_MAC_CPUS="$(/usr/sbin/sysctl -n hw.logicalcpu)" exec "$@"

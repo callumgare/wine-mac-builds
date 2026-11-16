@@ -4,31 +4,38 @@
 # regress.sh <flavour> <version>     test the packaged build (after smoke.sh)
 # regress.sh --tree <release dir>    test an unpacked release, e.g. on a test Mac
 #
-# Runs the regression tests in tests/regress/: one small Windows program per
-# bug a game ran into, written once the fix was understood, so the bug can't
-# come back unnoticed (tests/regress/README.md). Each program is compiled,
-# run in a fresh prefix and judged by its exit code:
+# Runs the regression tests in tests/regress/: one small program per bug a
+# game ran into, written once the fix was understood, so the bug can't come
+# back unnoticed (tests/regress/README.md). A test is either
 #
-#   0 passed, 77 skipped (the program says why), anything else failed;
+#   <name>.c   a Windows program, compiled and run with the build's wine, or
+#   <name>.sh  a shell script, for checks made from the Mac side; it gets
+#              T (the release tree), WINE, WINEPREFIX and OUT (a directory
+#              of its own) in its environment,
+#
+# all sharing one fresh prefix, and judged by the exit code:
+#
+#   0 passed, 77 skipped (the test says why), anything else failed;
 #   still running at its Timeout counts as hung, and so failed.
 #
-# A test's header comment says how to build and run it:
+# A test's header comment (" * Key: value" in C, "# Key: value" in shell)
+# says how to build and run it:
 #
 #   Arch: i686 and/or x86_64     (default i686; each listed is a separate run)
 #   Libs: <linker flags>
 #   Timeout: <seconds>           (default 60)
 #   Flavours: <flavour> ...      run only for these (default all)
 #   Versions: <glob> ...         run only for these Wine versions (default all)
+#   Env: <NAME=value> ...        set for the run
+#   Wrapper: <helper> [args]     run "tests/regress/helpers/<helper> [args] <wine>
+#                                <exe>" instead of "<wine> <exe>"
+#   Log: <regex>                 must also appear in the run's output (for what
+#                                only Wine's own messages show)
 #   Screenshot: <check> <args>   the program prints "<name>: SCREENSHOT" once its
 #                                window is up; the screen is captured and judged
-#                                by tests/regress/screenshot.py <png> <check> <args>
+#                                by tests/regress/screenshot.py <png> <log> <check>
+#                                <args>
 #
-# In --tree mode the flavour and version come from the tree's BUILD-INFO.json,
-# and the compilers from PATH (<arch>-w64-mingw32-clang, else -gcc).
-# WMB_REGRESS_NO_SCREEN=1 skips the tests that take over the screen, and
-# WMB_REGRESS_ONLY=<name> runs just one test. WMB_REGRESS_ALL=1 ignores Flavours
-# and Versions, to see that a test fails on a build without its fix.
-
 source "$(dirname "$0")/lib.sh"
 require_x86_64 "$@"
 
@@ -68,8 +75,9 @@ unset WINEARCH WINEDLLPATH WINELOADER DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PA
 stop_wine() { "$T/bin/wineserver" -k >/dev/null 2>&1 || true; }
 trap stop_wine EXIT
 
-# header <file> <key>: the value of " * <key>: <value>" in the test's comment.
-header() { sed -n -E "1,40s/^ \* $2: (.*)$/\1/p" "$1" | head -1; }
+# header <file> <key>: the value of " * <key>: <value>" (or "# <key>: <value>")
+# in the test's header comment.
+header() { sed -n -E "1,40s/^( \*|#) $2: (.*)$/\2/p" "$1" | head -1; }
 
 # matches <word> <globs...>: is <word> one of the globs (or are there none)?
 matches() {
@@ -89,15 +97,21 @@ log "regress: making a prefix"
 stop_wine
 
 passed=() skipped=() failed=()
-for src in "$WMB_ROOT"/tests/regress/*.c; do
-    name="$(basename "$src" .c)"
+for src in "$WMB_ROOT"/tests/regress/*.c "$WMB_ROOT"/tests/regress/*.sh; do
+    [[ -f $src ]] || continue
+    name="$(basename "$src")"; kind="${name##*.}"; name="${name%.*}"
     [[ -z ${WMB_REGRESS_ONLY:-} || $name == "$WMB_REGRESS_ONLY" ]] || continue
-    read -r -a archs <<< "$(header "$src" Arch)"; [[ ${#archs[@]} -gt 0 ]] || archs=(i686)
+    read -r -a archs <<< "$(header "$src" Arch)"
+    [[ ${#archs[@]} -gt 0 ]] || archs=(i686)
+    [[ $kind == c ]] || archs=(sh)
     timeout="$(header "$src" Timeout)"; timeout="${timeout:-60}"
     read -r -a libs <<< "$(header "$src" Libs)"
     read -r -a flavours <<< "$(header "$src" Flavours)"
     read -r -a versions <<< "$(header "$src" Versions)"
+    read -r -a envs <<< "$(header "$src" Env)"
+    read -r -a wrapper <<< "$(header "$src" Wrapper)"
     read -r -a screenshot <<< "$(header "$src" Screenshot)"
+    want_log="$(header "$src" Log)"
 
     if [[ -z ${WMB_REGRESS_ALL:-} ]] && { ! matches "$FLAVOUR" ${flavours[@]+"${flavours[@]}"} || ! matches "$VERSION" ${versions[@]+"${versions[@]}"}; }; then
         continue  # not meant for this build; not worth a line
@@ -110,18 +124,30 @@ for src in "$WMB_ROOT"/tests/regress/*.c; do
     for arch in "${archs[@]}"; do
         id="$name" base="$name"
         [[ ${#archs[@]} -eq 1 ]] || id="$name ($arch)" base="$name-$arch"
-        exe="$LOG/$base.exe" out="$LOG/$base.log"
-        if ! "$(compiler "$arch")" -O2 -o "$exe" "$src" ${libs[@]+"${libs[@]}"} > "$LOG/$base.compile.log" 2>&1; then
-            cat "$LOG/$base.compile.log" >&2
-            log "regress: $id: FAILED (didn't compile)"
-            failed+=("$id"); continue
+        out="$LOG/$base.log"
+        if [[ $kind == sh ]]; then
+            mkdir -p "$LOG/$base"
+            cmd=(/usr/bin/env T="$T" WINE="$T/bin/wine" OUT="$LOG/$base" /bin/bash "$src")
+        else
+            exe="$LOG/$base.exe"
+            if ! "$(compiler "$arch")" -O2 -o "$exe" "$src" ${libs[@]+"${libs[@]}"} > "$LOG/$base.compile.log" 2>&1; then
+                cat "$LOG/$base.compile.log" >&2
+                log "regress: $id: FAILED (didn't compile)"
+                failed+=("$id"); continue
+            fi
+            cmd=("$T/bin/wine" "$exe")
+            if [[ ${#wrapper[@]} -gt 0 ]]; then
+                cmd=("$WMB_ROOT/tests/regress/helpers/${wrapper[0]}" "${wrapper[@]:1}" "${cmd[@]}")
+            fi
         fi
+        [[ ${#envs[@]} -eq 0 ]] || cmd=(/usr/bin/env "${envs[@]}" "${cmd[@]}")
+        timed=(/usr/bin/perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "$timeout" "${cmd[@]}")
 
         rc=0
         if [[ ${#screenshot[@]} -eq 0 ]]; then
-            /usr/bin/perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "$timeout" "$T/bin/wine" "$exe" > "$out" 2>&1 || rc=$?
+            "${timed[@]}" > "$out" 2>&1 || rc=$?
         else
-            /usr/bin/perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "$timeout" "$T/bin/wine" "$exe" > "$out" 2>&1 &
+            "${timed[@]}" > "$out" 2>&1 &
             pid=$!
             for ((i = 0; i < timeout * 2; i++)); do
                 grep -a -q "^$name: SCREENSHOT" "$out" 2>/dev/null && break
@@ -136,11 +162,15 @@ for src in "$WMB_ROOT"/tests/regress/*.c; do
                 if [[ ! -s "$LOG/$base.png" ]]; then
                     echo "$name: no screenshot was taken" >> "$out"; rc=1
                 else
-                    /usr/bin/python3 -I "$WMB_ROOT/tests/regress/screenshot.py" "$LOG/$base.png" ${screenshot[@]+"${screenshot[@]}"} >> "$out" 2>&1 || rc=$?
+                    /usr/bin/python3 -I "$WMB_ROOT/tests/regress/screenshot.py" "$LOG/$base.png" "$out" "${screenshot[@]}" > "$LOG/$base.judged" 2>&1 || rc=$?
+                    cat "$LOG/$base.judged" >> "$out"
                 fi
             fi
         fi
         stop_wine
+        if [[ $rc -eq 0 && -n $want_log ]] && ! grep -a -q -E "$want_log" "$out"; then
+            echo "$name: the output has no line matching /$want_log/" >> "$out"; rc=1
+        fi
 
         grep -a -E "^($name|screenshot):" "$out" | sed 's/^/  /' >&2 || true
         case $rc in
