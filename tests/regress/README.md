@@ -60,6 +60,7 @@ All guard macfixes patches; the number is the patch's in
 | `bc7-texture` | 0046 | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
 | `d3d11-vulkan-renderer` | 0025 | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
 | `fullscreen-gdi-centred` | 0056 | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |
+| `fullscreen-gl-centred` | 0052 | with EmulateModeset, a fullscreen OpenGL picture in a mode of another shape comes out zoomed and cropped on Wine 11 (White Wolf Queen) |
 | `gl-core-context` | 0024 | Wine 10.0 refuses OpenGL 3.2+ core contexts without the forward-compatible flag, the only kind macOS offers |
 
 Tests for a patch that's only in 10.0 run on 11.x too: there they check
@@ -73,6 +74,8 @@ that Wine 11's own fix still holds.
 - Build VMs have no accelerated OpenGL, so `bc7-texture` and
   `gl-core-context` skip there (the `needs-opengl` helper asks macOS
   first). Run them on a real Mac with `--tree`.
+- `fullscreen-gl-centred` also needs accelerated OpenGL, and a screen that
+  offers a smaller display mode of another shape; it skips without one.
 
 ### Patches without a test
 
@@ -95,7 +98,6 @@ that Wine 11's own fix still holds.
   pending on a view with no latent view, which so far has only happened
   in the middle of a fullscreen Space transition.
 - **Not behaviour.** 0001 (version string; the smoke test checks it) and 0003 (tests only).
-- **`fullscreen-gl-centred`, for 0052, is written but not yet in the suite.** It needs accelerated OpenGL and a screen that offers a display mode of another shape. The build VMs have no accelerated OpenGL, and no Mac it has been tried on had such a mode free.
 
 ## Helpers
 
