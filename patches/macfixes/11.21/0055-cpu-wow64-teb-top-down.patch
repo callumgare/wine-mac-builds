@@ -25,8 +25,8 @@ Evidence: gmActivator ("###SENDER#BFG_Client_test#GET#PROPERTY_HARDWAREID")
 Port: 11.21 still sets a 4G low limit for 64-bit processes with ASLR in
  the same two places; the helper keeps that.
 Applies to: wine 11.21 (macfixes, after 0053)
-Status: 2026-11-16: not yet built. Same change as the 11.22 patch, which was
- tested; 11.21 shows the same error.
+Status: 2026-11-16: built in wine-macfixes-11.21-build4; the activator writes
+ its licence (4 values) in a fresh prefix, with no error box.
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index 46e761e..ee83fc9 100644

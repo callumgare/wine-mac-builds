@@ -25,7 +25,8 @@ Evidence: gmActivator ("###SENDER#BFG_Client_test#GET#PROPERTY_HARDWAREID")
 Applies to: wine 11.22 (macfixes, after 0053)
 Status: 2026-11-16: ntdll.so rebuilt from macfixes-11.22 sources with this
  patch; the activator writes its licence (4 values, two runs) instead of
- the error. 32-bit TEB/PEB at 0x7ffda000/0x7ffdd000.
+ the error. 32-bit TEB/PEB at 0x7ffda000/0x7ffdd000. Built in wine-macfixes-11.22-build2;
+ same result in a fresh prefix.
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index cc52179..dfa8f2f 100644
