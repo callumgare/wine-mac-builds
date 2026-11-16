@@ -144,7 +144,20 @@ cat "$LOG"/*.log | sed -n -E 's|^dyld\[[0-9]+\]: <[0-9A-F-]+> (/.*)$|\1|p' | gre
 [[ -s "$LOG/loaded.txt" ]] || fail "dyld printed no libraries; can't check where they came from"
 
 step "everything loaded is the build's own or macOS's"
-grep -v -E "^($T/|/System/|/usr/lib/|/usr/libexec/rosetta/|/Library/Apple/)" "$LOG/loaded.txt" > "$LOG/outside.txt" || true
+# A line torn by another process's output can still look whole, with a
+# made-up path (one build failed on "/Users/…/wine-ma73DE5> /System/…").
+# A library from outside the build is a file that exists; macOS's own may
+# live only in the shared cache, but those are under the prefixes allowed
+# here. So a path outside them that isn't on disk is a torn line.
+: > "$LOG/outside.txt"
+while IFS= read -r lib; do
+    [[ $lib =~ ^($T/|/System/|/usr/lib/|/usr/libexec/rosetta/|/Library/Apple/) ]] && continue
+    if [[ -e $lib ]]; then
+        printf '%s\n' "$lib" >> "$LOG/outside.txt"
+    else
+        log "smoke: ignoring a torn dyld line: $lib"
+    fi
+done < "$LOG/loaded.txt"
 if [[ -s "$LOG/outside.txt" ]]; then
     cat "$LOG/outside.txt" >&2
     fail "the libraries above came from outside the build"
