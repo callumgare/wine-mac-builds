@@ -28,8 +28,8 @@ Evidence: samples of the hung game (Second Chance integration run on
  macdrv_add_view_opengl_context -> OnMainThread, waiting for the main
  thread.
 Applies to: wine 11.21 (macfixes, after 0057)
-Status: 2026-11-17: not yet built. The 11.22 change compiles (winemac.so rebuilt
- in the build VM).
+Status: built in macfixes-11.21-build6 (2026-11-17); the regression suite
+ passes on it. Not yet confirmed with White Wolf.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index c15aefe..5488840 100644
