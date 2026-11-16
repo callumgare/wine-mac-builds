@@ -81,4 +81,5 @@ PATCHES=(
     patches/macfixes/11.22/0050-cx-wine-inf-d3dmetal-fake-dlls.patch
     patches/macfixes/11.22/0052-winemac-raw-client-surface-backing.patch
     patches/macfixes/11.22/0053-cpu-rosetta-skip-9x-debugger-probes.patch
+    patches/macfixes/11.22/0055-cpu-wow64-teb-top-down.patch
 )
