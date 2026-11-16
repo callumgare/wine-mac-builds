@@ -31,7 +31,9 @@ Evidence: test program switching to 960x540 on a 1024x768 screen and
  it at the top.
 Applies to: wine 11.22 (macfixes, after 0055)
 Status: 2026-11-16: winemac.so rebuilt from macfixes-11.22 sources with this
- patch in the build VM; the test above passes. Not yet tried with Bioscopia.
+ patch in the build VM; the test above passes. Built in
+ wine-macfixes-11.22-build3: Bioscopia's picture is centred with black bars
+ (Second Chance integration run, 2026-11-16).
 
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 index 5f4c615..38b12b0 100644
