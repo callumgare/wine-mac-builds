@@ -44,6 +44,7 @@ All guard macfixes patches; the number is the patch's in
 | `commandline-append` | 0037 | the registry's `CommandLineAppend` for an exe isn't added to its command line |
 | `composited-paint` | 0044 | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
 | `d3dmetal-dlls` | 0045, 0021, 0050 | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
+| `exe-base-taken` | 0059 | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
 | `hung-ll-hook` | 0028 | a low-level keyboard hook that stops answering delays every key press by 2 s |
 | `loopback-bind` | 0029 | macOS refuses binds to 127.x.x.x addresses other than 127.0.0.1; GOG Galaxy doesn't start |
 | `macdrv-functions` | 0020 | winemac.so doesn't export `macdrv_functions`, so D3DMetal and DXMT can't present |
@@ -106,6 +107,7 @@ Programs in `helpers/` that a test names with `Wrapper:`:
 - `needs-opengl` skips the test on a Mac without accelerated OpenGL.
 - `mac-cpus` passes the Mac's real processor count.
 - `prefix-env` sets variables to paths inside the prefix.
+- `occupy-exe-base` loads a small library (compiled with `xcrun clang` on first use) into every Wine process of the run. It takes an address range that the test names, before Wine maps anything there.
 - `unserviced-exception-port` starts wine with task exception ports that nobody answers. It is compiled with `xcrun clang` on first use, and the test skips if there's no compiler.
 
 ## Writing one

@@ -85,4 +85,5 @@ PATCHES=(
     patches/macfixes/11.21/0056-winemac-centre-fullscreen-gdi-picture.patch
     patches/macfixes/11.21/0057-cpu-rosetta-refuse-program-ldt-entries.patch
     patches/macfixes/11.21/0058-winemac-update-gl-context-on-main-thread.patch
+    patches/macfixes/11.21/0059-system-exe-entry-after-base-taken.patch
 )

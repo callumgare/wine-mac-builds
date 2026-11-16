@@ -1,0 +1,25 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# occupy-exe-base <command> [args...]: runs the command with
+# occupy-exe-base.c (see there) loaded into every Wine process, and
+# WMB_OCCUPY_FILE naming an empty place for the test to write the range to
+# take. The library is compiled once per version of it. Skips the test (77)
+# when there's no C compiler for the Mac.
+set -e
+src="$(dirname "$0")/occupy-exe-base.c"
+lib="${TMPDIR:-/tmp}/wmb-occupy-exe-base-$(/sbin/md5 -q "$src").dylib"
+if [[ ! -f $lib ]]; then
+    if ! /usr/bin/xcrun --find clang >/dev/null 2>&1; then
+        echo "occupy-exe-base: skipped (no Mac C compiler; install the Xcode command line tools)"
+        exit 77
+    fi
+    /usr/bin/xcrun clang -arch x86_64 -O2 -dynamiclib -o "$lib.$$" "$src"
+    mv -f "$lib.$$" "$lib"
+fi
+export WMB_OCCUPY_FILE="${TMPDIR:-/tmp}/wmb-occupy-exe-base-$$.txt"
+rm -f "$WMB_OCCUPY_FILE"
+rc=0
+DYLD_INSERT_LIBRARIES="$lib" "$@" || rc=$?
+rm -f "$WMB_OCCUPY_FILE"
+exit $rc
