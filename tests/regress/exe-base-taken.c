@@ -7,7 +7,7 @@
  * Wrapper: occupy-exe-base
  * Guards: 0059 system-exe-entry-after-base-taken
  *
- * Since Wine 11 the wineserver gives a 64-bit exe a random base between
+ * Since Wine 11.22 the wineserver gives a 64-bit exe a random base between
  * 0x7ff600000000 and 0x7ff800000000. On macOS that range also holds host
  * mappings; when the base is taken, the exe is mapped elsewhere but the main
  * thread still starts at the entry point of the assigned base, and the

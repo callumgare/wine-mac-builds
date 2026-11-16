@@ -26,7 +26,10 @@ Evidence: tests/regress/exe-base-taken.c takes the child's assigned base
  on the host side before the child maps its exe: the child crashes at
  base + entry every time without this patch.
 Applies to: wine 11.22 (macfixes, after 0058)
-Status: 2026-11-17: not yet built.
+Status: built in macfixes-11.22-build6 (2026-11-17); exe-base-taken passes on it
+ (it crashes on build5) and the rest of the suite passes. Only 11.22 needs it:
+ random exe bases are new in 11.22, and 11.21 takes TransferAddress from the
+ real base. (It was in 11.21-build7 too, where it does nothing.)
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index b608594..a0bc146 100644
