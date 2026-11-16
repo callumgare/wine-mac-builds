@@ -15,8 +15,10 @@
  * top-left instead (Bioscopia: picture at x=0, white strip beside it).
  *
  * The program sets EmulateModeset (and puts it back afterwards), runs a copy
- * of itself that picks such a mode and paints its window magenta, then
- * prints "SCREENSHOT" and waits. The runner takes a screenshot and checks
+ * of itself that picks such a mode and paints its window green with a
+ * magenta rectangle inset by an eighth on each side (the band is wider than
+ * the menu bar, which may cover the top), then prints "SCREENSHOT" and
+ * waits. The runner takes a screenshot and checks
  * that the magenta area is centred (tests/regress/screenshot.py). Exits 77
  * (skipped) when the screen offers no mode of another shape.
  */
@@ -28,6 +30,7 @@
 
 #define NAME "fullscreen-gdi-centred"
 #define PICTURE RGB(0xff, 0x00, 0xff)
+#define BORDER RGB(0x00, 0xff, 0x00)
 
 static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -36,10 +39,13 @@ static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         PAINTSTRUCT ps;
         RECT rc;
         HDC dc = BeginPaint(hwnd, &ps);
-        HBRUSH brush = CreateSolidBrush(PICTURE);
+        HBRUSH border = CreateSolidBrush(BORDER), brush = CreateSolidBrush(PICTURE);
         GetClientRect(hwnd, &rc);
+        FillRect(dc, &rc, border);
+        InflateRect(&rc, -rc.right / 8, -rc.bottom / 8);
         FillRect(dc, &rc, brush);
         DeleteObject(brush);
+        DeleteObject(border);
         EndPaint(hwnd, &ps);
         return 0;
     }
