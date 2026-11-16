@@ -84,4 +84,5 @@ PATCHES=(
     patches/macfixes/11.22/0055-cpu-wow64-teb-top-down.patch
     patches/macfixes/11.22/0056-winemac-centre-fullscreen-gdi-picture.patch
     patches/macfixes/11.22/0057-cpu-rosetta-refuse-program-ldt-entries.patch
+    patches/macfixes/11.22/0058-winemac-update-gl-context-on-main-thread.patch
 )

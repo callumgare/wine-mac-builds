@@ -90,6 +90,10 @@ that Wine 11's own fix still holds.
   - 0015/0016: Finder's free-space figure isn't visible to a program.
   - 0041: needs a fully loaded Mac.
   - 0047 and 0049: need real Cocoa focus and input-method events.
+- **Timing only.** 0058 (an OpenGL context updated from the main thread
+  deadlocks it; White Wolf Queen on macOS 26): it takes a context that's
+  pending on a view with no latent view, which so far has only happened
+  in the middle of a fullscreen Space transition.
 - **Not behaviour.** 0001 (version string; the smoke test checks it) and 0003 (tests only).
 - **`fullscreen-gl-centred`, for 0052, is written but not yet in the suite.** It needs accelerated OpenGL and a screen that offers a display mode of another shape. The build VMs have no accelerated OpenGL, and no Mac it has been tried on had such a mode free.
 

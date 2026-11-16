@@ -91,4 +91,5 @@ PATCHES=(
     patches/macfixes/10.0/0051-win32u-enable-mouse-in-pointer-semi-stub.patch
     patches/macfixes/10.0/0053-cpu-rosetta-skip-9x-debugger-probes.patch
     patches/macfixes/10.0/0054-wbemprox-no-per-table-lock.patch
+    patches/macfixes/10.0/0058-winemac-update-gl-context-on-main-thread.patch
 )
