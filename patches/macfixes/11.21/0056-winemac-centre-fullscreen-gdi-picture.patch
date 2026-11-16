@@ -32,8 +32,9 @@ Evidence: test program switching to 960x540 on a 1024x768 screen and
 Port: 11.21's winemac draws the window surface as a CGImage cropped to the
  layer's bounds rather than an IOSurface; the sublayer gets the whole image.
 Applies to: wine 11.21 (macfixes, after 0055)
-Status: 2026-11-16: not yet built. Same change as the 11.22 patch, which was
- tested.
+Status: 2026-11-16: built in wine-macfixes-11.21-build5. Same change as the
+ 11.22 patch, which was tested with Bioscopia; tests/regress
+ fullscreen-gdi-centred guards it.
 
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 index 1ffe959..1c7dd5e 100644

@@ -22,8 +22,9 @@ Evidence: a 32-bit test program calling NtSetLdtEntries with that
  and the program continues.
 Expects before it: 0043 (is_apple_silicon)
 Applies to: wine 11.21 (macfixes, after 0056)
-Status: 2026-11-16: not yet built. Same change as the 11.22 patch, which was
- tested.
+Status: 2026-11-16: built in wine-macfixes-11.21-build5;
+ tests/regress/ldt-program-selector passes there. Not yet tried with
+ Bioscopia.
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index ee83fc9..82240c3 100644
