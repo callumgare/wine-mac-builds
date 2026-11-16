@@ -1,0 +1,159 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't let the main thread and a GL thread change an OpenGL context's view at once
+Category: graphics
+Kind: fix
+Origin: wine-mac-builds
+From: written for wine-mac-builds
+Source: none published
+Upstream: no
+Why: A WineOpenGLContext's view, latent view and update flags are changed
+ by the GL threads (macdrv_make_context_current, macdrv_update_opengl_context)
+ and, for contexts added while their view wasn't drawable, by the main thread
+ in the content view's viewWillDraw, which calls
+ macdrv_update_opengl_context. Nothing serialises the two. Both can read the
+ same old view or latent view and release it, and the view is then released
+ once too often. Add one recursive lock around those changes. A GL thread can
+ hold it while it waits for the main thread (OnMainThread), so viewWillDraw
+ only tries the lock. If it's busy, the context stays pending and the view
+ asks to be drawn again.
+ Wine 11's framebuffer GL surfaces (EmulateModeset) create a new view for
+ each drawable, so this happens much more often there. Upstream winemac has
+ the same code in 10.0 and 11.x.
+ Seen in Nancy Drew games under Second Chance (DirectDraw through cnc-ddraw
+ on OpenGL): a crash in a non-Windows thread at objc_release+34, then exit
+ code 5, shortly after "Using experimental framebuffer OpenGL surface" or a
+ switch away and back.
+Evidence: Crashes at libobjc 0x7ff8062b2622 = objc_release+34 in Crystal
+ Skull and Castle Malloy on 11.22-build4, and in Shadow Ranch and Old Clock
+ on 11.22-build6 (2 of 33 games on kiya). A winemac instrumented to count
+ threads inside each context's functions reported about 40 overlaps in 15 s
+ of a stress program (one context switched between two windows on render
+ threads while the main thread hides and shows them, EmulateModeset on).
+ All of them were viewWillDraw's update on the main thread while a GL
+ thread was inside, and there were none with this patch. The stress program
+ doesn't crash, as the double release needs a narrower interleaving, so
+ there is no regression test.
+Applies to: wine 11.21 (macfixes, after 0058)
+Status: 2026-11-17: not yet built. The same change as 11.22's.
+
+diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
+index 5488840..5bb2850 100644
+--- a/dlls/winemac.drv/cocoa_opengl.m
++++ b/dlls/winemac.drv/cocoa_opengl.m
+@@ -26,6 +26,16 @@
+ #include "cocoa_app.h"
+ #include "cocoa_event.h"
+ 
++#include <pthread.h>
++
++/* Held while a context's view, latent view and update flags change. The
++ * GL threads change them in macdrv_make_context_current() and
++ * macdrv_update_opengl_context(), and the main thread in the content view's
++ * viewWillDraw. Without it both could swap the same view at once and release
++ * it twice. A GL thread can hold it while it waits for the main thread, so
++ * the main thread only ever tries to take it. */
++static pthread_mutex_t context_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
++
+ #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+ 
+ 
+@@ -218,7 +228,9 @@ void macdrv_dispose_opengl_context(WineOpenGLContext *context)
+ {
+ @autoreleasepool
+ {
++    pthread_mutex_lock(&context_mutex);
+     [context removeFromViews:YES];
++    pthread_mutex_unlock(&context_mutex);
+     [context release];
+ }
+ }
+@@ -230,6 +242,7 @@ void macdrv_make_context_current(WineOpenGLContext *context, WineContentView *vi
+ {
+ @autoreleasepool
+ {
++    pthread_mutex_lock(&context_mutex);
+     if (context && view)
+     {
+         if (view == (WineContentView *)[context view] || view == (WineContentView *)[context latentView])
+@@ -278,6 +291,7 @@ void macdrv_make_context_current(WineOpenGLContext *context, WineContentView *vi
+         if (context)
+             [context removeFromViews:YES];
+     }
++    pthread_mutex_unlock(&context_mutex);
+ }
+ }
+ 
+@@ -288,6 +302,7 @@ void macdrv_update_opengl_context(WineOpenGLContext *context)
+ {
+ @autoreleasepool
+ {
++    pthread_mutex_lock(&context_mutex);
+     if (context.needsUpdate)
+     {
+         BOOL reattach = context.needsReattach;
+@@ -321,7 +336,23 @@ void macdrv_update_opengl_context(WineOpenGLContext *context)
+             [context resetSurfaceIfBackingSizeChanged];
+         }
+     }
++    pthread_mutex_unlock(&context_mutex);
++}
+ }
++
++/***********************************************************************
++ *              macdrv_try_update_opengl_context
++ *
++ * For the main thread: updates the context unless a GL thread is changing
++ * it, and returns whether it did.
++ */
++int macdrv_try_update_opengl_context(WineOpenGLContext *context)
++{
++    if (pthread_mutex_trylock(&context_mutex)) return 0;
++    context.needsUpdate = TRUE;
++    macdrv_update_opengl_context(context);
++    pthread_mutex_unlock(&context_mutex);
++    return 1;
+ }
+ 
+ /***********************************************************************
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+index 1c7dd5e..1e39119 100644
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -489,13 +489,20 @@ - (void) viewWillDraw
+     {
+         [super viewWillDraw];
+ 
+-        for (WineOpenGLContext* context in pendingGlContexts)
++        for (WineOpenGLContext* context in [[pendingGlContexts copy] autorelease])
+         {
+-            context.needsUpdate = TRUE;
+-            macdrv_update_opengl_context(context);
++            /* A GL thread is changing it; leave it pending for the next draw. */
++            if (!macdrv_try_update_opengl_context(context))
++                continue;
++            [glContexts addObject:context];
++            [pendingGlContexts removeObjectIdenticalTo:context];
++        }
++        if ([pendingGlContexts count])
++        {
++            dispatch_async(dispatch_get_main_queue(), ^{
++                [self setNeedsDisplay:YES];
++            });
+         }
+-        [glContexts addObjectsFromArray:pendingGlContexts];
+-        [pendingGlContexts removeAllObjects];
+     }
+ 
+     - (void) addGLContext:(WineOpenGLContext*)context
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index b119802..837bd30 100644
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -554,6 +554,7 @@ extern WineOpenGLContext *macdrv_create_opengl_context(void* cglctx);
+ extern void macdrv_dispose_opengl_context(WineOpenGLContext *context);
+ extern void macdrv_make_context_current(WineOpenGLContext *context, WineContentView *view, CGRect r);
+ extern void macdrv_update_opengl_context(WineOpenGLContext *context);
++extern int macdrv_try_update_opengl_context(WineOpenGLContext *context);
+ extern void macdrv_flush_opengl_context(WineOpenGLContext *context);
+ 
+ 

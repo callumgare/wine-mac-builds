@@ -97,7 +97,10 @@ that Wine 11's own fix still holds.
 - **Timing only.** 0058 (an OpenGL context updated from the main thread
   deadlocks it; White Wolf Queen on macOS 26): it takes a context that's
   pending on a view with no latent view, which so far has only happened
-  in the middle of a fullscreen Space transition.
+  in the middle of a fullscreen Space transition. 0060 (the main thread and
+  a GL thread release the same view twice; Nancy Drew games): a stress
+  program shows the two overlapping, but the crash needs a narrower
+  interleaving than it reaches.
 - **Not behaviour.** 0001 (version string; the smoke test checks it) and 0003 (tests only).
 
 ## Helpers

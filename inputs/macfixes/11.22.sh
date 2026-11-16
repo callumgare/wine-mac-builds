@@ -86,4 +86,5 @@ PATCHES=(
     patches/macfixes/11.22/0057-cpu-rosetta-refuse-program-ldt-entries.patch
     patches/macfixes/11.22/0058-winemac-update-gl-context-on-main-thread.patch
     patches/macfixes/11.22/0059-system-exe-entry-after-base-taken.patch
+    patches/macfixes/11.22/0060-winemac-serialise-gl-context-changes.patch
 )
