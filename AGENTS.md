@@ -93,6 +93,18 @@ projects.
 
 ## Debugging techniques that have worked
 
+- To check whether a compiler or flag change (ccache, debug-info flags)
+  changes the output, rebuild a few PE modules in the quick VM's configured
+  tree instead of running two full builds. Override the compiler and flags
+  on the make command line (`x86_64_CC=…`, `i386_CFLAGS=…`; the Makefile
+  sets them), clear the files in each module's `<arch>-windows/` folder
+  (not the folder: only configure makes it), build the module's `.dll`
+  targets, and `cmp` the DLLs and PDBs. Seconds instead of two hours.
+  Include modules that compile the same sources in different folders
+  (vcomp, vcomp90 … vcomp140), and check that the old flags fail.
+  Arguments makedep wrote into the Makefile (winegcc's `--cc-cmd`) don't
+  change this way.
+
 - Symbolicate a crash address in a system library by asking any process of
   the same architecture: `arch -x86_64 /bin/sleep 20 &` and then
   `atos -p <pid> <addr>`. The shared cache sits at the same address in every
