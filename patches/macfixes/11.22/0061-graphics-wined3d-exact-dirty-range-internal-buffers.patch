@@ -27,7 +27,9 @@ Status: 2026-11-17 in a quick build of macfixes 11.22 (VM, not for release).
  74-79 ms, the same as 11.21-build8 (77-85 ms); 11.22-build7 219-259 ms.
  F12 quit Iji in 3 of 3 (2.7-2.9 s). d3d8-up-draw-speed on meeka (M1 Max,
  macOS 26.7): passes 3 of 3 (1.4-1.5x), fails 3 of 3 on 11.22-build7 and
- on plain 11.22-build1 (about 40x). Not yet in a full build or release.
+ on plain 11.22-build1 (about 40x).
+ 2026-11-17 in wine-macfixes-11.22-build8 (draft): d3d8-up-draw-speed passes
+ on meeka (1.6x); games not yet tested on it.
 
 --- a/dlls/wined3d/buffer.c
 +++ b/dlls/wined3d/buffer.c
