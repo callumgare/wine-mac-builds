@@ -7,6 +7,10 @@ If `.local/AGENTS.md` exists, read it and follow it as well. It holds what's
 specific to one person's setup (machines, accounts, who else is testing).
 `.local/` is git-ignored, and it's where uncommitted notes such as plans go.
 
+Keep both files current. When something here turns out wrong or out of
+date, fix it. When a debugging technique, test method or process is adopted,
+add it to the right file in the same piece of work.
+
 ## Layout
 
 - `wmb` is the one entry point, locally and in CI: `./wmb build <flavour>
