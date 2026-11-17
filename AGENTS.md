@@ -91,8 +91,6 @@ specific to one person's setup (machines, accounts, who else is testing).
 
 ## Conventions
 
-- Names: don't use "wrapp" or "wrapper app" terms in this repo. The
-  embedding driver is `winemac_appembedded.drv`.
 - Site and README copy informs technical readers. Don't sell, instruct or
   be cute.
 - Patch origins follow `patches/README.md`: our own rewrites of someone
