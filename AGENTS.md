@@ -100,6 +100,13 @@ projects.
   `loader/main.c` is the build-tree loader, not the one that ships.
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
+- A GUI program started straight from an SSH session can't reach the
+  window server (Wine logs "no driver could be loaded"). Start it as a
+  one-off LaunchAgent in the user's GUI session instead: a plist with
+  `RunAtLoad` loaded with `launchctl bootstrap gui/$(id -u) <plist>`.
+  Without `RunAtLoad` the job loads and never runs.
+- To click inside a Wine program without macOS Accessibility permissions,
+  run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
   not NULL. Unset it when a test program checks whether it exists.
 
