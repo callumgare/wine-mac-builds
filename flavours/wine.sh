@@ -8,8 +8,8 @@ FLAVOUR_DESCRIPTION="WineHQ's release, with Gcenx's macOS patches"
 
 # Configure options: Gcenx's wine-devel Portfile at fc0301b, with the
 # default +gstreamer variant. Paths that depend on the toolchain are added
-# by build/compile.sh. Any change here is a deviation from Gcenx's builds and
-# must be listed in docs/deviations-from-gcenx.md.
+# by build/compile.sh. Any change here makes the builds differ from Gcenx's,
+# and must be listed in docs/differences-to-other-build-setups.md.
 CONFIGURE_ARGS=(
     --enable-archs=i386,x86_64
     --enable-win64

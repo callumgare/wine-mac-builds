@@ -23,8 +23,9 @@ want a specific Wine version that will still be downloadable years from now.
 
 The contents of each build closely follow [Gcenx's](https://github.com/Gcenx/macports-wine)
 widely used macOS builds: the same configure options, bundled libraries,
-Gecko and Mono, and macOS patches. Every difference is listed, with its
-reason, in [docs/deviations-from-gcenx.md](docs/deviations-from-gcenx.md).
+Gecko and Mono, and macOS patches. Where these builds differ from Gcenx's
+and other setups, and why, is in
+[docs/differences-to-other-build-setups.md](docs/differences-to-other-build-setups.md).
 
 ## Building
 

@@ -132,8 +132,9 @@ add_rpath() { rpaths "$1" | grep -qxF "$2" || install_name_tool -add_rpath "$2" 
 
 # Drop absolute run paths (the toolchain, /Library/Frameworks) from Wine's
 # files and the bundled libraries: the build must only ever load what it
-# ships. Deviation from Gcenx, whose winegstreamer.so and winedmo.so also
-# search /Library/Frameworks/GStreamer.framework first.
+# ships. Gcenx's winegstreamer.so and winedmo.so also search
+# /Library/Frameworks/GStreamer.framework first; listed in
+# docs/differences-to-other-build-setups.md.
 while read -r f; do
     while read -r rp; do
         [[ "$rp" == /* ]] && install_name_tool -delete_rpath "$rp" "$f" 2>/dev/null
