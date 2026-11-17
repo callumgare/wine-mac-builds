@@ -76,7 +76,14 @@ CPPFLAGS="-I$TC/include"
 # headerpad leaves room for package.sh to rewrite library paths.
 # -L as MacPorts adds to every port (configure.ldflags).
 LDFLAGS="-L$TC/lib -Wl,-headerpad_max_install_names"
-CROSSCFLAGS="-O2 -g $PREFIX_MAP"
+# -gno-codeview-command-line: clang otherwise records each compile's full
+# command line in the CodeView debug info (LF_BUILDINFO), and so in the .pdb.
+# It holds paths the prefix map doesn't rewrite (the toolchain's, the build
+# directory's), and ccache adds -fcolor-diagnostics to it. With -Brepro (below)
+# the PE timestamp and debug ID come from a hash that covers the debug info, so
+# builds with and without ccache, or in different places, differed in every
+# PE file (16-20 bytes each; the code was the same).
+CROSSCFLAGS="-O2 -g -gno-codeview-command-line $PREFIX_MAP"
 # Wine links its PE files in MSVC mode (-target *-windows), so with lld-link,
 # which doesn't know MinGW ld's --no-insert-timestamp. -Brepro is lld-link's
 # way: the PE timestamp becomes a hash of the output, not the build time.
