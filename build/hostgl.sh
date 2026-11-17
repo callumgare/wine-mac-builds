@@ -14,7 +14,12 @@
 # toolchain archive; only that part is unpacked, into the work directory, so
 # nothing is installed on the Mac. They run in the user's GUI session, as a
 # one-off LaunchAgent: Wine started from SSH, or from the self-hosted
-# runner's detached shell, can't reach the window server.
+# runner's detached shell, can't reach the window server. A LaunchAgent can't
+# read a removable volume either (macOS privacy rules; the build Mac keeps
+# its work on an external disk), so everything the job uses is staged on the
+# internal disk first, in WMB_HOSTGL_DIR (default
+# ~/Library/Caches/wmb-hostgl): the unpacked build, llvm-mingw, and the
+# repo's build/ and tests/.
 #
 # Tests that take over the screen are skipped unless WMB_HOSTGL_SCREEN=1:
 # the build Mac's screen is often another user's, and screencapture from a
@@ -25,8 +30,9 @@ source "$(dirname "$0")/lib.sh"
 [[ $# -eq 1 && -f $1 && $1 == *.tar.xz ]] || die "usage: hostgl.sh <build archive .tar.xz>"
 ARCHIVE="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 BUILD_ID="$(basename "$ARCHIVE" .tar.xz)"
-H="$WMB_WORK_DIR/hostgl"
+H="${WMB_HOSTGL_DIR:-$HOME/Library/Caches/wmb-hostgl}"
 T="$H/$BUILD_ID"
+R="$H/repo"
 
 if ! "$WMB_ROOT/tests/regress/helpers/needs-opengl" /usr/bin/true > /dev/null; then
     log "hostgl: this Mac offers no accelerated OpenGL; OpenGL tests not run"
@@ -44,7 +50,7 @@ tar -xJf "$ARCHIVE" -C "$H"
 # The compiler: llvm-mingw from the build's toolchain archive.
 tc_id="$(/usr/bin/python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["toolchain"]["id"])' "$T/BUILD-INFO.json")"
 load_toolchain "$tc_id"
-MINGW="$WMB_WORK_DIR/tools/llvm-mingw-$tc_id"
+MINGW="$H/llvm-mingw-$tc_id"
 if [[ ! -x "$MINGW/bin/i686-w64-mingw32-clang" ]]; then
     src="$(fetch_ghcr_blob "$TOOLCHAIN_ARCHIVE_REPO" "$TOOLCHAIN_ARCHIVE_SHA256" "toolchain-$tc_id-macos-x86_64.tar.xz")"
     log "hostgl: unpacking llvm-mingw from toolchain $tc_id"
@@ -52,6 +58,10 @@ if [[ ! -x "$MINGW/bin/i686-w64-mingw32-clang" ]]; then
     tar -xJf "$src" -C "$MINGW.new" "$tc_id/libexec/llvm-mingw"
     rm -rf "$MINGW"; mv "$MINGW.new/$tc_id/libexec/llvm-mingw" "$MINGW"; rm -rf "$MINGW.new"
 fi
+
+# The repo files the job runs: regress.sh --tree needs only these.
+rm -rf "$R"; mkdir -p "$R"
+cp -R "$WMB_ROOT/build" "$WMB_ROOT/tests" "$R/"
 
 no_screen=1
 if [[ ${WMB_HOSTGL_SCREEN:-} == 1 ]]; then
@@ -69,9 +79,9 @@ rm -f "$status"; : > "$out"
 {
     echo '#!/bin/bash'
     printf 'export PATH=%q WMB_WORK_DIR=%q WMB_CACHE_DIR=%q WMB_REGRESS_GL=only\n' \
-        "$MINGW/bin:/usr/bin:/bin:/usr/sbin:/sbin" "$WMB_WORK_DIR" "$WMB_CACHE_DIR"
+        "$MINGW/bin:/usr/bin:/bin:/usr/sbin:/sbin" "$H/work" "$H/cache"
     [[ -z $no_screen ]] || echo 'export WMB_REGRESS_NO_SCREEN=1'
-    printf '%q --tree %q > %q 2>&1 < /dev/null\n' "$WMB_ROOT/build/regress.sh" "$T" "$out"
+    printf '%q --tree %q > %q 2>&1 < /dev/null\n' "$R/build/regress.sh" "$T" "$out"
     printf 'echo $? > %q\n' "$status"
 } > "$job"
 /usr/bin/python3 -I - "$plist" "$label" "$job" <<'EOF'
@@ -92,5 +102,5 @@ sleep 1; kill "$tail_pid" 2>/dev/null || true
 [[ -s $status ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes (log: $out)"
 rc="$(cat "$status")"
 [[ $rc == 0 ]] || die "hostgl: OpenGL tests failed (exit $rc; log: $out)"
-rm -rf "$T"
+rm -rf "$T" "$H/work"
 log "hostgl: OpenGL tests passed"

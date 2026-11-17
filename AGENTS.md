@@ -111,6 +111,8 @@ projects.
   one-off LaunchAgent in the user's GUI session instead: a plist with
   `RunAtLoad` loaded with `launchctl bootstrap gui/$(id -u) <plist>`.
   Without `RunAtLoad` the job loads and never runs.
+  Such a job can't read a removable volume ("Operation not permitted"), so
+  stage what it runs on the internal disk.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
