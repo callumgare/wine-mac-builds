@@ -29,7 +29,8 @@ projects.
 
 - `wmb` is the one entry point, locally and in CI: `./wmb build <flavour>
   <version>`, `./wmb vm build …` (the same in a fresh Tart VM, which is how
-  releases are made), `./wmb regress --tree <dir>`.
+  releases are made), `./wmb vm quick …` (a test build; see below),
+  `./wmb regress --tree <dir>`.
 - `flavours/` defines each flavour, and `inputs/<flavour>/<version>.sh` pins
   a version's inputs, including its patch list in order.
 - `patches/<flavour>/<version>/`: each patch has a header in the format of
@@ -50,12 +51,19 @@ projects.
    plus the run that showed the bug). Then build the ports together. Each
    full build takes over an hour, and a fix whose premise turns out wrong
    costs one build instead of several.
-3. Test it with an incremental rebuild before queueing a full build. Rebuild
-   only the changed `.so` or `.dll` in a configured build tree, then swap it
-   into a copy of the last release (`cp -c` makes an APFS clone). The tree
-   must match the release's sources: refresh the directories you touch from
-   the release's `-sources` asset first. A stale tree gives results that
-   belong to neither build.
+3. Test it with a quick build before queueing a full build:
+   `./wmb vm quick <flavour> <version>`. It runs in a VM kept for quick
+   builds, patches the source from the current inputs, copies in only the
+   files whose contents changed, and compiles only what they affect. It
+   skips the debug symbols, and takes only the test programs of the modules
+   that changed, plus any named in `WMB_TESTS="user32 winemac.drv"`
+   (`wine x86_64-windows/user32_test.exe win` runs one). The first quick
+   build of a version compiles everything. Quick builds aren't for release.
+   For one changed `.so` or `.dll`, you can also rebuild it in a configured
+   tree and swap it into a copy of the last release (`cp -c` makes an APFS
+   clone). Then refresh the directories you touch from the release's
+   `-sources` asset first. A stale tree gives results that belong to
+   neither build.
 4. Write a regression test that fails without the fix. Run it with
    `WMB_REGRESS_ALL=1` on the plain build of the same version. Check it
    compiles with llvm-mingw as well as Homebrew's mingw, since their headers

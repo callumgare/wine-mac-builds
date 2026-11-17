@@ -16,6 +16,11 @@
 # The bundled libraries are found the way Gcenx's builds find them: Wine
 # dlopen()s them by leaf name (libgnutls.30.dylib) through the
 # @loader_path/../../ rpath of lib/wine/x86_64-unix/*.so.
+#
+# A quick build (WMB_QUICK set) strips the binaries without keeping their
+# debug symbols, and instead of winetest.exe takes the test programs of the
+# modules whose sources changed (compile.sh's changed-files.txt) and of any
+# named in WMB_TESTS ("user32 winemac.drv").
 
 source "$(dirname "$0")/lib.sh"
 require_x86_64 "$@"
@@ -162,6 +167,10 @@ group_end
 # Mac side: a .dSYM per Mach-O (matched by LC_UUID), then strip the debug
 # map. Windows side: the .pdb files the build wrote (CROSSDEBUG=pdb).
 group_start "Debug symbols"
+if [[ -n "${WMB_QUICK:-}" ]]; then
+    log "Quick build: stripping without keeping debug symbols"
+    while read -r f; do strip -S "$f"; done < <(wine_machos)
+else
 while read -r f; do
     rel="${f#"$T/"}"
     # A few Unix libraries compile to nothing on macOS (wined3d.so is all
@@ -185,6 +194,7 @@ done < <(wine_machos)
     mkdir -p "$D/lib/wine/$arch"
     cp "$SRC/$p" "$D/lib/wine/$arch/"
 done
+fi
 group_end
 
 # --- Tests ---------------------------------------------------------------------
@@ -193,6 +203,35 @@ group_end
 # tested, or compared with another, later.
 group_start "Tests"
 mkdir -p "$TS"
+if [[ -n "${WMB_QUICK:-}" ]]; then
+    # dlls/user32/win.c -> dlls/user32, then its tests/<arch>-windows/*.exe.
+    mods="$( {
+        sed -n 's|^\(dlls/[^/]*\)/.*|\1|p; s|^\(programs/[^/]*\)/.*|\1|p' "$W/changed-files.txt" 2>/dev/null || true
+        for m in ${WMB_TESTS:-}; do
+            if [[ -d "$SRC/dlls/$m" ]]; then echo "dlls/$m"; else echo "programs/$m"; fi
+        done
+    } | LC_ALL=C sort -u )"
+    n=0
+    for m in $mods; do
+        for exe in "$SRC/$m"/tests/*-windows/*.exe; do
+            [[ -f "$exe" ]] || continue
+            arch="$(basename "$(dirname "$exe")")"
+            mkdir -p "$TS/$arch"
+            cp "$exe" "$TS/$arch/"
+            n=$((n + 1))
+        done
+    done
+    log "Quick build: $n test programs, from: $(echo $mods)"
+    cat > "$TS/README.md" <<EOF
+# Wine's tests for $BUILD_ID
+
+The test programs of the modules this quick build changed or was asked for
+(WMB_TESTS). Run one with that build, for all of its tests or just one:
+
+    wine x86_64-windows/user32_test.exe
+    wine x86_64-windows/user32_test.exe win
+EOF
+else
 for arch in i386 x86_64; do
     exe="$SRC/programs/winetest/$arch-windows/winetest.exe"
     [[ -f "$exe" ]] || die "no $exe: was Wine configured with its tests?"
@@ -210,6 +249,7 @@ build as $BUILD_ID. Run it with that build:
 
 Not needed to use Wine; it's for testing a build or comparing two.
 EOF
+fi
 group_end
 
 # --- Gecko and Mono ------------------------------------------------------------

@@ -124,6 +124,13 @@ load_build_inputs() {
     # hit is the object a fresh compile makes.
     SRC_NAME="${BUILD_NAME%-build"$BUILD_NUMBER"}"
     BUILD_SRC="$WMB_WORK_DIR/src/$SRC_NAME"
+    # A quick build (`wmb quick`) is named for when it was made
+    # (wine-macfixes-11.22-quick20261117T0530), never with a build number.
+    if [[ -n "${WMB_QUICK:-}" ]]; then
+        [[ "$WMB_QUICK" =~ ^[0-9A-Za-z]+$ ]] || die "WMB_QUICK='$WMB_QUICK' isn't a plain label"
+        BUILD_NAME="$SRC_NAME-quick$WMB_QUICK"
+        BUILD_ID="$BUILD_NAME-macos-x86_64"
+    fi
 }
 
 # wine-11.21-build1, wine-staging-11.21-build1: flavour (none for plain

@@ -9,6 +9,12 @@
 #
 #   ./wmb vm toolchain 20261111 --archive
 #   ./wmb vm build wine 11.21
+#   ./wmb vm quick macfixes 11.22
+#
+# `quick` runs in a VM that is kept between quick builds (wmb-quick-<toolchain
+# id>), shut down in between, so it can reuse the source trees it compiled
+# before. Delete it with `tart delete` to start again from nothing. Its
+# builds aren't for release: the VM isn't fresh. WMB_TESTS is passed in.
 #
 # Shared with the VM (WMB_VM_SHARE, default ./vm-share):
 #   repo/   a copy of this checkout, refreshed on every run (and copied into
@@ -37,8 +43,16 @@ if [[ "${1:-}" == "--keep" ]]; then KEEP=1; shift; fi
 [[ $# -ge 1 ]] || die "usage: vm.sh [--keep] <wmb command...>"
 
 # Which image: the toolchain's.
+QUICK=0
 case "$1" in
     toolchain) tc_id="${2:?toolchain id}" ;;
+    quick)
+        QUICK=1
+        # Chosen here, so the host knows the build's name.
+        WMB_QUICK="${WMB_QUICK:-$(date -u +%Y%m%dT%H%M%S)}"
+        export WMB_QUICK
+        load_build_inputs "${2:?flavour}" "${3:?version}"
+        tc_id="$TOOLCHAIN" ;;
     build|compile|package|smoke|regress|manifest|archive)
         load_build_inputs "${2:?flavour}" "${3:?version}"
         tc_id="$TOOLCHAIN" ;;
@@ -52,8 +66,15 @@ mkdir -p "$SHARE/repo" "$SHARE/cache" "$SHARE/out" "$SHARE/logs"
 rsync -a --delete --exclude /vm-share --exclude /work --exclude /out --exclude /.cache \
     "$WMB_ROOT/" "$SHARE/repo/"
 
-VM="wmb-$(date +%Y%m%d-%H%M%S)-$$"
-LOG="$SHARE/logs/$VM.log"
+# RUN names this run's files in logs/.
+if [[ $QUICK -eq 1 ]]; then
+    VM="wmb-quick-$tc_id"
+    RUN="$VM-$WMB_QUICK"
+else
+    VM="wmb-$(date +%Y%m%d-%H%M%S)-$$"
+    RUN="$VM"
+fi
+LOG="$SHARE/logs/$RUN.log"
 CPUS="${WMB_VM_CPUS:-$(( $(sysctl -n hw.ncpu) - 2 ))}"
 MEM="${WMB_VM_MEMORY_MB:-$(( $(sysctl -n hw.memsize) / 1048576 * 2 / 3 ))}"
 
@@ -79,7 +100,8 @@ make_ccache_image() {
     hdiutil detach "$dev" >/dev/null
     mv "$img.new" "$img"
 }
-if [[ "${WMB_VM_CCACHE:-0}" == 1 ]]; then
+# (Not for quick builds: they reuse their compiled tree instead.)
+if [[ "${WMB_VM_CCACHE:-0}" == 1 && $QUICK -eq 0 ]]; then
     if take_ccache_lock; then
         CCACHE_IMG="$SHARE/ccache.img"
         [[ -f "$CCACHE_IMG" ]] || make_ccache_image "$CCACHE_IMG"
@@ -93,24 +115,29 @@ cleanup() {
     # which makes a kept VM misleading to debug. Flush and shut down first.
     tart exec "$VM" /bin/sync >/dev/null 2>&1 || true
     tart exec "$VM" sudo shutdown -h now >/dev/null 2>&1 || true
-    for _ in $(seq 30); do
-        tart list 2>/dev/null | grep -E "[[:space:]]${VM}[[:space:]].*running" >/dev/null || break
-        sleep 2
-    done
+    for _ in $(seq 30); do vm_running || break; sleep 2; done
     tart stop "$VM" >/dev/null 2>&1 || true
     if [[ -n "$CCACHE_IMG" ]]; then rm -rf "$CCACHE_LOCK"; fi
-    if [[ $KEEP -eq 1 ]]; then
+    if [[ $QUICK -eq 1 ]]; then
+        log "Shut down $VM, kept for the next quick build"
+    elif [[ $KEEP -eq 1 ]]; then
         log "Kept VM $VM (tart run $VM; tart delete $VM when done)"
     else
         tart delete "$VM" >/dev/null 2>&1 || true
     fi
 }
-trap cleanup EXIT
+vm_running() { tart list 2>/dev/null | grep -E "[[:space:]]${VM}[[:space:]].*running" >/dev/null; }
 
-log "Cloning $TART_IMAGE as $VM ($CPUS CPUs, $MEM MB)"
-tart clone "$TART_IMAGE" "$VM"
+if [[ $QUICK -eq 1 ]] && tart get "$VM" >/dev/null 2>&1; then
+    vm_running && die "$VM is running: another quick build is using it"
+    log "Starting $VM, kept from earlier quick builds ($CPUS CPUs, $MEM MB)"
+else
+    log "Cloning $TART_IMAGE as $VM ($CPUS CPUs, $MEM MB)"
+    tart clone "$TART_IMAGE" "$VM"
+fi
+trap cleanup EXIT
 tart set "$VM" --cpu "$CPUS" --memory "$MEM"
-tart run "$VM" --no-graphics --dir="wmb:$SHARE" ${CCACHE_IMG:+--disk="$CCACHE_IMG"} > "$SHARE/logs/$VM.tart.log" 2>&1 &
+tart run "$VM" --no-graphics --dir="wmb:$SHARE" ${CCACHE_IMG:+--disk="$CCACHE_IMG"} > "$SHARE/logs/$RUN.tart.log" 2>&1 &
 tart ip "$VM" --wait 300 >/dev/null || die "VM didn't come up"
 # The guest agent starts a moment after networking.
 for _ in $(seq 60); do tart exec "$VM" true 2>/dev/null && break; sleep 2; done
@@ -127,18 +154,21 @@ log "Running in $VM: wmb$args (log: $LOG)"
 # A long `tart exec` can drop ("Transport became inactive") during a step
 # that prints nothing for a while, which would kill the build; the host
 # follows the log file instead.
-EXIT_FILE="$SHARE/logs/$VM.exit"
-JOB="$SHARE/logs/$VM.job.sh"
+EXIT_FILE="$SHARE/logs/$RUN.exit"
+JOB="$SHARE/logs/$RUN.job.sh"
 rm -f "$EXIT_FILE"; : > "$LOG"
 {
     echo '#!/bin/bash'
     echo 'set -uo pipefail'
-    printf 'exec > %q 2>&1 < /dev/null\n' "$GUEST_SHARE/logs/$VM.log"
+    printf 'exec > %q 2>&1 < /dev/null\n' "$GUEST_SHARE/logs/$RUN.log"
     echo '('
     echo '    set -euo pipefail'
     echo '    cd "$HOME/wmb"'
     printf '    export WMB_CACHE_DIR=%q WMB_OUT_DIR=%q WMB_WORK_DIR="$HOME/work"\n' "$GUEST_SHARE/cache" "$GUEST_SHARE/out"
     printf '    export WMB_LANE=tart GITHUB_ACTIONS=%q WMB_BUILD_NUMBER=%q\n' "${GITHUB_ACTIONS:-}" "${WMB_BUILD_NUMBER:-0}"
+    if [[ $QUICK -eq 1 ]]; then
+        printf '    export WMB_QUICK=%q WMB_TESTS=%q\n' "$WMB_QUICK" "${WMB_TESTS:-}"
+    fi
     if [[ -n "$CCACHE_IMG" ]]; then
         # macOS mounts the attached disk's volume by itself; its root
         # belongs to root.
@@ -150,14 +180,14 @@ rm -f "$EXIT_FILE"; : > "$LOG"
     if [[ "$1" != toolchain ]]; then printf '    ./wmb toolchain %q\n' "$tc_id"; fi
     echo "    ./wmb$args"
     echo ')'
-    printf 'echo $? > %q\n' "$GUEST_SHARE/logs/$VM.exit"
+    printf 'echo $? > %q\n' "$GUEST_SHARE/logs/$RUN.exit"
 } > "$JOB"
-tart exec "$VM" /bin/bash -c "nohup /bin/bash '$GUEST_SHARE/logs/$VM.job.sh' > /dev/null 2>&1 < /dev/null &"
+tart exec "$VM" /bin/bash -c "nohup /bin/bash '$GUEST_SHARE/logs/$RUN.job.sh' > /dev/null 2>&1 < /dev/null &"
 
 tail -n +1 -F "$LOG" &
 TAIL_PID=$!
 until [[ -s "$EXIT_FILE" ]]; do
-    tart list 2>/dev/null | grep -E "[[:space:]]${VM}[[:space:]].*running" >/dev/null || { kill $TAIL_PID; die "VM $VM stopped unexpectedly"; }
+    vm_running || { kill $TAIL_PID; die "VM $VM stopped unexpectedly"; }
     sleep 10
 done
 sleep 2; kill $TAIL_PID 2>/dev/null || true

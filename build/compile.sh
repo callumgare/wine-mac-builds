@@ -5,6 +5,12 @@
 #
 # Fetches and patches the source, then configures, builds and installs Wine
 # into work/<build id>/install. Packaging is build/package.sh.
+#
+# In a quick build (WMB_QUICK set, by `wmb quick`) a source tree that an
+# earlier build configured the same way is reused: only files whose
+# contents changed are copied in, so make rebuilds only what they affect.
+# The list of changed files goes to work/<build id>/changed-files.txt
+# (package.sh takes the tests of the modules in it).
 
 source "$(dirname "$0")/lib.sh"
 require_x86_64 "$@"
@@ -25,10 +31,14 @@ MAPPED_SRC="/wmb/src/$SRC_NAME"
 PREFIX="/opt/wmb/wine"   # never used at run time; Wine finds its files relative to itself
 
 # --- Source --------------------------------------------------------------------
+# Patched in $NEW_SRC, then moved to $SRC (or, in a quick build, merged
+# into the existing tree; see "Source tree" below).
+NEW_SRC="$W/src-new"
 group_start "Source: wine $WINE_VERSION"
-rm -rf "$W" "$SRC"; mkdir -p "$W" "$(dirname "$SRC")"
+rm -rf "$W"; mkdir -p "$W" "$(dirname "$SRC")"
+[[ -n "${WMB_QUICK:-}" ]] || rm -rf "$SRC"
 tar -xJf "$(fetch "$WINE_URL" "$WINE_SHA256")" -C "$W"
-mv "$W/wine-$WINE_VERSION" "$SRC"
+mv "$W/wine-$WINE_VERSION" "$NEW_SRC"
 group_end
 
 group_start "Patches"
@@ -37,7 +47,7 @@ group_start "Patches"
     || die "patch headers don't follow patches/README.md"
 for p in "${PATCHES[@]}"; do
     log "Applying $p"
-    patch -d "$SRC" -p1 --forward --batch < "$WMB_ROOT/$p"
+    patch -d "$NEW_SRC" -p1 --forward --batch < "$WMB_ROOT/$p"
 done
 group_end
 
@@ -95,8 +105,14 @@ CCACHE_SHA256="cf240009630b605b775c7c5c7b7105a3b196c79f31af322c1557969aa28003fc"
 MINGW_CC="$TC/libexec/llvm-mingw/bin/clang"
 CC_LAUNCH=""
 if [[ -n "${WMB_CCACHE_DIR:-}" ]]; then
-    tar -xzf "$(fetch "$CCACHE_URL" "$CCACHE_SHA256")" -C "$W"
-    CCACHE="$W/ccache-$CCACHE_VERSION-darwin/ccache"
+    # Outside $W, so a quick build's configure command doesn't change with
+    # the build's name.
+    CCACHE_TOOLS="$WMB_WORK_DIR/tools/ccache-$CCACHE_VERSION"
+    if [[ ! -x "$CCACHE_TOOLS/ccache-$CCACHE_VERSION-darwin/ccache" ]]; then
+        rm -rf "$CCACHE_TOOLS"; mkdir -p "$CCACHE_TOOLS"
+        tar -xzf "$(fetch "$CCACHE_URL" "$CCACHE_SHA256")" -C "$CCACHE_TOOLS"
+    fi
+    CCACHE="$CCACHE_TOOLS/ccache-$CCACHE_VERSION-darwin/ccache"
     export CCACHE_DIR="$WMB_CCACHE_DIR"
     export CCACHE_MAXSIZE="${WMB_CCACHE_MAXSIZE:-25G}"
     export CCACHE_INODECACHE=false
@@ -109,10 +125,10 @@ if [[ -n "${WMB_CCACHE_DIR:-}" ]]; then
     # configure's --with-mingw takes one path, ending in /clang, so a
     # wrapper of that name launches the Windows-side compiler. It execs the
     # real clang, which finds lld and its headers next to itself as before.
-    mkdir -p "$W/ccache-mingw"
-    printf '#!/bin/sh\nexec %q %q "$@"\n' "$CCACHE" "$MINGW_CC" > "$W/ccache-mingw/clang"
-    chmod +x "$W/ccache-mingw/clang"
-    MINGW_CC="$W/ccache-mingw/clang"
+    mkdir -p "$CCACHE_TOOLS/mingw"
+    printf '#!/bin/sh\nexec %q %q "$@"\n' "$CCACHE" "$MINGW_CC" > "$CCACHE_TOOLS/mingw/clang"
+    chmod +x "$CCACHE_TOOLS/mingw/clang"
+    MINGW_CC="$CCACHE_TOOLS/mingw/clang"
     log "ccache $CCACHE_VERSION, cache $CCACHE_DIR ($CCACHE_NAMESPACE)"
 fi
 
@@ -140,26 +156,62 @@ NEWER_THAN_TARGET=(
 )
 
 # --- Configure -----------------------------------------------------------------
-group_start "Configure"
-(
-    cd "$SRC"
-    ./configure \
-        --prefix="$PREFIX" \
-        --with-mingw="$MINGW_CC" \
-        "${CONFIGURE_ARGS[@]}" \
-        CC="$CC_LAUNCH$CC" CXX="$CC_LAUNCH$CXX" \
-        CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" \
-        CROSSCFLAGS="$CROSSCFLAGS" CROSSLDFLAGS="$CROSSLDFLAGS" CROSSDEBUG="$CROSSDEBUG" \
-        FFMPEG_CFLAGS="$FFMPEG_CFLAGS" FFMPEG_LIBS="$FFMPEG_LIBS" \
-        GSTREAMER_CFLAGS="$GSTREAMER_CFLAGS" GSTREAMER_LIBS="$GSTREAMER_LIBS" \
-        INSTALL="$SRC/tools/install-sh -c" \
-        "${NEWER_THAN_TARGET[@]}" | tee "$W/configure.out"
-    # The same fix-up as the Portfile's post-configure: link against the
-    # framework's Libraries folder.
-    sed -i '' 's|Versions/1.0/lib/pkgconfig/../../lib|Libraries|g' config.status
-    ./config.status
+CONFIGURE=(
+    ./configure
+    --prefix="$PREFIX"
+    --with-mingw="$MINGW_CC"
+    "${CONFIGURE_ARGS[@]}"
+    CC="$CC_LAUNCH$CC" CXX="$CC_LAUNCH$CXX"
+    CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS"
+    CROSSCFLAGS="$CROSSCFLAGS" CROSSLDFLAGS="$CROSSLDFLAGS" CROSSDEBUG="$CROSSDEBUG"
+    FFMPEG_CFLAGS="$FFMPEG_CFLAGS" FFMPEG_LIBS="$FFMPEG_LIBS"
+    GSTREAMER_CFLAGS="$GSTREAMER_CFLAGS" GSTREAMER_LIBS="$GSTREAMER_LIBS"
+    INSTALL="$SRC/tools/install-sh -c"
+    "${NEWER_THAN_TARGET[@]}"
 )
+# A tree is reused only if it was configured with exactly this command,
+# with the same toolchain and the same Xcode.
+CONFIGURE_ID="$(
+    { echo "$TOOLCHAIN"; xcodebuild -version; xcrun --show-sdk-version; printf '%q\n' "${CONFIGURE[@]}"; } |
+        shasum -a 256 | cut -d' ' -f1
+)"
+STAMP="$SRC/.wmb-configured"
+
+group_start "Source tree"
+need_configure=1
+if [[ -n "${WMB_QUICK:-}" && -f "$STAMP" && "$(cat "$STAMP")" == "$CONFIGURE_ID" ]]; then
+    # Copy by content (-c) and without times (no -t): a changed file gets
+    # the current time, so make sees it as new, and an unchanged one keeps
+    # its old time. Files a patch used to add and no longer does stay
+    # behind; a full build starts from scratch.
+    /usr/bin/rsync -rc --itemize-changes "$NEW_SRC/" "$SRC/" |
+        sed -n 's/^>f[^ ]* //p' > "$W/changed-files.txt"
+    rm -rf "$NEW_SRC"
+    log "Reusing $SRC: $(wc -l < "$W/changed-files.txt" | tr -d ' ') files changed"
+    sed 's/^/    /' "$W/changed-files.txt" >&2
+    grep -qx configure "$W/changed-files.txt" || need_configure=0
+else
+    [[ -z "${WMB_QUICK:-}" ]] || log "No source tree configured this way to reuse; compiling everything"
+    rm -rf "$SRC"
+    mv "$NEW_SRC" "$SRC"
+fi
 group_end
+
+if [[ $need_configure -eq 1 ]]; then
+    group_start "Configure"
+    rm -f "$STAMP"
+    (
+        cd "$SRC"
+        "${CONFIGURE[@]}" | tee "$SRC/.wmb-configure.out"
+        # The same fix-up as the Portfile's post-configure: link against the
+        # framework's Libraries folder.
+        sed -i '' 's|Versions/1.0/lib/pkgconfig/../../lib|Libraries|g' config.status
+        ./config.status
+    )
+    echo "$CONFIGURE_ID" > "$STAMP"
+    group_end
+fi
+cp "$SRC/.wmb-configure.out" "$W/configure.out"
 
 # configure already fails when an explicit --with-X can't be satisfied. Its
 # remaining notices (features nobody asked for, like X11) are shown here so

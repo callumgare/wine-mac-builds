@@ -6,9 +6,13 @@
 #   ./wmb toolchain <id> [--archive]     assemble toolchain <id> at /opt/wmb/toolchains/<id>
 #   ./wmb build <flavour> <version>      compile, package, smoke, regress, manifest, check,
 #                                        archive -> out/
+#   ./wmb quick <flavour> <version>      a quick test build: reuses the last source tree
+#                                        and compiles only what changed; no debug
+#                                        symbols, and only the changed modules' tests
 #   ./wmb regress --tree <release dir>   run the regression tests on an unpacked release
 #   ./wmb vm <command...>                run any of the above in a fresh Tart VM
-#                                        from the toolchain's pinned image
+#                                        from the toolchain's pinned image (quick:
+#                                        in a VM kept for quick builds)
 #
 # `build` runs on this Mac, using whatever macOS and Xcode it has; the
 # manifest records them. `vm` is how releases are made: the pinned image
@@ -27,6 +31,16 @@ case "$cmd" in
         "$ROOT/build/package.sh" "$@"
         "$ROOT/build/smoke.sh" "$@"
         "$ROOT/build/regress.sh" "$@"
+        "$ROOT/build/manifest.sh" "$@"
+        "$ROOT/build/check.sh" "$@"
+        "$ROOT/build/archive.sh" "$@" ;;
+    quick)
+        [[ $# -eq 2 ]] || { echo "usage: wmb quick <flavour> <version>" >&2; exit 2; }
+        WMB_QUICK="${WMB_QUICK:-$(date -u +%Y%m%dT%H%M%S)}"
+        export WMB_QUICK
+        "$ROOT/build/compile.sh" "$@"
+        "$ROOT/build/package.sh" "$@"
+        "$ROOT/build/smoke.sh" "$@"
         "$ROOT/build/manifest.sh" "$@"
         "$ROOT/build/check.sh" "$@"
         "$ROOT/build/archive.sh" "$@" ;;
