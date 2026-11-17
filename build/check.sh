@@ -16,7 +16,8 @@
 #   - every Mach-O is x86_64, its code signature verifies, and its minimum
 #     macOS is no newer than the build's;
 #   - Gecko and Mono are the versions this Wine asks for (addons.c);
-#   - no file mentions the build machine's paths;
+#   - no file mentions the build machine's paths, nor does the -debug asset
+#     mention the build directory;
 #   - every bundled library loads with the toolchain and the usual library
 #     folders hidden (the sandbox smoke.sh uses).
 #
@@ -143,6 +144,20 @@ if [[ -n "$leaks" ]]; then
         echo "  $f: $(strings -a "$T/$f" | grep -F "${leak_pat[@]}" | head -1)" >&2
     done
     fail "$(wc -l <<<"$leaks" | tr -d ' ') of Wine's files mention the build machine's paths"
+fi
+# The debug symbols may name the toolchain (/opt/wmb/toolchains/<id>, the same
+# on every builder), but not the build directory, which differs between a VM
+# and a Mac: compile.sh makes PDB paths /wmb/src/..., package.sh gives
+# dsymutil relative paths. (Not in a quick build, which has no -debug asset.)
+DBG="$(dirname "$T")/$(basename "$T")-debug"
+if [[ -d "$DBG" ]]; then
+    dleaks="$(cd "$DBG" && grep -r -l -a -F -e "/Users/admin/work" -e "$WMB_WORK_DIR/" . 2>/dev/null || true)"
+    if [[ -n "$dleaks" ]]; then
+        for f in $(head -5 <<<"$dleaks"); do
+            echo "  $f: $(strings -a "$DBG/$f" | grep -F -e "/Users/admin/work" -e "$WMB_WORK_DIR/" | head -1 | cut -c1-200)" >&2
+        done
+        fail "$(wc -l <<<"$dleaks" | tr -d ' ') debug-symbol files mention the build directory"
+    fi
 fi
 for lib in "$T"/lib/*.dylib; do
     rel="lib/$(basename "$lib")"

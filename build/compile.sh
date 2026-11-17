@@ -83,14 +83,21 @@ LDFLAGS="-L$TC/lib -Wl,-headerpad_max_install_names"
 # the PE timestamp and debug ID come from a hash that covers the debug info, so
 # builds with and without ccache, or in different places, differed in every
 # PE file (16-20 bytes each; the code was the same).
-CROSSCFLAGS="-O2 -g -gno-codeview-command-line $PREFIX_MAP"
+# -fdebug-compilation-dir=. keeps the object paths the debug info records
+# (S_OBJNAME) relative, as the makefiles give them; the prefix map doesn't
+# reach them. lld-link's -pdbsourcepath (below) then makes the .pdb's
+# relative paths /wmb/src/<name>/..., as the prefix map does the rest.
+CROSSCFLAGS="-O2 -g -gno-codeview-command-line -fdebug-compilation-dir=. $PREFIX_MAP"
 # Wine links its PE files in MSVC mode (-target *-windows), so with lld-link,
 # which doesn't know MinGW ld's --no-insert-timestamp. -Brepro is lld-link's
 # way: the PE timestamp becomes a hash of the output, not the build time.
 # -pdbaltpath:%_PDB% records just the .pdb's file name in each module, not
 # its path in the build VM (debuggers find it by name and GUID; Gcenx's
 # builds have no path either). check.sh fails on build paths.
-CROSSLDFLAGS="-Wl,-Brepro -Wl,-pdbaltpath:%_PDB%"
+# -pdbsourcepath: what the .pdb makes relative paths absolute against (object,
+# library and source paths, the linker's working directory), instead of the
+# build directory.
+CROSSLDFLAGS="-Wl,-Brepro -Wl,-pdbaltpath:%_PDB% -Wl,-pdbsourcepath:$MAPPED_SRC"
 # A .pdb per Windows-side module, collected by package.sh.
 CROSSDEBUG="pdb"
 

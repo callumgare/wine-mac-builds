@@ -183,7 +183,8 @@ while read -r f; do
         continue
     fi
     mkdir -p "$D/$(dirname "$rel")"
-    dsymutil --out "$D/$rel.dSYM" "$f"
+    # From inside the tree: the dSYM records the binary's path as given.
+    (cd "$T" && dsymutil --out "$D/$rel.dSYM" "$rel")
     strip -S "$f"
 done < <(wine_machos)
 
