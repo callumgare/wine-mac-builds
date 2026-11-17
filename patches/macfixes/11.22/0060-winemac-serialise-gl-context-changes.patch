@@ -40,6 +40,10 @@ Status: built in macfixes-11.22-build7 (2026-11-17); the regression suite passes
  On meeka (macOS 26.7), White Wolf launched 10 of 10 times over 5 runs on
  build7 without hanging, and Bioscopia passed (launch 4m 22s, against
  5m 09s on build6).
+ On kiya (macOS 15.6.1), all 33 Nancy Drew games passed on build7 (about
+ 54 launches), with no c0000005, including the six that had crashed on
+ earlier builds. With the 32 launches above, that's no Pattern A crash in
+ about 86 launches with 0060, though it's still not shown why.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 5488840..5bb2850 100644
