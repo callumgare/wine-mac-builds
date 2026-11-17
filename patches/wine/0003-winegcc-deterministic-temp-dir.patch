@@ -13,19 +13,28 @@ Why: winegcc links each PE file from a spec object in a temp directory named
  identical builds. Naming the directory after a hash of the command line makes
  the path, and so the files, the same each time. compile.sh sets TMPDIR to a
  fixed path, so it doesn't depend on the build machine's user either.
+ The hash leaves out winegcc's own path (in the build directory) and the
+ --cc-cmd/--ld-cmd values (a compiler cache's wrapper instead of the
+ compiler), which differ between builds that should match: with them in,
+ builds with and without ccache differed in every PE file.
 Applies to: wine 10.0, 10.20, 11.x (plain, staging); doesn't change what Wine does at run time
+Status: 2026-11-17 hash narrowed (argv[0], --cc-cmd, --ld-cmd); not built yet.
 
 --- a/tools/winegcc/winegcc.c
 +++ b/tools/winegcc/winegcc.c
-@@ -1587,6 +1587,30 @@
+@@ -1586,7 +1586,39 @@
+     }
      return args;
  }
- 
++
 +/* Name the temporary directory after a hash of the command line rather than
 + * the time and pid, so the paths lld records in PDB files (and so the PDB
 + * GUID and the PE files) are the same in every build. The command line
 + * includes the output file, so concurrent invocations don't collide; if the
-+ * directory exists anyway, make_temp_dir() picks a fresh one as before. */
++ * directory exists anyway, make_temp_dir() picks a fresh one as before.
++ * winegcc's own path and the compiler and linker commands are left out:
++ * they name the build directory or a compiler cache's wrapper, which differ
++ * between builds that should come out the same. */
 +static void init_temp_dir( int argc, char **argv )
 +{
 +    const char *tmpdir = getenv( "TMPDIR" );
@@ -33,10 +42,15 @@ Applies to: wine 10.0, 10.20, 11.x (plain, staging); doesn't change what Wine do
 +    const char *p;
 +    char *name;
 +    int i;
-+
+ 
 +    if (!tmpdir) tmpdir = "/tmp";
-+    for (i = 0; i < argc; i++)
++    for (i = 1; i < argc; i++)
 +    {
++        if (!strncmp( argv[i], "--cc-cmd", 8 ) || !strncmp( argv[i], "--ld-cmd", 8 ))
++        {
++            if (!argv[i][8]) i++;  /* the command is the next argument */
++            continue;
++        }
 +        for (p = argv[i]; *p; p++) hash = (hash ^ (unsigned char)*p) * 16777619u;
 +        hash = (hash ^ ' ') * 16777619u;
 +    }
@@ -48,7 +62,7 @@ Applies to: wine 10.0, 10.20, 11.x (plain, staging); doesn't change what Wine do
  int main(int argc, char **argv)
  {
      int i, c, next_is_arg = 0;
-@@ -1605,6 +1629,7 @@
+@@ -1605,6 +1637,7 @@
  
      /* setup tmp file removal at exit */
      atexit(clean_temp_files);

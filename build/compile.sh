@@ -83,11 +83,12 @@ LDFLAGS="-L$TC/lib -Wl,-headerpad_max_install_names"
 # the PE timestamp and debug ID come from a hash that covers the debug info, so
 # builds with and without ccache, or in different places, differed in every
 # PE file (16-20 bytes each; the code was the same).
-# -fdebug-compilation-dir=. keeps the object paths the debug info records
-# (S_OBJNAME) relative, as the makefiles give them; the prefix map doesn't
-# reach them. lld-link's -pdbsourcepath (below) then makes the .pdb's
-# relative paths /wmb/src/<name>/..., as the prefix map does the rest.
-CROSSCFLAGS="-O2 -g -gno-codeview-command-line -fdebug-compilation-dir=. $PREFIX_MAP"
+# -object-file-name= (empty): clang otherwise records the object's own path
+# (S_OBJNAME), which the prefix map doesn't reach, and ccache doesn't count
+# the output path, so a cached object (vcomp's, say) came back with its path
+# for another module built from the same source (vcomp110). Debuggers don't
+# use it: the .pdb names each module from the link line anyway.
+CROSSCFLAGS="-O2 -g -gno-codeview-command-line -Xclang -object-file-name= $PREFIX_MAP"
 # Wine links its PE files in MSVC mode (-target *-windows), so with lld-link,
 # which doesn't know MinGW ld's --no-insert-timestamp. -Brepro is lld-link's
 # way: the PE timestamp becomes a hash of the output, not the build time.
