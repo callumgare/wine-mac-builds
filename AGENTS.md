@@ -9,7 +9,10 @@ specific to one person's setup (machines, accounts, who else is testing).
 
 Keep both files current. When something here turns out wrong or out of
 date, fix it. When a debugging technique, test method or process is adopted,
-add it to the right file in the same piece of work.
+add it to the right file in the same piece of work. This file takes what
+anyone working on the repo can use. `.local/AGENTS.md` takes what belongs to
+one setup: machine names, accounts, other sessions, and concepts from other
+projects.
 
 ## Layout
 
