@@ -98,7 +98,7 @@ tail -n +1 -F "$out" &
 tail_pid=$!
 # The suite's own timeouts bound each test; this bounds the whole run.
 for _ in $(seq 1800); do [[ -s $status ]] && break; sleep 1; done
-sleep 1; kill "$tail_pid" 2>/dev/null || true
+sleep 1; kill "$tail_pid" 2>/dev/null || true; wait "$tail_pid" 2>/dev/null || true
 [[ -s $status ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes (log: $out)"
 rc="$(cat "$status")"
 [[ $rc == 0 ]] || die "hostgl: OpenGL tests failed (exit $rc; log: $out)"
