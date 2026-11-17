@@ -25,7 +25,9 @@ Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
  WINEMAC_PLUGINS loads the plugin (in every process that starts the driver),
  a missing path is logged as err:macdrv and skipped, the Plugins value
  loads it, nothing loads with neither set. winemac-plugins passes on it and
- fails on 11.22-build8. Not yet in a full build.
+ fails on 11.22-build8. In 11.22-build9 (CI, compiler cache on): the
+ suite passes, winemac-plugins included (in the build VM). Not yet used by an
+ app that embeds Wine.
 
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 index 5dcd7ec..8d5d71f 100644
