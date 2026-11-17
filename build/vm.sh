@@ -129,6 +129,8 @@ cleanup() {
 vm_running() { tart list 2>/dev/null | grep -E "[[:space:]]${VM}[[:space:]].*running" >/dev/null; }
 
 if [[ $QUICK -eq 1 ]] && tart get "$VM" >/dev/null 2>&1; then
+    # A run that just ended may still be shutting it down.
+    for _ in $(seq 24); do vm_running || break; sleep 5; done
     vm_running && die "$VM is running: another quick build is using it"
     log "Starting $VM, kept from earlier quick builds ($CPUS CPUs, $MEM MB)"
 else
