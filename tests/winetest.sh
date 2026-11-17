@@ -9,8 +9,8 @@
 # writes <out>/results.json: per architecture, each test unit's (dll:test)
 # outcome and failure count. With --baseline, compares against another
 # run's results.json and exits 1 if a unit that passed there fails here
-# (plan.md section 4, "Conformance": macOS has long-standing failures, so
-# the gate is "no worse than the baseline", not "zero failures").
+# (macOS has long-standing failures, so the gate is "no worse than the
+# baseline", not "zero failures").
 #
 # A baseline is usually the previous build of the same version, or Gcenx's
 # build run with this build's winetest.exe (the tests are Windows programs,

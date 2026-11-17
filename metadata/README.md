@@ -17,6 +17,6 @@ withdrawn = "Why this build shouldn't be used. It stays downloadable."
 "wine-11.21-build1-macos-x86_64.tar.xz" = ["https://archive.org/download/..."]
 ```
 
-Builds are never deleted (plan.md, "Never-delete enforcement"): a bad build
+Builds are never deleted: a bad build
 is marked `withdrawn` here, and a fixed one is published as the next build
 number.

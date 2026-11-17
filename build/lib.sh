@@ -120,7 +120,8 @@ load_build_inputs() {
     BUILD_ID="$BUILD_NAME-macos-x86_64"
 }
 
-# wine-11.21-build1, wine-staging-11.21-build1 (plan.md, "Naming").
+# wine-11.21-build1, wine-staging-11.21-build1: flavour (none for plain
+# Wine), Wine version, and a build number counted per flavour and version.
 build_name() {
     local flavour="$1" version="$2" number="$3"
     if [[ "$flavour" == "wine" ]]; then

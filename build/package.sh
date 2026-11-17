@@ -3,8 +3,8 @@
 #
 # package.sh <flavour> <version>
 #
-# Turns work/<build id>/install into the release tree (layout: plan.md
-# section 5), its debug symbols (<build id>-debug) and Wine's tests
+# Turns work/<build id>/install into the release tree (layout below), its
+# debug symbols (<build id>-debug) and Wine's tests
 # (<build id>-tests), all under work/<build id>/pkg. archive.sh makes the
 # tarballs.
 #
@@ -189,7 +189,7 @@ group_end
 # --- Tests ---------------------------------------------------------------------
 # winetest.exe, per architecture, with every test program built in: what
 # WineHQ's own test runs use. Kept as a release asset so any build can be
-# tested, or compared with another, later (plan.md section 3).
+# tested, or compared with another, later.
 group_start "Tests"
 mkdir -p "$TS"
 for arch in i386 x86_64; do

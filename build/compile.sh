@@ -85,7 +85,7 @@ CROSSDEBUG="pdb"
 # only Xcode's shim, so the namespace adds the Xcode and SDK versions. The
 # reproducibility check (two builds, identical SHA256SUMS) would show it if
 # a cached build ever differed. Settings from dappermint/winecx-gptk
-# (plan.md section 9). Not part of the toolchain, as it ships nothing.
+# Not part of the toolchain, as it ships nothing.
 CCACHE_VERSION="4.14.2"
 CCACHE_URL="https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-darwin.tar.gz"
 CCACHE_SHA256="cf240009630b605b775c7c5c7b7105a3b196c79f31af322c1557969aa28003fc"

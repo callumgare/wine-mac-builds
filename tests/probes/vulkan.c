@@ -9,7 +9,7 @@
  *
  * Built by build/smoke.sh with the toolchain's llvm-mingw:
  *   x86_64-w64-mingw32-clang -O2 -o vulkan.exe tests/probes/vulkan.c
- * (plan.md section 4: small probes for what real programs don't cover.)
+ * (A small probe for what real programs don't cover.)
  */
 
 #include <windows.h>

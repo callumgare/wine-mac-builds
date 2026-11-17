@@ -92,7 +92,9 @@ MOLTENVK_SHA256="f4feaf6a4988352de8e6d49874ccc1cd6a45021e3cb476e8531bef7ecc73e93
 
 # Shipped. The framework Gcenx's gstreamer.framework port installs: an x86_64
 # build published by Sikarugir-App, not freedesktop.org's official package.
-# Open question, plan.md section 2.
+# Open question: whether to switch to the official
+# (universal) package, once the compare tool and media tests show it behaves
+# the same.
 GSTREAMER_VERSION="1.28.1"
 GSTREAMER_URL="https://github.com/Sikarugir-App/gstreamer/releases/download/1.28.1/gstreamer.framework-1.0-1.28.1-x86_64.tar.xz"
 GSTREAMER_SHA256="26dbeba8283e5a9f0c9429d059cb96642b6aaf245e5a694da9a3799e2b7ada0a"

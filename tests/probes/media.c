@@ -11,7 +11,7 @@
  * Exits 0 if both decoders were created, 1 otherwise.
  *
  * Built by build/smoke.sh with the toolchain's llvm-mingw, linked with
- * -lmfplat -lmfuuid -lole32 (plan.md section 4).
+ * -lmfplat -lmfuuid -lole32.
  */
 
 #define COBJMACROS

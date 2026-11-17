@@ -24,8 +24,7 @@
 #
 # File comparison can't see these: a weak import of a function the minimum
 # macOS lacks crashed every process, and a Vulkan loader that only found
-# MoltenVK through the toolchain looked fine in the build VM (plan.md,
-# "Found while building").
+# MoltenVK through the toolchain looked fine in the build VM.
 
 source "$(dirname "$0")/lib.sh"
 require_x86_64 "$@"

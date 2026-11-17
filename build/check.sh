@@ -4,10 +4,10 @@
 # check.sh <flavour> <version> [release tree]
 #
 # Static checks on the packaged release tree, run after manifest.sh and
-# before archive.sh, so a broken tree never becomes an asset (plan.md
-# section 4, "Static checks"; several are gates dappermint/winecx-gptk added
-# after a release went wrong). package.sh already refuses references outside
-# the build and unguarded weak imports. This adds:
+# before archive.sh, so a broken tree never becomes an asset (several are
+# gates dappermint/winecx-gptk added after a release went wrong). package.sh
+# already refuses references outside the build and unguarded weak imports.
+# This adds:
 #
 #   - layout: the folders and files every build has;
 #   - the i386 half isn't empty (else every 32-bit program fails, c0000135);
@@ -134,7 +134,7 @@ others="$(ls "$T/share/wine/gecko" "$T/share/wine/mono" 2>/dev/null | grep -v -e
 # library or plugin counts: something they'd try to load from the toolchain,
 # which works on the build machine and nowhere else.
 leak_pat=(-e "/Users/admin/work" -e "$WMB_WORK_DIR/" -e "$WMB_TOOLCHAINS_DIR/")
-# Known, fixed in the next toolchain (plan.md section 4): FreeType 2.14 built
+# Known, fixed in the next toolchain: FreeType 2.14 built
 # with HarfBuzz loaded at run time, from the toolchain's path.
 KNOWN_LIB_LEAKS="lib/libfreetype.6.dylib:$WMB_TOOLCHAINS_DIR/20261111/lib/libharfbuzz.0.dylib"
 leaks="$(cd "$T" && grep -r -l -a -F "${leak_pat[@]}" bin lib/wine share/wine 2>/dev/null || true)"

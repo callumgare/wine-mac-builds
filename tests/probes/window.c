@@ -7,7 +7,7 @@
  *
  * `wine --version`, wineboot and cmd all pass on a build whose Mac driver
  * can't create a window (dappermint/winecx-gptk found one), so the smoke
- * test needs a program that actually draws (plan.md section 4).
+ * test needs a program that actually draws.
  *
  * Built for both architectures by build/smoke.sh with the toolchain's
  * llvm-mingw; the i686 copy also checks that 32-bit programs run (WoW64).

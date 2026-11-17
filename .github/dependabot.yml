@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
-# Proposes updates to the commit-pinned Actions as pull requests (plan.md,
-# section 2).
+# Proposes updates to the commit-pinned Actions as pull requests.
 version: 2
 updates:
   - package-ecosystem: github-actions

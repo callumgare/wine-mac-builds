@@ -16,7 +16,7 @@ specific to this build:
 Third-party sources (each bundled MacPorts port's distfiles, Gecko, Mono)
 aren't copied into every build: one copy of each version is kept on GitHub's
 container registry, and never deleted while a build needs it
-(build/publish_sources.py, run by the publish job). plan.md section 6.
+(build/publish_sources.py, run by the publish job).
 
 Standard library only; nothing reads the clock.
 """
@@ -172,7 +172,7 @@ components.append({
     "name": "GStreamer.framework", "version": env["GSTREAMER_VERSION"],
     "license": "LGPL-2.0-or-later, and its parts' own licences",
     "note": "Not yet resolved: the framework's complete corresponding source (everything cerbero "
-            "built into it) isn't archived yet. plan.md section 6.",
+            "built into it) isn't archived yet.",
     "files": [{"name": os.path.basename(env["GSTREAMER_URL"]), "sha256": env["GSTREAMER_SHA256"],
                "upstream": [env["GSTREAMER_URL"]]}],
     "source": f"https://github.com/Sikarugir-App/gstreamer/tree/{env['GSTREAMER_VERSION']}",

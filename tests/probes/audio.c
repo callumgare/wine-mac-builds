@@ -9,8 +9,7 @@
  * output device at all (the caller decides whether the Mac has one: a CI
  * VM may not).
  *
- * Built by build/smoke.sh with the toolchain's llvm-mingw (plan.md
- * section 4).
+ * Built by build/smoke.sh with the toolchain's llvm-mingw.
  */
 
 #include <windows.h>

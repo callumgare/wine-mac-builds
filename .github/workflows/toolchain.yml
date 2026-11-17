@@ -5,9 +5,10 @@
 # downloaded) to ghcr.io/<owner>/wine-mac-builds/toolchain:<id> as an OCI
 # artifact. Builds then install it from there, pinned by sha256 in
 # toolchains/<id>.sh. Not a GitHub release, so the releases page only lists
-# Wine builds (plan.md, "Never-delete enforcement").
+# Wine builds.
 #
-# Manual only; never on pull requests (plan.md, section 2).
+# Manual only; never on pull requests, whose code the self-hosted runner
+# must never run.
 
 name: toolchain
 

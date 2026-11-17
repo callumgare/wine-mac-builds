@@ -17,7 +17,7 @@
 #   out/    finished artifacts, including toolchain archives
 #   logs/   one log per run
 #   ccache/ the compiler cache (build/compile.sh), kept between runs; off
-#           unless WMB_VM_CCACHE=1: it once returned the wrong object (plan.md)
+#           unless WMB_VM_CCACHE=1: it once returned the wrong object
 #
 # The build itself runs on the VM's own disk, which is faster than the share.
 #

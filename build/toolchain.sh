@@ -80,7 +80,7 @@ export MACOSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 export CCC_OVERRIDE_OPTIONS="# +-arch +x86_64"
 # More variables for every port's build (MACPORTS_EXTRA_ENV, NAME=value),
 # e.g. ZERO_AR_DATE=1 so the linker's debug map doesn't record object file
-# times (plan.md, "Two builds of one toolchain id aren't byte-identical").
+# times, which made two builds of one toolchain id differ.
 EXTRA_ENV_NAMES="CCC_OVERRIDE_OPTIONS"
 for kv in ${MACPORTS_EXTRA_ENV[@]+"${MACPORTS_EXTRA_ENV[@]}"}; do
     export "${kv?}"
@@ -114,7 +114,7 @@ elif [[ $ARCHIVE -eq 0 && ( -f "$ARCHIVE_FILE" || -n "${TOOLCHAIN_ARCHIVE_SHA256
     tar -xJf "$src" -C "$WMB_TOOLCHAINS_DIR"
     [[ -f "$TC/.complete" ]] || die "$src didn't contain a complete toolchain"
     # Which bytes these were, for the build manifest: two builds of one
-    # toolchain id aren't byte-identical (plan.md, "Found while building").
+    # toolchain id aren't byte-identical.
     sha256_of "$src" > "$TC/.archive-sha256"
     group_end
 else
@@ -389,7 +389,7 @@ if [[ $ARCHIVE -eq 1 ]]; then
     STAGE="$WMB_WORK_DIR/archive-$ID"
     rm -rf "$STAGE"; mkdir -p "$STAGE"
     # Downloaded sources go in their own archive (they're the corresponding
-    # source for the libraries we ship, section 6 of plan.md).
+    # source for the libraries we ship).
     DIST="$TC/var/macports/distfiles"
     EPOCH="$(date -j -u -f '%Y%m%d%H%M%S' "${ID}000000" +%s)"
     cp -Rp "$TC" "$STAGE/$ID"

@@ -5,7 +5,7 @@
 Makes sure every third-party source a build's SOURCES.json names has its
 copy on GitHub's container registry ("copy": ghcr.io/<owner>/<repo>/source/
 <component>:<version>), so the build's corresponding source stays available
-for as long as the build is (plan.md section 6). Run by the publish job,
+for as long as the build is. Run by the publish job,
 before the release is created; needs `oras`, already logged in to ghcr.io
 with permission to push packages.
 

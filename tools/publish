@@ -8,7 +8,7 @@
 # files differ from main's), so this does, with your own login: it reads
 # the commit from the build's build-info.json, checks the draft's files
 # against its SHA256SUMS, sets the target and publishes. Once published,
-# a release is permanent (plan.md, "Never-delete enforcement").
+# a release is permanent.
 #
 # Uses the gh CLI's login; GH_TOKEN can choose an account.
 

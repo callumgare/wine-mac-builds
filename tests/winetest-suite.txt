@@ -3,7 +3,7 @@
 # The test units tests/winetest.sh runs by default: "dll" runs all of a
 # DLL's tests, "dll:test" one of them. A starting list (2026-11-15), to be
 # trimmed or extended once real runs show which units are slow, flaky on
-# macOS, or need a GPU or network (plan.md section 4, "Conformance").
+# macOS, or need a GPU or network.
 
 # The core every program uses
 ntdll

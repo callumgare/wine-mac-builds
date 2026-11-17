@@ -8,7 +8,7 @@ A and B are build trees or tarballs (.tar.xz/.tar.gz). Gcenx's
 "Wine Devel.app/Contents/Resources/wine" and Sikarugir's "wswine.bundle"
 layouts are found automatically, as is ours.
 
-Sections (plan.md section 3):
+Sections:
   files      what's in bin/, lib/wine/, share/wine/ and the bundled lib/
   macho      per Mach-O: architectures, minimum macOS, SDK, linked libraries,
              run paths, size of __text
