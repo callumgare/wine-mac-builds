@@ -33,8 +33,10 @@ Evidence: A winemac instrumented to count threads inside each context's
  crash, as the double release needs a narrower interleaving, so there is
  no regression test.
 Applies to: wine 11.22 (macfixes, after 0059)
-Status: 2026-11-17: not yet built. On 11.22, a build6 tree with this winemac.so
- passes the regression suite, and the stress program's frame rate is unchanged.
+Status: built in macfixes-11.22-build7 (2026-11-17); the regression suite passes
+ on it (screen tests skipped on that run; they passed on a build6 tree with
+ this winemac.so). Second Chance's four Pattern A games ran 32 launches without
+ a crash on that tree, against 2 in 8 on build6, though nothing shows why.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 5488840..5bb2850 100644
