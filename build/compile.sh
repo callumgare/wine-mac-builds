@@ -97,7 +97,7 @@ CROSSDEBUG="pdb"
 # rewriting is needed: the compiler gets the same arguments with or without
 # the cache, and the debug info comes out the same. The inode cache is off:
 # every VM is a clone, so the same inode numbers name different files from
-# one build to the next. Settings otherwise from dappermint/winecx-gptk
+# one build to the next. Settings otherwise from dappermint/winecx-gptk.
 # Not part of the toolchain, as it ships nothing.
 CCACHE_VERSION="4.14.2"
 CCACHE_URL="https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-darwin.tar.gz"
@@ -115,7 +115,9 @@ if [[ -n "${WMB_CCACHE_DIR:-}" ]]; then
     CCACHE="$CCACHE_TOOLS/ccache-$CCACHE_VERSION-darwin/ccache"
     export CCACHE_DIR="$WMB_CCACHE_DIR"
     export CCACHE_MAXSIZE="${WMB_CCACHE_MAXSIZE:-25G}"
-    export CCACHE_INODECACHE=false
+    # ccache takes a boolean setting as true when the variable is set at all;
+    # its NO- form turns one off.
+    export CCACHE_NOINODECACHE=1
     export CCACHE_TEMPDIR="$TMPDIR/ccache-tmp"
     export CCACHE_COMPILERCHECK=content
     export CCACHE_SLOPPINESS=time_macros
