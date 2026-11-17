@@ -139,8 +139,11 @@ projects.
 - The shared folder (virtiofs) can keep serving a file's old contents after
   the host changes it. Copy files into a VM over `tart exec` (as `vm.sh`
   does), not through the share.
-- The compiler cache (`WMB_VM_CCACHE=1`) lives on a disk image attached to
-  the VM, not on the share, for the same reason.
+- The compiler cache (`WMB_VM_CCACHE=1`, on in CI) lives on a disk image
+  attached to the VM, not on the share, for the same reason. A build with
+  it must come out byte-identical to one without; when changing compiler
+  flags or the cache setup, check that first on a few modules (see
+  "Debugging techniques"), then with two full builds.
 
 ## Conventions
 

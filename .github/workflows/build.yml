@@ -78,6 +78,9 @@ jobs:
       FLAVOUR: ${{ inputs.flavour }}
       VERSION: ${{ inputs.version }}
       WMB_BUILD_NUMBER: ${{ needs.number.outputs.build_number }}
+      # The compiler cache (vm.sh): builds with a warm cache, a cold one and
+      # none came out byte-identical (macfixes 11.22, 2026-11-18).
+      WMB_VM_CCACHE: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
