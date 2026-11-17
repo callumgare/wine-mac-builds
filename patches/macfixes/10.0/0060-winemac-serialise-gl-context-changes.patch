@@ -33,8 +33,9 @@ Evidence: A winemac instrumented to count threads inside each context's
  crash, as the double release needs a narrower interleaving, so there is
  no regression test.
 Applies to: wine 10.0 (macfixes, after 0058)
-Status: 2026-11-17: not yet built. Ported from 11.22 (opaque context handles);
- the changed files compile.
+Status: 2026-11-17: built in macfixes-10.0-build7. Ported from 11.22 (opaque
+ context handles). The regression suite passes on it on macOS 15.6.1 (42
+ passed, none skipped). No games run on it yet.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 4a6ae6f..8aa34b0 100644
