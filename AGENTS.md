@@ -5,7 +5,7 @@ project is and how to use a build: [README.md](README.md).
 
 If `.local/AGENTS.md` exists, read it and follow it as well. It holds what's
 specific to one person's setup (machines, accounts, who else is testing).
-`.local/` is git-ignored, and it's where uncommitted notes such as plans go.
+`.local/` is git-ignored, and it's where uncommitted notes go.
 
 Keep both files current. When something here turns out wrong or out of
 date, fix it. When a debugging technique, test method or process is adopted,
@@ -13,6 +13,16 @@ add it to the right file in the same piece of work. This file takes what
 anyone working on the repo can use. `.local/AGENTS.md` takes what belongs to
 one setup: machine names, accounts, other sessions, and concepts from other
 projects.
+
+## Plans
+
+- Draft and in-progress plans go in `.local/plans/<ISO date>-<short
+  name>.md`, for example `.local/plans/2026-11-17-quick-builds.md`.
+- When a plan is finished, move it to `docs/finished-plans/` and commit it.
+- A finished plan is a record of the work as it was done, and of the
+  project as it was then. Don't keep it up to date. If it has to change,
+  leave the text as it was and add a dated note to it that says what
+  changed and why the plan needed updating.
 
 ## Layout
 
