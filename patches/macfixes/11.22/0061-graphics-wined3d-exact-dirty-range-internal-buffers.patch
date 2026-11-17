@@ -32,7 +32,11 @@ Status: 2026-11-17 in a quick build of macfixes 11.22 (VM, not for release).
  on meeka (1.6x). On a test Mac (macOS 26): Iji runs and quits from its
  menu; White Wolf passes from disc and in 4 of 5 Big Fish trial runs (the
  fifth failed in the test harness, not Wine); Bioscopia passes; nothing
- worse than build7. The full Second Chance game set is still to run.
+ worse than build7. Second Chance's full set on build8 (kiya, macOS 26,
+ muted): 36 of 36 disc games, 5 of 6 download games (Icy Tower fails in
+ Second Chance's own msvcrt patch, not Wine). Iji's menu loop, 3
+ interleaved rounds: 73-77 ms on build8, 73-74 ms on 11.21-build8, 222 ms
+ on 11.22-build7.
 
 --- a/dlls/wined3d/buffer.c
 +++ b/dlls/wined3d/buffer.c
