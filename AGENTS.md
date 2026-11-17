@@ -19,7 +19,8 @@ projects.
 - Draft and in-progress plans go in `.local/plans/<ISO date>-<short
   name>.md`, for example `.local/plans/2026-11-17-quick-builds.md`.
 - When a plan is finished, move it to `docs/finished-plans/` and commit it.
-- A finished plan is a record of the work as it was done, and of the
+- Draft and in-progress plans may be updated as the plan progresses, but a
+  finished plan is a record of the work as it was done, and of the
   project as it was then. Don't keep it up to date. If it has to change,
   leave the text as it was and add a dated note to it that says what
   changed and why the plan needed updating.

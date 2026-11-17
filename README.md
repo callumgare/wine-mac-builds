@@ -1,8 +1,9 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # wine-mac-builds
 
-Builds of [Wine](https://www.winehq.org) for macOS, made automatically for
-every Wine release. They're for apps that bundle Wine and for people who
+Unofficial builds of [Wine](https://www.winehq.org) for macOS, made automatically for
+every Wine release ([official builds are here](https://github.com/Gcenx/macOS_Wine_builds)).
+They're aimed at providing builds of wine for apps that bundle it and for people who
 want a specific Wine version that will still be downloadable years from now.
 
 > **Status: not released yet.** The build scripts are being written and tested.
