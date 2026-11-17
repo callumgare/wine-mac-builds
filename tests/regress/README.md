@@ -56,6 +56,7 @@ All guard macfixes patches; the number is the patch's in
 | `renderer-dll-paths` | 0034, 0035 | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
 | `replace-launchers` | 0032 | ELDEN RING's EasyAntiCheat launcher runs instead of the game |
 | `simulate-writecopy` | 0012 | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
+| `winemac-plugins` | 0062 | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`, the `Plugins` value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
 | `winencpu` | 0013 | `WINENCPU=n` must cap every processor count a program can ask for |
 | `wmi-threads` | 0054 | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
