@@ -59,6 +59,7 @@ All guard macfixes patches; the number is the patch's in
 | `wmi-threads` | 0054 | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
 | `bc7-texture` | 0046 | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
+| `d3d8-up-draw-speed` | 0061 | Wine 11.22 sends wined3d's whole streaming buffer again for each small `DrawPrimitiveUP` with software vertex processing; Iji runs about 3x slower. A timing test: it compares against the same draws with hardware vertex processing (about 1.5x with the fix, 40x without) |
 | `d3d11-vulkan-renderer` | 0025 | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
 | `fullscreen-gdi-centred` | 0056 | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |
 | `fullscreen-gl-centred` | 0052 | with EmulateModeset, a fullscreen OpenGL picture in a mode of another shape comes out zoomed and cropped on Wine 11 (White Wolf Queen) |
@@ -72,8 +73,8 @@ that Wine 11's own fix still holds.
 - `fs-addr16` and `rosetta-xgetbv` catch their bugs on macOS 15. macOS
   26's Rosetta handles both instructions itself, so on a macOS 26 Mac or
   build VM they pass even without the fix.
-- Build VMs have no accelerated OpenGL, so `bc7-texture` and
-  `gl-core-context` skip there (the `needs-opengl` helper asks macOS
+- Build VMs have no accelerated OpenGL, so `bc7-texture`,
+  `d3d8-up-draw-speed` and `gl-core-context` skip there (the `needs-opengl` helper asks macOS
   first). Run them on a real Mac with `--tree`.
 - `fullscreen-gl-centred` also needs accelerated OpenGL, and a screen that
   offers a smaller display mode of another shape; it skips without one.
