@@ -28,7 +28,7 @@ contains:
 | Packaging | `Wine Devel.app`, with a Terminal launcher and `.exe` files opening from Finder | A plain folder | Programs that embed Wine use the folder directly. |
 | Extra files | None | `BUILD-INFO.json`, `LICENSES/` and `README.md` in the tree | Each build records what went into it, and carries the licences of what it bundles. |
 | Stable and devel | Two packages; 11.0 was built under both names | One build per version | One name for each set of contents. |
-| Older releases | No longer available | Every build stays published | Keeping old versions downloadable is this project's main goal. |
+| Older releases | No longer available | Every build stays published | Keeping old versions downloadable is one of this project's main goals. |
 | Versions before 11.x | Built with the recipe of the time | Built with today's recipe | That earlier recipe isn't published, so these are compared with Sikarugir's builds instead. |
 | Bundled libraries | MacPorts' prebuilt archives, each with its own minimum macOS (SDL2 10.11, GnuTLS 10.13, FreeType 10.14, libvulkan 26.0), plus all of MacPorts' `lib/` | Built from source for macOS 10.15; only the libraries Wine links or loads, and what those need | Every file supports the build's stated minimum macOS, so Vulkan also works before macOS 26. |
 | Tests | Not built (`--disable-tests`) | Built; `winetest.exe` for both architectures is the `-tests` asset | Any build can be tested, or compared with another, later. The shipped files are the same either way. |
