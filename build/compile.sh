@@ -16,17 +16,17 @@ load_toolchain "$TOOLCHAIN"
 [[ -f "$TC/.complete" ]] || die "toolchain $TOOLCHAIN isn't installed at $TC; run: ./wmb toolchain $TOOLCHAIN"
 
 W="$WMB_WORK_DIR/$BUILD_ID"
-SRC="$W/src"
+SRC="$BUILD_SRC"      # without the build number; see load_build_inputs
 INSTALL="$W/install"
 # Paths embedded in debug info and assertions are rewritten to this, so the
 # build directory (a home folder, a VM path) doesn't leak into the binaries,
 # and two builds in different places produce the same bytes.
-MAPPED_SRC="/wmb/src/$BUILD_NAME"
+MAPPED_SRC="/wmb/src/$SRC_NAME"
 PREFIX="/opt/wmb/wine"   # never used at run time; Wine finds its files relative to itself
 
 # --- Source --------------------------------------------------------------------
 group_start "Source: wine $WINE_VERSION"
-rm -rf "$W"; mkdir -p "$W"
+rm -rf "$W" "$SRC"; mkdir -p "$W" "$(dirname "$SRC")"
 tar -xJf "$(fetch "$WINE_URL" "$WINE_SHA256")" -C "$W"
 mv "$W/wine-$WINE_VERSION" "$SRC"
 group_end
@@ -50,7 +50,7 @@ export SOURCE_DATE_EPOCH="$WINE_RELEASE_EPOCH"
 export ZERO_AR_DATE=1
 # winegcc's temp directory path ends up in every PDB (patch 0003 makes its
 # name deterministic); keep it off the per-user /var/folders path too.
-export TMPDIR="/tmp/wmb-$BUILD_ID"
+export TMPDIR="/tmp/wmb-$SRC_NAME"
 rm -rf "$TMPDIR"; mkdir -p "$TMPDIR"
 export PKG_CONFIG="$TC/bin/pkg-config"
 export PKG_CONFIG_LIBDIR="$TC/lib/pkgconfig:$TC/share/pkgconfig"
@@ -78,13 +78,16 @@ CROSSLDFLAGS="-Wl,-Brepro -Wl,-pdbaltpath:%_PDB%"
 CROSSDEBUG="pdb"
 
 # --- Compiler cache ------------------------------------------------------------
-# ccache, when WMB_CCACHE_DIR is set (vm.sh points it at the share, so it
+# ccache, when WMB_CCACHE_DIR is set (vm.sh attaches a disk image that
 # outlives the VM). It changes how long a build takes, not what it makes: a
 # hit returns the object the same compile produced before. The key covers
-# the preprocessed source, the arguments and the compiler; /usr/bin/clang is
-# only Xcode's shim, so the namespace adds the Xcode and SDK versions. The
-# reproducibility check (two builds, identical SHA256SUMS) would show it if
-# a cached build ever differed. Settings from dappermint/winecx-gptk
+# the source, the arguments and the compiler; /usr/bin/clang is only
+# Xcode's shim, so the namespace adds the Xcode and SDK versions. The paths
+# have no build number in them (SRC, MAPPED_SRC, TMPDIR), so no base_dir
+# rewriting is needed: the compiler gets the same arguments with or without
+# the cache, and the debug info comes out the same. The inode cache is off:
+# every VM is a clone, so the same inode numbers name different files from
+# one build to the next. Settings otherwise from dappermint/winecx-gptk
 # Not part of the toolchain, as it ships nothing.
 CCACHE_VERSION="4.14.2"
 CCACHE_URL="https://github.com/ccache/ccache/releases/download/v$CCACHE_VERSION/ccache-$CCACHE_VERSION-darwin.tar.gz"
@@ -96,7 +99,8 @@ if [[ -n "${WMB_CCACHE_DIR:-}" ]]; then
     CCACHE="$W/ccache-$CCACHE_VERSION-darwin/ccache"
     export CCACHE_DIR="$WMB_CCACHE_DIR"
     export CCACHE_MAXSIZE="${WMB_CCACHE_MAXSIZE:-25G}"
-    export CCACHE_BASEDIR="$W"
+    export CCACHE_INODECACHE=false
+    export CCACHE_TEMPDIR="$TMPDIR/ccache-tmp"
     export CCACHE_COMPILERCHECK=content
     export CCACHE_SLOPPINESS=time_macros
     export CCACHE_NAMESPACE="xcode-$(xcodebuild -version | sed -n 's/^Build version //p')-sdk-$(xcrun --show-sdk-version)"

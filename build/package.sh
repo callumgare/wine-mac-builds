@@ -27,7 +27,7 @@ load_toolchain "$TOOLCHAIN"
 export PATH; PATH="$(clean_path)"
 
 W="$WMB_WORK_DIR/$BUILD_ID"
-SRC="$W/src"
+SRC="$BUILD_SRC"
 PKG="$W/pkg"
 T="$PKG/$BUILD_ID"                 # the release tree
 D="$PKG/$BUILD_ID-debug"           # its debug symbols

@@ -118,6 +118,12 @@ load_build_inputs() {
     [[ "$BUILD_NUMBER" =~ ^(0|[1-9][0-9]*)$ ]] || die "WMB_BUILD_NUMBER='$BUILD_NUMBER' isn't a number"
     BUILD_NAME="$(build_name "$flavour" "$version" "$BUILD_NUMBER")"
     BUILD_ID="$BUILD_NAME-macos-x86_64"
+    # The source is compiled at a path without the build number
+    # (wine-macfixes-11.22), so every build of a version runs the compiler
+    # with the same arguments: ccache can hit across build numbers, and a
+    # hit is the object a fresh compile makes.
+    SRC_NAME="${BUILD_NAME%-build"$BUILD_NUMBER"}"
+    BUILD_SRC="$WMB_WORK_DIR/src/$SRC_NAME"
 }
 
 # wine-11.21-build1, wine-staging-11.21-build1: flavour (none for plain
