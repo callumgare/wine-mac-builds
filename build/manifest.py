@@ -23,6 +23,7 @@ SCHEMA_VERSION = 1
 env = os.environ
 W = pathlib.Path(env["W"])
 T = pathlib.Path(env["T"])              # the release tree
+SRC = pathlib.Path(env["BUILD_SRC"])     # the compiled source tree
 OUT = pathlib.Path(env["WMB_OUT_DIR"])
 TC = pathlib.Path(env["TC"])
 ROOT = pathlib.Path(env["WMB_ROOT"])
@@ -105,7 +106,7 @@ if licenses_dir.exists():
 licenses_dir.mkdir()
 (licenses_dir / "wine").mkdir()
 for name in ("COPYING.LIB", "LICENSE", "AUTHORS"):
-    shutil.copy(W / "src" / name, licenses_dir / "wine" / name)
+    shutil.copy(SRC / name, licenses_dir / "wine" / name)
 
 bundled = []
 seen_ports = {}
