@@ -18,14 +18,16 @@ PKG="$WMB_WORK_DIR/$BUILD_ID/pkg"
 [[ -f "$PKG/$BUILD_ID/BUILD-INFO.json" ]] || die "no packaged build at $PKG; run package.sh and manifest.sh first"
 
 group_start "Archive"
-# A quick build has no debug symbols, and tests only when it took some
-# (package.sh).
+# A quick build has no debug symbols or sources asset, tests only when it
+# took some (package.sh), and is compressed quickly rather than small: at
+# xz's level 9 the archives took half of a quick build's time.
 assets=("$BUILD_ID")
-[[ -n "${WMB_QUICK:-}" ]] || assets+=("$BUILD_ID-debug")
-if [[ -z "${WMB_QUICK:-}" ]] || compgen -G "$PKG/$BUILD_ID-tests/*-windows" >/dev/null; then
-    assets+=("$BUILD_ID-tests")
+if [[ -n "${WMB_QUICK:-}" ]]; then
+    export WMB_XZ_LEVEL=1
+    if compgen -G "$PKG/$BUILD_ID-tests/*-windows" >/dev/null; then assets+=("$BUILD_ID-tests"); fi
+else
+    assets+=("$BUILD_ID-debug" "$BUILD_ID-tests" "$BUILD_ID-sources")
 fi
-assets+=("$BUILD_ID-sources")
 for a in "${assets[@]}"; do
     deterministic_tar "$PKG" "$a" "$WMB_OUT_DIR/$a.tar.xz" "$WINE_RELEASE_EPOCH"
 done

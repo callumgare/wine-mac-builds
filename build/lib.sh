@@ -169,7 +169,8 @@ require_x86_64() {
 # atime and ctime, so two builds of identical files gave different archives.
 # paxr adds an extended header only when needed (long paths), with the
 # fixed mtime. A fixed xz thread count, since single- and multi-threaded xz
-# write different streams.
+# write different streams. WMB_XZ_LEVEL (default 9) is lowered only for
+# quick builds, which are tested and thrown away.
 deterministic_tar() {
     local parent="$1" top="$2" out="$3" epoch="$4" stamp
     stamp="$(date -u -r "$epoch" +%Y%m%d%H%M.%S)"
@@ -180,7 +181,7 @@ deterministic_tar() {
         LC_ALL=C find "$top" -print | LC_ALL=C sort > "$out.list"
         COPYFILE_DISABLE=1 tar --no-recursion --numeric-owner --uid 0 --gid 0 \
             --no-xattrs --no-acls --no-fflags --format paxr \
-            --options 'xz:compression-level=9,xz:threads=4' \
+            --options "xz:compression-level=${WMB_XZ_LEVEL:-9},xz:threads=4" \
             -cJf "$out" -T "$out.list"
     )
     rm -f "$out.list"
