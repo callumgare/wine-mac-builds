@@ -89,4 +89,6 @@ PATCHES=(
     patches/macfixes/11.22/0060-winemac-serialise-gl-context-changes.patch
     patches/macfixes/11.22/0061-graphics-wined3d-exact-dirty-range-internal-buffers.patch
     patches/macfixes/11.22/0062-winemac-plugin-hook.patch
+    patches/macfixes/11.22/0063-winemac-activation-policy.patch
+    patches/macfixes/11.22/0064-winemac-per-program-color-depth.patch
 )

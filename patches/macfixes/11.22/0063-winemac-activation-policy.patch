@@ -1,0 +1,104 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: winemac: ActivationPolicy option; "accessory" gives no Dock icon and never activates
+Category: input
+Kind: feature
+Origin: wine-mac-builds
+From: dlls/winemac.drv/cocoa_app.m, transformProcessToForeground and
+ tryToActivateIgnoringOtherApps; written for wine-mac-builds after the
+ behaviour of CrossOver's CW HACK 24141, generalised to an option. None of
+ that hack's code is used.
+Source: none published
+Upstream: no
+Why: A program run as a helper of an app that embeds Wine shouldn't put a
+ Dock icon or a menu bar on screen, or take focus from the app. The Mac
+ Driver "ActivationPolicy" value, read the usual two ways
+ (HKCU\Software\Wine\Mac Driver, overridden by AppDefaults\<exe>\Mac
+ Driver), takes "regular" (the default, Wine's behaviour) or "accessory".
+ With "accessory", the process gets NSApplicationActivationPolicyAccessory
+ when it first shows a window, instead of the regular policy and the Wine
+ menu, and the driver never asks macOS to activate it. Its windows are
+ still shown. Any other value, or none, changes nothing.
+Uncertain: macOS can still activate an accessory process when its window is
+ clicked; the driver only stops activating it itself.
+Applies to: wine 11.22, macfixes
+Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
+ smoke and the host OpenGL tests pass). On meeka (macOS 26.7, in a GUI
+ session that didn't hold the screen): notepad became Foreground with
+ nothing set and UIElement with the global or the notepad.exe value;
+ winemac-activation-policy passes there and fails on 11.22-build9. Not
+ yet tried on a helper process of an app that embeds Wine.
+
+diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+index 37f7c85..98ba8ee 100644
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -223,6 +223,22 @@ - (void) dealloc
+ 
+     - (void) transformProcessToForeground:(BOOL)activateIfTransformed
+     {
++        if (accessory_activation_policy)
++        {
++            /* Windows need at least the accessory policy to be shown; it
++               gives no Dock icon and no menu bar.  Never activate. */
++            if ([NSApp activationPolicy] != NSApplicationActivationPolicyAccessory)
++            {
++                [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
++                if (!enable_app_nap)
++                {
++                    [[[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep
++                                                                    reason:@"Running Windows program"] retain]; // intentional leak
++                }
++            }
++            return;
++        }
++
+         if ([NSApp activationPolicy] != NSApplicationActivationPolicyRegular)
+         {
+             NSMenu* mainMenu;
+@@ -1998,6 +2014,7 @@ - (void) tryToActivateIgnoringOtherApps:(BOOL)ignore
+         NSDictionary *userInfo;
+ 
+         if ([NSApp isActive]) return;  /* Nothing to do. */
++        if (accessory_activation_policy) return;  /* Never activate. */
+ 
+         if (!ignore ||
+             ![NSApplication instancesRespondToSelector:@selector(yieldActivationToApplication:)])
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index 88fe8b8..33ab140 100644
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -118,6 +118,7 @@
+ extern bool retina_enabled;  /* Whether Retina mode is enabled via registry setting. */
+ extern bool retina_on;       /* Whether Retina mode is currently active (enabled and display is in default mode). */
+ extern bool enable_app_nap;
++extern bool accessory_activation_policy;
+ extern int cocoa_start_timeout;
+ 
+ static inline CGRect cgrect_mac_from_win(CGRect rect)
+diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
+index 8d5d71f..3d68cac 100644
+--- a/dlls/winemac.drv/macdrv_main.c
++++ b/dlls/winemac.drv/macdrv_main.c
+@@ -54,6 +54,7 @@ bool use_precise_scrolling = true;
+ int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
+ bool retina_enabled = false;
+ bool enable_app_nap = false;
++bool accessory_activation_policy = false;
+  bool force_backing_store = FALSE;
+ int cocoa_start_timeout = 60;
+ 
+@@ -369,6 +370,14 @@ static void setup_options(void)
+     if (!get_config_key(hkey, appkey, "EnableAppNap", buffer, sizeof(buffer)))
+         enable_app_nap = IS_OPTION_TRUE(buffer[0]);
+ 
++    /* "accessory": no Dock icon or menu bar, and the driver never activates
++       the process; its windows are still shown.  For helper processes. */
++    if (!get_config_key(hkey, appkey, "ActivationPolicy", buffer, sizeof(buffer)))
++    {
++        static const WCHAR accessoryW[] = {'a','c','c','e','s','s','o','r','y',0};
++        accessory_activation_policy = !wcsicmp(buffer, accessoryW);
++    }
++
+     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
+         force_backing_store = IS_OPTION_TRUE(buffer[0]);
+ 
