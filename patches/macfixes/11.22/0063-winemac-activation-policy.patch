@@ -27,7 +27,9 @@ Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
  nothing set and UIElement with the global or the notepad.exe value;
  winemac-activation-policy passes there and fails on 11.22-build9. In
  11.22-build10 (CI): the suite passes, this test included (in the build
- VM). Not yet tried on a helper process of an app that embeds Wine.
+ VM). On meeka, a Big Fish trial (White Wolf) ran with the value set for
+ bfgclient.exe alongside an embedding app's own hidden-windows helper: no
+ harm shown, but that doesn't show the value hides the Dock icon by itself.
 
 diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
 index 37f7c85..98ba8ee 100644

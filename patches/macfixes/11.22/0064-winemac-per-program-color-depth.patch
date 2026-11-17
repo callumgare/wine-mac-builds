@@ -18,15 +18,18 @@ Why: Some old programs (Director projectors among them) refuse to start, or
  device). Other values are ignored with a warning. Without the value
  nothing changes. The display modes Wine reports (EnumDisplaySettings) are
  unchanged.
-Uncertain: whether a program needs RC_PALETTE and SIZEPALETTE 256 at 8 bits;
- none tried so far.
+Uncertain: whether a program needs RC_PALETTE and SIZEPALETTE 256 at 8 bits.
 Applies to: wine 11.22, macfixes
 Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
  smoke and the host OpenGL tests pass). On meeka (macOS 26.7): with the value
  at 8 and 16 a program's screen and memory DCs report that depth, and 32
  without it; color-depth passes there and fails on 11.22-build9. In
  11.22-build10 (CI): the suite passes, this test included (in the build
- VM). Not yet tried with a program that wants 8 or 16 bits.
+ VM). With 8 for Webmaster.exe (a Director 7 projector) on meeka, the
+ projector's 256-colour check passes but its title draws in wrong colours
+ (grey as yellow, red and green): its compatible bitmaps become 8-bit with
+ Wine's default colour table. Needs a rework: change only the program's own
+ GetDeviceCaps answer and keep win32u's internal bitmaps at 32 bits.
 
 diff --git a/dlls/winemac.drv/gdi.c b/dlls/winemac.drv/gdi.c
 index 8436284..e3ab15a 100644
