@@ -29,7 +29,10 @@ Status: 2026-11-17 in a quick build of macfixes 11.22 (VM, not for release).
  macOS 26.7): passes 3 of 3 (1.4-1.5x), fails 3 of 3 on 11.22-build7 and
  on plain 11.22-build1 (about 40x).
  2026-11-17 in wine-macfixes-11.22-build8 (draft): d3d8-up-draw-speed passes
- on meeka (1.6x); games not yet tested on it.
+ on meeka (1.6x). On a test Mac (macOS 26): Iji runs and quits from its
+ menu; White Wolf passes from disc and in 4 of 5 Big Fish trial runs (the
+ fifth failed in the test harness, not Wine); Bioscopia passes; nothing
+ worse than build7. The full Second Chance game set is still to run.
 
 --- a/dlls/wined3d/buffer.c
 +++ b/dlls/wined3d/buffer.c
