@@ -88,7 +88,8 @@ for kv in ${MACPORTS_EXTRA_ENV[@]+"${MACPORTS_EXTRA_ENV[@]}"}; do
 done
 JOBS="$(sysctl -n hw.ncpu)"
 
-if [[ ! -w "$WMB_TOOLCHAINS_DIR" ]]; then
+# Without sudo when the user can (e.g. /opt/wmb already made theirs).
+if [[ ! -w "$WMB_TOOLCHAINS_DIR" ]] && ! mkdir -p "$WMB_TOOLCHAINS_DIR" 2>/dev/null; then
     sudo mkdir -p "$WMB_TOOLCHAINS_DIR"
     sudo chown "$(id -u):$(id -g)" "$WMB_TOOLCHAINS_DIR"
 fi
