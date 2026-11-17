@@ -21,10 +21,9 @@ want a specific Wine version that will still be downloadable years from now.
 3. **Automated.** New Wine releases are built, tested and published by CI.
    A person steps in only when something fails.
 
-The contents of each build closely follow [Gcenx's](https://github.com/Gcenx/macports-wine)
-widely used macOS builds: the same configure options, bundled libraries,
-Gecko and Mono, and macOS patches. Where these builds differ from Gcenx's
-and other setups, and why, is in
+This project builds on the great work of others who publish Wine builds for
+macOS, especially the [official ones produced by Gcenx](https://github.com/Gcenx/macOS_Wine_builds).
+Where these builds differ from others, and why, is in
 [docs/differences-to-other-build-setups.md](docs/differences-to-other-build-setups.md).
 
 ## Building
