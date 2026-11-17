@@ -32,9 +32,14 @@
 #
 # The build itself runs on the VM's own disk, which is faster than the share.
 #
+# After a successful build or quick build, the OpenGL regression tests run
+# on this Mac itself (build/hostgl.sh), since the VM has no accelerated
+# OpenGL.
+#
 # Environment: TART_HOME (where Tart keeps images), WMB_VM_CPUS,
 # WMB_VM_MEMORY_MB, WMB_BUILD_NUMBER (passed into the VM; default 0),
-# WMB_VM_CCACHE, WMB_VM_CCACHE_GB (the disk image's size; default 40).
+# WMB_VM_CCACHE, WMB_VM_CCACHE_GB (the disk image's size; default 40),
+# WMB_VM_HOST_GL (0 skips the host OpenGL tests).
 
 source "$(dirname "$0")/lib.sh"
 
@@ -196,3 +201,11 @@ sleep 2; kill $TAIL_PID 2>/dev/null || true
 status="$(cat "$EXIT_FILE")"
 [[ "$status" == 0 ]] || die "wmb$args failed in $VM (exit $status); log: $LOG"
 log "Done: wmb$args"
+
+# The VM has no accelerated OpenGL, so the OpenGL tests run here, on the
+# host, once the VM is down (build/hostgl.sh). WMB_VM_HOST_GL=0 skips them.
+if [[ ( $1 == build || $1 == quick ) && ${WMB_VM_HOST_GL:-1} == 1 ]]; then
+    trap - EXIT
+    cleanup
+    WMB_CACHE_DIR="$SHARE/cache" "$WMB_ROOT/build/hostgl.sh" "$SHARE/out/$BUILD_ID.tar.xz"
+fi

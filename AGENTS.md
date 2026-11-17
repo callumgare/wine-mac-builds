@@ -77,8 +77,14 @@ projects.
 - `./wmb regress --tree <unpacked release>` runs the suite on any build.
   Tests with `Screenshot:` take over the screen for a few seconds each.
   `WMB_REGRESS_NO_SCREEN=1` skips them on a Mac someone is using.
-- Build VMs have no accelerated OpenGL, so GL tests skip there. Run them on a
-  real Mac.
+- Build VMs have no accelerated OpenGL, so GL tests skip there: the
+  guest's virtual GPU (`AppleParavirtGPU`) names no OpenGL bundle
+  (`IOGLBundleName`), so macOS offers only its software renderer, which
+  Wine's Mac driver doesn't take. `./wmb vm build` and `./wmb vm quick`
+  therefore run the GL tests on the host afterwards (`build/hostgl.sh`;
+  `WMB_VM_HOST_GL=0` skips it). The host needs a GUI session for the
+  user running the build, and screen-taking tests only run with
+  `WMB_HOSTGL_SCREEN=1`.
 - Some Rosetta behaviour differs between macOS versions (see the suite's
   README). Note which macOS a result came from.
 - Rare or timing bugs need counts, not single runs. Compare builds on the

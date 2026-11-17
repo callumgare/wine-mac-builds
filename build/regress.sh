@@ -36,6 +36,9 @@
 #                                by tests/regress/screenshot.py <png> <log> <check>
 #                                <args>
 #
+# WMB_REGRESS_GL=only runs just the tests wrapped in needs-opengl, and fails
+# if the Mac offers no accelerated OpenGL (build/hostgl.sh uses it).
+#
 source "$(dirname "$0")/lib.sh"
 require_x86_64 "$@"
 
@@ -90,6 +93,12 @@ matches() {
     return 1
 }
 
+if [[ ${WMB_REGRESS_GL:-} == only ]]; then
+    # Only the OpenGL tests, on a Mac that must have OpenGL: here a missing
+    # renderer is a fault (no GUI session, say), not a reason to skip.
+    "$WMB_ROOT/tests/regress/helpers/needs-opengl" /usr/bin/true ||
+        die "WMB_REGRESS_GL=only, but this Mac (or session) offers no accelerated OpenGL"
+fi
 log "regress: $BUILD_ID ($FLAVOUR $VERSION), logs in $LOG"
 log "regress: making a prefix"
 /usr/bin/perl -e 'alarm shift; exec @ARGV or die "exec: $!"' 600 "$T/bin/wine" wineboot -u > "$LOG/wineboot.log" 2>&1 ||
@@ -115,6 +124,9 @@ for src in "$WMB_ROOT"/tests/regress/*.c "$WMB_ROOT"/tests/regress/*.sh; do
 
     if [[ -z ${WMB_REGRESS_ALL:-} ]] && { ! matches "$FLAVOUR" ${flavours[@]+"${flavours[@]}"} || ! matches "$VERSION" ${versions[@]+"${versions[@]}"}; }; then
         continue  # not meant for this build; not worth a line
+    fi
+    if [[ ${WMB_REGRESS_GL:-} == only && ${wrapper[0]:-} != needs-opengl ]]; then
+        continue
     fi
     if [[ ${#screenshot[@]} -gt 0 && -n ${WMB_REGRESS_NO_SCREEN:-} ]]; then
         log "regress: $name: skipped (takes over the screen; WMB_REGRESS_NO_SCREEN is set)"

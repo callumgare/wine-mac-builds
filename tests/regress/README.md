@@ -19,6 +19,7 @@ equivalent from PATH; Homebrew's `mingw-w64` works.
 | `WMB_REGRESS_ONLY=<name>` | run only this test |
 | `WMB_REGRESS_NO_SCREEN=1` | skip the tests that take over the screen |
 | `WMB_REGRESS_ALL=1` | ignore `Flavours` and `Versions`. Use it to check that a test fails on a build without its fix |
+| `WMB_REGRESS_GL=only` | run only the tests wrapped in `needs-opengl`, and fail if the Mac offers no accelerated OpenGL (`build/hostgl.sh` uses it after VM builds) |
 
 ## The tests
 
@@ -74,7 +75,8 @@ that Wine 11's own fix still holds.
   build VM they pass even without the fix.
 - Build VMs have no accelerated OpenGL, so `bc7-texture` and
   `gl-core-context` skip there (the `needs-opengl` helper asks macOS
-  first). Run them on a real Mac with `--tree`.
+  first). After a VM build, `build/hostgl.sh` runs them on the host Mac.
+  Elsewhere, run them on a real Mac with `--tree`.
 - `fullscreen-gl-centred` also needs accelerated OpenGL, and a screen that
   offers a smaller display mode of another shape; it skips without one.
 

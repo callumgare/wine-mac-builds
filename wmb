@@ -10,6 +10,8 @@
 #                                        and compiles only what changed; no debug
 #                                        symbols, and only the changed modules' tests
 #   ./wmb regress --tree <release dir>   run the regression tests on an unpacked release
+#   ./wmb hostgl <build .tar.xz>         run the OpenGL tests on this Mac (vm.sh does this
+#                                        after a build, as VMs have no accelerated OpenGL)
 #   ./wmb vm <command...>                run any of the above in a fresh Tart VM
 #                                        from the toolchain's pinned image (quick:
 #                                        in a VM kept for quick builds)
@@ -44,11 +46,11 @@ case "$cmd" in
         "$ROOT/build/manifest.sh" "$@"
         "$ROOT/build/check.sh" "$@"
         "$ROOT/build/archive.sh" "$@" ;;
-    compile|package|smoke|regress|manifest|check|archive)
+    compile|package|smoke|regress|manifest|check|archive|hostgl)
         exec "$ROOT/build/$cmd.sh" "$@" ;;
     vm)
         exec "$ROOT/build/vm.sh" "$@" ;;
     *)
-        sed -n '4,15p' "$0" | sed 's/^# \{0,1\}//' >&2
+        sed -n '4,17p' "$0" | sed 's/^# \{0,1\}//' >&2
         exit 2 ;;
 esac
