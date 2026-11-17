@@ -16,7 +16,7 @@ WMB_WORK_DIR="${WMB_WORK_DIR:-$WMB_ROOT/work}"
 # Finished artifacts.
 WMB_OUT_DIR="${WMB_OUT_DIR:-$WMB_ROOT/out}"
 
-log()  { printf '\033[1m==> %s\033[0m\n' "$*" >&2; }
+log()  { printf '\033[1m==> %s\033[0m \033[2m(%s)\033[0m\n' "$*" "$(date +%H:%M:%S)" >&2; }
 warn() { printf '\033[33mwarning:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
