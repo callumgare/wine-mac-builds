@@ -62,7 +62,7 @@ All guard macfixes patches; the number is the patch's in
 | `wmi-threads` | 0054 | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
 | `bc7-texture` | 0046 | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
-| `color-depth` | 0064 | a program that won't run unless the screen is 8 or 16 bits can't be given that depth on a Mac; `AppDefaults\<exe>\Mac Driver\ColorDepth` sets what it sees |
+| `color-depth` | 0064 | a program that won't run unless the screen is 8 or 16 bits can't be given that depth on a Mac; `AppDefaults\<exe>\Mac Driver\ColorDepth` sets what it sees, Wine's own bitmaps stay 32-bit, and at 8 bits the system palette holds the program's palette |
 | `d3d8-up-draw-speed` | 0061 | Wine 11.22 sends wined3d's whole streaming buffer again for each small `DrawPrimitiveUP` with software vertex processing; Iji runs about 3x slower. A timing test: it compares against the same draws with hardware vertex processing (about 1.5x with the fix, 40x without) |
 | `d3d11-vulkan-renderer` | 0025 | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
 | `fullscreen-gdi-centred` | 0056 | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |

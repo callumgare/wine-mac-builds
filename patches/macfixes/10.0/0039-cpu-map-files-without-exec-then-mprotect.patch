@@ -14,6 +14,9 @@ Why: macOS refuses an mmap of a file with PROT_EXEC on a shared mapping, so
  InstallShield setups exited. Map without PROT_EXEC, then mprotect. Found by
  Second Chance's tests (Nancy Drew installers); the inventory had missed it
  because it adds no string of its own except a WARN.
+Programs: Nancy Drew installers (InstallShield): exit after "failed to set
+ PROT_EXEC on file map"; Big Fish games (White Wolf): stop at the same error
+ on plain 10.0
 Evidence: Sikarugir 10.0_8: ntdll.so has "failed to mprotect region: %d" and never
  logs the PROT_EXEC error in Second Chance's launches.
 Applies to: wine 10.0

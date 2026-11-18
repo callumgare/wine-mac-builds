@@ -13,6 +13,7 @@ Why: LLVM 23 (our llvm-mingw) turns floor() of a value it knows is not
  the compiler treating floor() as something it can rewrite, as Wine already
  does for its own CRT (MSVCRTFLAGS). Only for layout.c, where floor() is used:
  EXTRADEFS also goes to wrc, which rejects the option.
+Programs: none (build)
 Applies to: wine 10.0, 10.20, 11.x; changes only dwrite_test.exe (the -tests asset)
 
 --- a/dlls/dwrite/tests/Makefile.in

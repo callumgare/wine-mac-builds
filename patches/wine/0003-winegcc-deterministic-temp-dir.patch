@@ -17,6 +17,7 @@ Why: winegcc links each PE file from a spec object in a temp directory named
  --cc-cmd/--ld-cmd values (a compiler cache's wrapper instead of the
  compiler), which differ between builds that should match: with them in,
  builds with and without ccache differed in every PE file.
+Programs: none (build)
 Applies to: wine 10.0, 10.20, 11.x (plain, staging); doesn't change what Wine does at run time
 Status: 2026-11-17 hash narrowed (argv[0], --cc-cmd, --ld-cmd); not built yet.
 

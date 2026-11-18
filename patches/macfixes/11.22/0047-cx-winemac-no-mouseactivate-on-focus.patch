@@ -16,6 +16,8 @@ Why: When a Mac window gains focus, winemac used to send the window a
  events when Wine itself focuses a window (makeFocused discarded them),
  and no longer skips windowGotFocus in windowDidBecomeKey when Wine caused
  the window to become key.
+Programs: Unity games (CrossOver's claim, no game named): broken by the
+ simulated WM_MOUSEACTIVATE on focus
 Evidence: Sikarugir 10.0_8: its macdrv_window_got_focus makes no
  NtUserGetAncestor or NtUserMessageCall call (125 vs 142 instructions,
  function comparison 2026-11-15). The cocoa_window.m parts were not checked

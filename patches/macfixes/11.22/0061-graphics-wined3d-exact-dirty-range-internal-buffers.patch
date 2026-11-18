@@ -18,6 +18,8 @@ Why: WineHQ b6810e41 (11.22) marks the whole buffer dirty on every write map
  took the same time on 11.21 and 11.22. Buffers without a parent are the
  internal ones (every d3d8, d3d9, d3d11 and ddraw application buffer has
  one), so the whole-buffer rule now skips them; application buffers keep it.
+Programs: Iji: its menu loop runs about 3x slower on 11.22 than on 11.21
+ (software vertex processing)
 Uncertain: whether every parentless buffer's writer stays inside its mapped
  range (wined3d's streaming buffers and push constants, ddraw's execute
  buffer copies were read and do).

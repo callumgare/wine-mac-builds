@@ -7,6 +7,7 @@ From: upstream commit a3e3c0a117244365a093e5e52a546719c426a326 (Brendan Shanks),
 Source: https://gitlab.winehq.org/wine/wine/-/commit/a3e3c0a117244365a093e5e52a546719c426a326
 Upstream: yes, commit a3e3c0a117 (in Wine 10.15)
 Why: The previous patch reads the faulting instruction directly and crashes on a jump to an invalid address; read it with virtual_uninterrupted_read_memory().
+Programs: none known
 Evidence: Sikarugir 10.0_8: check_invalid_gsbase in ntdll.so reads into a 16-byte stack buffer with a length check and passes a zero gsbase to the TRACE, as this version does
 Applies to: wine 10.0
 

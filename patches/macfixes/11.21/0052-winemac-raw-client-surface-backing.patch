@@ -19,6 +19,8 @@ Why: when a program changes the display mode under EmulateModeset, win32u
  shows "Using experimental framebuffer OpenGL surface" and the picture
  overflows the window. Wine 10.0 has no framebuffer surface, so this is
  11.x only.
+Programs: White Wolf: its OpenGL picture is zoomed and cropped after it
+ changes the display mode (Wine 11, EmulateModeset)
 Applies to: wine 11.21 (macfixes, after 0050)
 Status: built in macfixes-11.21-build2. Confirmed 2026-11-16: White Wolf's
  picture is no longer zoomed (Second Chance integration run).

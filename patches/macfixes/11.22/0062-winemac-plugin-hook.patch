@@ -17,6 +17,8 @@ Why: An app that embeds Wine may need code of its own inside the Mac driver
  colon-separated list, after reading the options and before Cocoa starts.
  A path that doesn't load is logged (err:macdrv) and skipped. With neither
  set nothing changes.
+Programs: Second Chance (an app that embeds Wine): had to patch a load
+ command into winemac.so and re-sign it to load its in-process helpers
 Uncertain: whether a plugin needs to load earlier (before setup_options) or
  later (after Cocoa starts); the brief asked for between the two.
 Applies to: wine 11.22, macfixes

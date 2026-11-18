@@ -15,6 +15,9 @@ Why: Wine 11.18 (upstream f0bd9046, "Allocate initial TEB and process
  be activated. 10.0 and 11.0-11.17 put them high, as Windows 7's wow64
  does. In wow64 only, reserve TEB blocks top-down below 2G again; 64-bit
  processes keep upstream's placement.
+Programs: Big Fish games (Armadillo DRM), White Wolf and Waverly Academy
+ among them: activation fails with "General extraction error" on Wine 11.18
+ and later
 Evidence: gmActivator ("###SENDER#BFG_Client_test#GET#PROPERTY_HARDWAREID")
  in a fresh prefix: macfixes 11.22 shows the error and writes no licence;
  10.0 writes 4 HKLM\Software\Licenses values. Its child process makes the

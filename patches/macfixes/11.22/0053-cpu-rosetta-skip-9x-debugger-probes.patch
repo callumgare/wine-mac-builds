@@ -18,6 +18,9 @@ Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  game never starts. Only in that LDT code segment, step over int 68h/41h
  as 9x would. On NT they'd fault, but no NT program runs in that segment
  expecting that: the segment is what makes these checks misfire.
+Programs: Big Fish games (Armadillo DRM), White Wolf's launcher wqxgxgg.exe:
+ stalls and the game never starts; Iji: launched on 10.0 only with this or
+ Second Chance's binary patch
 Applies to: wine 11.22 (macfixes, after 0052)
 Status: built in macfixes-11.22-build1; not yet tested there. Confirmed on 10.0
  (macfixes-10.0-build4, 2026-11-16): without Second Chance's binary patch,

@@ -13,6 +13,7 @@ Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so
  at the window's Cocoa view and create Metal views/layers, and call a few user32/advapi32
  functions through it from Unix code (registry calls go back to the PE side through
  KeUserDispatchCallback).
+Programs: none known
 Evidence: Sikarugir 10.0_8: winemac.so exports _macdrv_functions; trace strings
  my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
  my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;

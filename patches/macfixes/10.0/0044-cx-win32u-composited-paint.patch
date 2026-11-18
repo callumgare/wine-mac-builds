@@ -12,6 +12,7 @@ Why: When a program peeks with exactly PM_REMOVE | PM_QS_INPUT |
  a WS_EX_COMPOSITED window, send the paint to the window straight away and
  keep looking without PM_QS_PAINT, instead of returning it. Without it,
  such a loop can keep getting WM_PAINT and never see its other messages.
+Programs: none known
 Evidence: Sikarugir 10.0_8: win32u.so's peek_message tests that flag combination,
  WM_PAINT and WS_EX_COMPOSITED, and calls get_window_long and
  send_message_timeout (found by comparing functions, 2026-11-15; it adds no

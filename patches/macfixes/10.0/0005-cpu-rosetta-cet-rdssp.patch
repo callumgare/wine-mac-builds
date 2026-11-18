@@ -8,6 +8,7 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.
 CW-Hack: 20186
 Upstream: no
 Why: Rosetta raises #UD for the CET RDSSPD/RDSSPQ instructions (which are NOPs without CET); skip them in the SIGILL path.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_cet_nop", "skipped RDSSPD/RDSSPQ instruction"
 Applies to: wine 10.0
 

@@ -7,6 +7,9 @@ From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
 Why: Lets the launcher script put each renderer's DLLs on Wine's DLL search path through its own variable (WINEDLLPATH_D3DMETAL, _CNCD, _D9VK, _DXVK, _DXMT, in that order, each a ':'-separated list), searched before Wine's own builtin directory and before WINEDLLPATH. The D3DMetal, D9VK and DXVK lists are left out for launcher and overlay processes (Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar launcher/Social Club, Steam web helper and overlay, Ubisoft Connect), matched by substring on argv[1], so their Chromium UIs keep using wined3d.
+Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
+ launcher/Social Club, Steam web helper and overlay, Ubisoft Connect: their
+ Chromium UIs would get the D3DMetal, D9VK or DXVK DLLs instead of wined3d
 Uncertain: 10.0_8 reads argv through _NSGetArgc/_NSGetArgv; this uses ntdll's main_argc/main_argv, which hold the same array on macOS (the preloader shifts argv in place). 10.0_8 runs the launcher check per path entry; here it runs once per variable that has at least one entry (same result). Matching is case-sensitive strstr, as in 10.0_8.
 Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are
  unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.

@@ -9,6 +9,7 @@ CW-Hack: 14364
 Upstream: no
 Why: adds the Mac Driver registry option ForceOpenGLBackingStore, which requests a
  backing store for every GL context and stops flicker in some GL games.
+Programs: none known
 Evidence: Sikarugir 10.0_8: winemac.so contains L"ForceOpenGLBackingStore"
 Port: taken verbatim from wine-staging v11.21's version of the same patch (staging
  commit 7426bb2f), which already carries the Wine 11 form: bool option, set in the new

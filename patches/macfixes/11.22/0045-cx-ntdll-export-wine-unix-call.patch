@@ -10,6 +10,7 @@ Upstream: no
 Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it
  as a wrapper of the inline __wine_unix_call. 0020 carries the winemac part
  of the same hack.
+Programs: none known
 Evidence: Sikarugir 10.0_8: its x86_64 and i386 ntdll.dll export __wine_unix_call;
  ours didn't (the only export difference across the PE DLLs, 2026-11-15).
 Applies to: wine 11.22 (macfixes, after 0044)

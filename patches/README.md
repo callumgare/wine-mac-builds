@@ -51,6 +51,7 @@ Keys must appear in this order. Each may appear only once.
 | `CW-Hack` | no | CodeWeavers hack numbers the patch carries, comma-separated: `22131, 21217`. |
 | `Upstream` | yes | `yes`, `no` or `partly`, then optional detail: is the change in WineHQ's own tree? |
 | `Why` | yes | What problem it fixes, and how. |
+| `Programs` | yes | The programs that led to the patch, each with what went wrong in it, so a later problem with the patch has something to test against: `Iji: about 3x slower with software vertex processing`. Name them even when the patch helps everything. `none known` when the source doesn't name one; `none (build)` for patches that change only how Wine builds. |
 | `Uncertain` | no | What isn't known for sure. The build page flags these patches. |
 | `Evidence` | no | What shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
 | `Port` | no | How it was adapted to this Wine version. |
