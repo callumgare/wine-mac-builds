@@ -93,4 +93,5 @@ PATCHES=(
     patches/macfixes/11.22/0064-gdi32-per-program-color-depth.patch
     patches/macfixes/11.22/0065-krnl386-attach-without-16bit.patch
     patches/macfixes/11.22/0066-winemac-gl-context-dealloc-off-main-thread.patch
+    patches/macfixes/11.22/0067-ntdll-async-iosb-unwritable.patch
 )

@@ -41,6 +41,7 @@ All guard macfixes patches; the number is the patch's in
 | `tls-expansion-gs` | 0048 | %gs:0x1780 (TLS expansion slots) is NULL, unlike CrossOver, for code that reads TLS through %gs |
 | `wow64-teb-peb-high` | 0055 | Wine 11.18+ puts a 32-bit process's TEB and PEB low in memory; Armadillo can't unpack |
 | **System and programs** | | |
+| `async-iosb-decommitted` | 0067 | an async read finishing while its thread runs its own code, with its status block no longer writable: the store faults on the signal stack and the thread never returns ("nested exception on signal stack"; Steam's updater, holding the loader lock) |
 | `cef-append-flags` | 0033 | Steam's CEF helper starts without the flags it needs to render in Wine |
 | `commandline-append` | 0037 | the registry's `CommandLineAppend` for an exe isn't added to its command line |
 | `composited-paint` | 0044 | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |

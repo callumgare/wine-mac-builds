@@ -118,6 +118,12 @@ projects.
   Arguments makedep wrote into the Makefile (winegcc's `--cc-cmd`) don't
   change this way.
 
+- Before symbolicating an address in one of Wine's own `.so` files from
+  someone else's run, get that process's load address (`vmmap <pid>` while
+  it's still running). Libraries injected into it (`DYLD_INSERT_LIBRARIES`,
+  plugins) move everything after them, so a base taken from your own test
+  process gives a plausible but wrong function. An address that falls in
+  the middle of an instruction is the sign.
 - Symbolicate a crash address in a system library by asking any process of
   the same architecture: `arch -x86_64 /bin/sleep 20 &` and then
   `atos -p <pid> <addr>`. The shared cache sits at the same address in every
