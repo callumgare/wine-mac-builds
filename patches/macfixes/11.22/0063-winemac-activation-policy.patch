@@ -14,6 +14,12 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
  Driver "ActivationPolicy" value, read the usual two ways
  (HKCU\Software\Wine\Mac Driver, overridden by AppDefaults\<exe>\Mac
  Driver), takes "regular" (the default, Wine's behaviour) or "accessory".
+ The environment variable WINEMAC_ACTIVATION_POLICY, set to either,
+ overrides the registry, so a launcher can set it for the programs it runs
+ (installers during a build, say) without changing the prefix. With
+ "accessory", topmost (WS_EX_TOPMOST) windows also stay at the normal
+ window level, as with TopmostFloatInactive=none: by default an inactive
+ process's topmost windows float above every other app's windows.
  With "accessory", the process gets NSApplicationActivationPolicyAccessory
  when it first shows a window, instead of the regular policy and the Wine
  menu, and the driver never asks macOS to activate it. Its windows are
@@ -23,7 +29,9 @@ Programs: Second Chance (an app that embeds Wine): wants its helper
 Uncertain: macOS can still activate an accessory process when its window is
  clicked; the driver only stops activating it itself.
 Applies to: wine 11.22, macfixes
-Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
+Status: 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added;
+ not yet built.
+ 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
  smoke and the host OpenGL tests pass). On meeka (macOS 26.7, in a GUI
  session that didn't hold the screen): notepad became Foreground with
  nothing set and UIElement with the global or the notepad.exe value;
@@ -92,7 +100,7 @@ index 8d5d71f..3d68cac 100644
   bool force_backing_store = FALSE;
  int cocoa_start_timeout = 60;
  
-@@ -369,6 +370,14 @@ static void setup_options(void)
+@@ -369,6 +370,29 @@ static void setup_options(void)
      if (!get_config_key(hkey, appkey, "EnableAppNap", buffer, sizeof(buffer)))
          enable_app_nap = IS_OPTION_TRUE(buffer[0]);
  
@@ -103,6 +111,21 @@ index 8d5d71f..3d68cac 100644
 +        static const WCHAR accessoryW[] = {'a','c','c','e','s','s','o','r','y',0};
 +        accessory_activation_policy = !wcsicmp(buffer, accessoryW);
 +    }
++
++    /* WINEMAC_ACTIVATION_POLICY ("accessory" or "regular") overrides the
++       registry: a launcher can set it for the programs it runs, and their
++       children inherit it. */
++    {
++        const char *env = getenv("WINEMAC_ACTIVATION_POLICY");
++        if (env && !strcasecmp(env, "accessory")) accessory_activation_policy = true;
++        else if (env && !strcasecmp(env, "regular")) accessory_activation_policy = false;
++    }
++
++    /* An accessory process is never active, and a topmost window of an
++       inactive process still floats (TopmostFloatInactive): keep them at the
++       normal level, so they don't go over the app that is active. */
++    if (accessory_activation_policy)
++        topmost_float_inactive = TOPMOST_FLOAT_INACTIVE_NONE;
 +
      if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
          force_backing_store = IS_OPTION_TRUE(buffer[0]);

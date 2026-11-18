@@ -11,11 +11,17 @@
 # "accessory" (globally, or for one exe under AppDefaults) makes the driver
 # give its process the accessory policy instead of the regular one.
 #
-# Starts notepad (which shows a window) three ways and asks Launch Services
+# WINEMAC_ACTIVATION_POLICY in the environment overrides the registry, so a
+# launcher can set it for the programs it runs without changing the prefix.
+#
+# Starts notepad (which shows a window) six ways and asks Launch Services
 # what kind of app its process became: with nothing set (Foreground), with
-# the global value (UIElement), and with the value for notepad.exe only
-# (UIElement). Needs a session that can reach the window server; skips
-# without one.
+# the global value (UIElement), with the value for notepad.exe only
+# (UIElement), with the variable alone (UIElement), with the variable set to
+# regular over the global value (Foreground), and with the variable set for
+# cmd, which starts notepad (UIElement: Wine programs started from Windows
+# code inherit it). Needs a session that can reach the window server;
+# skips without one.
 
 set -u
 export WINEDEBUG=err+all
@@ -23,12 +29,15 @@ server="$(dirname "$WINE")/wineserver"
 key='HKCU\Software\Wine\Mac Driver'
 appkey='HKCU\Software\Wine\AppDefaults\notepad.exe\Mac Driver'
 
-# kind <name>: start notepad, wait for its window, print its application
-# type ("Foreground", "UIElement", ...) or nothing if it never got one.
+# kind <name> [command...]: start notepad (or the command, which starts it),
+# wait for its window, print its application type ("Foreground",
+# "UIElement", ...) or nothing if it never got one.
 kind() {
-    local pid="" type="" i
+    local pid="" type="" i name="$1"
+    shift
+    [[ $# -gt 0 ]] || set -- notepad
     "$server" -k > /dev/null 2>&1
-    "$WINE" notepad > "$OUT/$1.log" 2>&1 &
+    "$WINE" "$@" > "$OUT/$name.log" 2>&1 &
     for i in $(seq 1 60); do
         sleep 1
         for pid in $(pgrep -f 'notepad\.exe'); do
@@ -71,8 +80,22 @@ t="$(kind app)"
 echo "winemac-activation-policy: AppDefaults\\notepad.exe ActivationPolicy=accessory: ${t:-none}"
 [[ $t == UIElement ]] || fails=$((fails + 1))
 
+t="$(WINEMAC_ACTIVATION_POLICY=accessory kind env)"
+echo "winemac-activation-policy: WINEMAC_ACTIVATION_POLICY=accessory: ${t:-none}"
+[[ $t == UIElement ]] || fails=$((fails + 1))
+
+"$WINE" reg add "$key" /v ActivationPolicy /d accessory /f > /dev/null 2>&1
+t="$(WINEMAC_ACTIVATION_POLICY=regular kind envregular)"
+"$WINE" reg delete "$key" /v ActivationPolicy /f > /dev/null 2>&1
+echo "winemac-activation-policy: WINEMAC_ACTIVATION_POLICY=regular over ActivationPolicy=accessory: ${t:-none}"
+[[ $t == Foreground ]] || fails=$((fails + 1))
+
+t="$(WINEMAC_ACTIVATION_POLICY=accessory kind envchild cmd /c start notepad)"
+echo "winemac-activation-policy: WINEMAC_ACTIVATION_POLICY=accessory, notepad started by cmd: ${t:-none}"
+[[ $t == UIElement ]] || fails=$((fails + 1))
+
 if [[ $fails -gt 0 ]]; then
-    echo "winemac-activation-policy: $fails of 3 wrong"
+    echo "winemac-activation-policy: $fails of 6 wrong"
     exit 1
 fi
 echo "winemac-activation-policy: ok"
