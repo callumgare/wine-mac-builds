@@ -1,0 +1,163 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: krnl386: when LDT entries are refused, load without 16-bit support and fail 16-bit calls cleanly
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
+ (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
+ FreeLibrary16 and the like) are forwarded to krnl386.exe16, so a 32-bit
+ DLL that imports any of them makes the loader load krnl386.exe16 and run
+ its attach, even if it never calls one. The attach loads the 16-bit
+ KERNEL, which needs LDT entries for its segments. Under Rosetta 2,
+ NtSetLdtEntries refuses them (0057), krnl386 ignored that, and the load
+ faulted on a segment that was never set up (Wine 11.22: a write to address
+ 0xc22). The attach failed, and with it the importing DLL. Now the attach
+ first checks that LDT entries can be set, and if not, succeeds without
+ loading the 16-bit KERNEL or giving threads a 16-bit stack. A 16-bit call
+ made anyway then fails with an error in the log instead of a fault:
+ loading a 16-bit module (LoadLibrary16, LoadModule16, and ThunkConnect32,
+ which loads the 16-bit side of a thunk) returns 2, file not found, and a
+ call into 16-bit code (WOWCallback16Ex, which the 32-to-16 thunks go
+ through) returns FALSE. Before, both faulted in the same way as the
+ attach. Where LDT entries work nothing changes.
+Programs: Webmaster (Tivola, a Director 7 projector): Director reports
+ "Handler not defined #baRegister", as its Buddy API Xtra (Budapi.x32),
+ which imports LoadLibrary16, is unloaded straight after it maps.
+ Bioscopia ships a budapi32.dll beside its Budapi Xtra that imports
+ LoadLibrary16, FreeLibrary16 and GetProcAddress16 (found by
+ tools/scan16; not run)
+Uncertain: what a program does when a 16-bit call fails; Budapi's
+ functions that Webmaster uses make none. A 32-to-16 thunk can only be
+ called after ThunkConnect32 succeeds, which it now can't, so the thunks'
+ own code past WOWCallback16Ex (which reads the 16-bit stack that isn't
+ there) shouldn't run.
+Expects before it: 0057 (NtSetLdtEntries refuses entries under Rosetta 2;
+ without it, setting an entry stops the process instead)
+Applies to: wine 11.22, macfixes
+Status: 2026-11-18 host quick build on macOS 26.7.2 (Apple silicon):
+ krnl386-attach passes; krnl386.exe16 loads, LoadLibrary16("user.exe")
+ returns 2 and WOWCallback16Ex returns FALSE, each with its error in the
+ log. Not yet tried with Webmaster or Bioscopia. krnl386-attach fails on
+ 11.22-build9 (LoadLibrary("krnl386.exe16") gives error 998 after the fault
+ at krnl386.exe16+0x21d54).
+
+diff --git a/dlls/krnl386.exe16/kernel.c b/dlls/krnl386.exe16/kernel.c
+index 58a0d79..9bd10c4 100644
+--- a/dlls/krnl386.exe16/kernel.c
++++ b/dlls/krnl386.exe16/kernel.c
+@@ -39,6 +39,11 @@ void *dummy = RaiseException;  /* force importing it from kernel32 */
+ 
+ static DWORD process_dword;
+ 
++/* Set when the process can't run 16-bit code (no LDT entries, as under
++   Rosetta 2): the 16-bit KERNEL isn't loaded and threads get no 16-bit
++   stack. */
++BOOL no_16bit;
++
+ /***********************************************************************
+  *           KERNEL thread initialisation routine
+  */
+@@ -73,13 +78,23 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
+     {
+     case DLL_PROCESS_ATTACH:
+         init_selectors();
++        /* Without LDT entries 16-bit code can't run.  Still load: 32-bit
++           programs and DLLs that only import kernel32's 16-bit thunks
++           (LoadLibrary16 and the like, forwarded here) need this DLL to
++           load, and the 16-bit calls themselves then fail. */
++        if (!ldt_entries_supported())
++        {
++            WARN( "this process can't set LDT entries; 16-bit code won't run\n" );
++            no_16bit = TRUE;
++            break;
++        }
+         if (LoadLibrary16( "krnl386.exe" ) < 32) return FALSE;
+         /* fall through */
+     case DLL_THREAD_ATTACH:
+-        thread_attach();
++        if (!no_16bit) thread_attach();
+         break;
+     case DLL_THREAD_DETACH:
+-        thread_detach();
++        if (!no_16bit) thread_detach();
+         break;
+     }
+     return TRUE;
+diff --git a/dlls/krnl386.exe16/kernel16_private.h b/dlls/krnl386.exe16/kernel16_private.h
+index 2fed2f6..4672da2 100644
+--- a/dlls/krnl386.exe16/kernel16_private.h
++++ b/dlls/krnl386.exe16/kernel16_private.h
+@@ -243,6 +243,8 @@ static const struct ldt_bits code16_segment = { .type = 0x1b, .default_big = 0 }
+ static const struct ldt_bits code32_segment = { .type = 0x1b, .default_big = 1 };
+ 
+ extern void init_selectors(void);
++extern BOOL ldt_entries_supported(void);
++extern BOOL no_16bit;
+ extern BOOL ldt_is_system( WORD sel );
+ extern BOOL ldt_is_valid( WORD sel );
+ extern BOOL ldt_is_32bit( WORD sel );
+diff --git a/dlls/krnl386.exe16/ne_module.c b/dlls/krnl386.exe16/ne_module.c
+index 4789f13..2a34d04 100644
+--- a/dlls/krnl386.exe16/ne_module.c
++++ b/dlls/krnl386.exe16/ne_module.c
+@@ -960,6 +960,12 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
+ 
+     TRACE("name %s, paramBlock %p\n", name, paramBlock);
+ 
++    if (no_16bit)
++    {
++        ERR("can't load 16-bit module %s: this process can't run 16-bit code\n", debugstr_a(name));
++        return ERROR_FILE_NOT_FOUND;
++    }
++
+     /* Load module */
+ 
+     if ( (hModule = NE_GetModuleByFilename(name) ) != 0 )
+diff --git a/dlls/krnl386.exe16/selector.c b/dlls/krnl386.exe16/selector.c
+index b45b3cd..10be943 100644
+--- a/dlls/krnl386.exe16/selector.c
++++ b/dlls/krnl386.exe16/selector.c
+@@ -97,6 +97,19 @@ void init_selectors(void)
+     RtlSetBits( &ldt_bitmap, 0, first_ldt_entry );
+ }
+ 
++/***********************************************************************
++ *           ldt_entries_supported
++ *
++ * Whether this process can set LDT entries, which all 16-bit code needs.
++ * Under Rosetta 2 on macOS, NtSetLdtEntries refuses them
++ * (STATUS_NOT_IMPLEMENTED).  Sets the first free entry to the null entry it
++ * already is.
++ */
++BOOL ldt_entries_supported(void)
++{
++    return !NtSetLdtEntries( (first_ldt_entry << 3) | 7, 0, 0, 0, 0, 0 );
++}
++
+ /***********************************************************************
+  *           ldt_is_system
+  */
+diff --git a/dlls/krnl386.exe16/wowthunk.c b/dlls/krnl386.exe16/wowthunk.c
+index 72e86bf..474c417 100644
+--- a/dlls/krnl386.exe16/wowthunk.c
++++ b/dlls/krnl386.exe16/wowthunk.c
+@@ -432,7 +432,14 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
+      * (both for PASCAL and CDECL calling convention), so we simply
+      * copy them to the 16-bit stack ...
+      */
+-    char *stack = (char *)CURRENT_STACK16 - cbArgs;
++    char *stack;
++
++    if (no_16bit)
++    {
++        ERR("can't call 16-bit code: this process can't run 16-bit code\n");
++        return FALSE;
++    }
++    stack = (char *)CURRENT_STACK16 - cbArgs;
+ 
+     memcpy( stack, pArgs, cbArgs );
+ 

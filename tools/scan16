@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+"""Find 16-bit Windows code, and 32-bit code that uses it, in a program's folder.
+
+    tools/scan16 <folder or file> ...  [-a]
+
+Under Rosetta 2 a process can't set LDT entries, which all 16-bit code needs,
+so none runs: not 16-bit programs, and not the 16-bit DLLs some 32-bit
+programs of the Windows 95 era call through thunks. This reads each file's
+headers (nothing is run) and puts it in one of these groups:
+
+  16-bit (NE)       a 16-bit Windows program or DLL; won't run
+  DOS (MZ only)     a DOS program; Wine doesn't run these
+  calls 16-bit      32-bit, imports functions that load or call 16-bit
+                    code (LoadLibrary16, QT_Thunk, ThunkConnect32, ...). With
+                    macfixes 0065 it loads, and each such call fails with an
+                    error in the log; without it, it doesn't load at all
+  16-bit memory     32-bit, imports functions that make 16-bit pointers or
+                    memory (MapLS, GlobalAlloc16, ...), which need LDT entries
+  krnl386 only      32-bit, imports kernel32 functions Wine keeps in
+                    krnl386.exe16 that need no 16-bit code (k32CharToOemA,
+                    ...); with 0065 it loads and they work
+  other             LE/LX (VxD and OS/2 drivers); Wine doesn't load them
+
+Files with none of this are only counted; -a lists them too. A 32-bit file
+can still load a 16-bit DLL by a name it builds at run time, which no import
+table shows, so NE files next to 32-bit ones are worth a look.
+"""
+
+import os
+import struct
+import sys
+
+# kernel32 exports that Wine forwards to krnl386.exe16, from Wine 11.22's
+# dlls/kernel32/kernel32.spec. Most are exported by ordinal only, as in
+# Windows 9x, whose ordinals Wine keeps.
+KERNEL32_ORDINALS = {
+    1: "VxDCall0", 2: "VxDCall1", 3: "VxDCall2", 4: "VxDCall3", 5: "VxDCall4",
+    6: "VxDCall5", 7: "VxDCall6", 8: "VxDCall7", 9: "VxDCall8",
+    10: "k32CharToOemA", 11: "k32CharToOemBuffA", 12: "k32OemToCharA",
+    13: "k32OemToCharBuffA", 14: "k32LoadStringA", 15: "k32wsprintfA",
+    16: "k32wvsprintfA", 17: "CommonUnimpStub", 18: "GetProcessDword",
+    20: "DosFileHandleToWin32Handle", 21: "Win32HandleToDosFileHandle",
+    22: "DisposeLZ32Handle", 24: "GlobalAlloc16", 25: "GlobalLock16",
+    26: "GlobalUnlock16", 27: "GlobalFix16", 28: "GlobalUnfix16",
+    29: "GlobalWire16", 30: "GlobalUnWire16", 31: "GlobalFree16",
+    32: "GlobalSize16", 33: "HouseCleanLogicallyDeadHandles",
+    34: "GetWin16DOSEnv", 35: "LoadLibrary16", 36: "FreeLibrary16",
+    37: "GetProcAddress16", 38: "AllocMappedBuffer", 39: "FreeMappedBuffer",
+    40: "OT_32ThkLSF", 41: "ThunkInitLSF", 42: "LogApiThkLSF",
+    43: "ThunkInitLS", 44: "LogApiThkSL", 45: "Common32ThkLS",
+    46: "ThunkInitSL", 47: "LogCBThkSL", 48: "ReleaseThunkLock",
+    49: "RestoreThunkLock", 51: "W32S_BackTo32", 52: "GetThunkBuff",
+    53: "GetThunkStuff", 54: "K32WOWCallback16", 55: "K32WOWCallback16Ex",
+    56: "K32WOWGetVDMPointer", 57: "K32WOWHandle32", 58: "K32WOWHandle16",
+    59: "K32WOWGlobalAlloc16", 60: "K32WOWGlobalLock16",
+    61: "K32WOWGlobalUnlock16", 62: "K32WOWGlobalFree16",
+    63: "K32WOWGlobalAllocLock16", 64: "K32WOWGlobalUnlockFree16",
+    65: "K32WOWGlobalLockSize16", 66: "K32WOWYield16",
+    67: "K32WOWDirectedYield16", 68: "K32WOWGetVDMPointerFix",
+    69: "K32WOWGetVDMPointerUnfix", 70: "K32WOWGetDescriptor",
+    86: "_KERNEL32_86", 87: "SSOnBigStack", 88: "SSCall",
+    89: "FT_PrologPrime", 90: "QT_ThunkPrime", 91: "PK16FNF",
+    92: "GetPK16SysVar", 93: "GetpWin16Lock", 94: "_CheckNotSysLevel",
+    95: "_ConfirmSysLevel", 96: "_ConfirmWin16Lock", 97: "_EnterSysLevel",
+    98: "_LeaveSysLevel", 99: "_KERNEL32_99", 100: "_KERNEL32_100",
+}
+KERNEL32_NAMES = {
+    "AllocSLCallback", "FreeSLCallback", "FT_Prolog", "FT_Thunk",
+    "Get16DLLAddress", "K32Thk1632Epilog", "K32Thk1632Prolog", "MapHInstLS",
+    "MapHInstLS_PN", "MapHInstSL", "MapHInstSL_PN", "MapHModuleLS",
+    "MapHModuleSL", "MapLS", "MapSL", "MapSLFix", "PrivateFreeLibrary",
+    "PrivateLoadLibrary", "QT_Thunk", "SMapLS", "SUnMapLS", "ThunkConnect32",
+    "UTRegister", "UTUnRegister", "UnMapLS", "UnMapSLFixArray",
+} | {f"FT_Exit{n}" for n in range(0, 57, 4)} \
+  | {f"SMapLS_IP_EBP_{n}" for n in range(8, 41, 4)} \
+  | {f"SUnMapLS_IP_EBP_{n}" for n in range(8, 41, 4)} \
+  | set(KERNEL32_ORDINALS.values())
+
+# Those that load or run 16-bit code.
+CALLS_16 = {
+    "LoadLibrary16", "FreeLibrary16", "GetProcAddress16", "PrivateLoadLibrary",
+    "PrivateFreeLibrary", "Get16DLLAddress", "ThunkConnect32", "ThunkInitLS",
+    "ThunkInitLSF", "ThunkInitSL", "QT_Thunk", "QT_ThunkPrime", "FT_Thunk",
+    "FT_Prolog", "FT_PrologPrime", "Common32ThkLS", "OT_32ThkLSF",
+    "K32WOWCallback16", "K32WOWCallback16Ex", "SSCall", "UTRegister",
+    "AllocSLCallback", "K32Thk1632Prolog", "W32S_BackTo32",
+}
+# Those that make 16-bit pointers, handles or memory (selectors).
+MEMORY_16 = {
+    n for n in KERNEL32_NAMES
+    if any(k in n for k in ("MapLS", "MapSL", "Global", "VDMPointer", "MapHInst",
+                            "MapHModule", "WOWHandle", "GetDescriptor", "MappedBuffer"))
+}
+# DLLs whose every export is 16-bit machinery.
+DLLS_16 = {"wow32.dll", "krnl386.exe", "krnl386.exe16"}
+
+GROUPS = [
+    ("ne", "16-bit (NE): won't run under Rosetta 2"),
+    ("dos", "DOS program (MZ only): Wine doesn't run these"),
+    ("calls", "32-bit, calls 16-bit code: loads with 0065; those calls fail"),
+    ("memory", "32-bit, uses 16-bit pointers or memory: needs LDT entries"),
+    ("krnl386", "32-bit, imports krnl386.exe16 functions that need no 16-bit code"),
+    ("other", "LE/LX driver: Wine doesn't load these"),
+    ("plain", "no 16-bit use found"),
+]
+
+
+class PE:
+    def __init__(self, data, off):
+        self.data = data
+        machine, nsect, _, _, _, optsize, _ = struct.unpack_from("<HHIIIHH", data, off + 4)
+        opt = off + 24
+        magic = struct.unpack_from("<H", data, opt)[0]
+        self.bits = 64 if magic == 0x20B else 32
+        dd = opt + (112 if self.bits == 64 else 96)
+        ndd = struct.unpack_from("<I", data, dd - 4)[0]
+        self.dirs = [struct.unpack_from("<II", data, dd + 8 * i) for i in range(min(ndd, 16))]
+        self.sections = []
+        s = opt + optsize
+        for i in range(nsect):
+            vsize, va, rawsize, rawptr = struct.unpack_from("<IIII", data, s + 40 * i + 8)
+            self.sections.append((va, max(vsize, rawsize), rawptr, rawsize))
+
+    def off(self, rva):
+        for va, size, ptr, raw in self.sections:
+            if va <= rva < va + size and rva - va < raw:
+                return ptr + rva - va
+        return None
+
+    def cstr(self, rva):
+        o = self.off(rva)
+        if o is None:
+            return ""
+        end = self.data.find(b"\0", o, o + 512)
+        return self.data[o:end if end >= 0 else o + 512].decode("latin-1")
+
+    def thunks(self, rva):
+        size = 8 if self.bits == 64 else 4
+        flag = 1 << (size * 8 - 1)
+        o = self.off(rva)
+        while o is not None and o + size <= len(self.data):
+            v = struct.unpack_from("<Q" if size == 8 else "<I", self.data, o)[0]
+            if not v:
+                break
+            if v & flag:
+                yield v & 0xFFFF
+            else:
+                yield self.cstr((v & 0x7FFFFFFF) + 2)
+            o += size
+
+    def imports(self):
+        """{dll name (lower case): [name or ordinal, ...]}, normal and delay-load."""
+        out = {}
+        if len(self.dirs) > 1 and self.dirs[1][0]:
+            o = self.off(self.dirs[1][0])
+            while o is not None and o + 20 <= len(self.data):
+                ilt, _, _, name, iat = struct.unpack_from("<IIIII", self.data, o)
+                if not (ilt or name or iat):
+                    break
+                out.setdefault(self.cstr(name).lower(), []).extend(self.thunks(ilt or iat))
+                o += 20
+        if len(self.dirs) > 13 and self.dirs[13][0]:
+            o = self.off(self.dirs[13][0])
+            while o is not None and o + 32 <= len(self.data):
+                attrs, name, _, _, int_rva = struct.unpack_from("<IIIII", self.data, o)[:5]
+                if not name:
+                    break
+                if not attrs & 1:
+                    break  # the old form holds addresses, not RVAs; rare
+                out.setdefault(self.cstr(name).lower(), []).extend(self.thunks(int_rva))
+                o += 32
+        return out
+
+
+def classify(path):
+    """(group, details) or None when it isn't an MZ file."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+    if len(data) < 64 or data[:2] not in (b"MZ", b"ZM"):
+        return None
+    lfanew = struct.unpack_from("<I", data, 0x3C)[0]
+    sig = data[lfanew:lfanew + 4] if 0x40 <= lfanew < len(data) - 4 else b""
+    if sig[:2] == b"NE":
+        name_off = lfanew + struct.unpack_from("<H", data, lfanew + 0x26)[0]
+        n = data[name_off] if name_off < len(data) else 0
+        module = data[name_off + 1:name_off + 1 + n].decode("latin-1")
+        is_dll = struct.unpack_from("<H", data, lfanew + 0x0C)[0] & 0x8000
+        return "ne", [f"{'DLL' if is_dll else 'program'}, module {module or '?'}"]
+    if sig[:2] in (b"LE", b"LX"):
+        return "other", [sig[:2].decode()]
+    if sig != b"PE\0\0":
+        return "dos", []
+    try:
+        imports = PE(data, lfanew).imports()
+    except (struct.error, IndexError):
+        return "plain", ["(couldn't read the import table)"]
+
+    found = []
+    for dll, funcs in imports.items():
+        if dll in DLLS_16:
+            found += [(dll, f if isinstance(f, str) else f"#{f}") for f in funcs]
+        elif dll == "kernel32.dll":
+            for f in funcs:
+                name = KERNEL32_ORDINALS.get(f) if isinstance(f, int) else f
+                if name in KERNEL32_NAMES:
+                    found.append((dll, name if isinstance(f, str) else f"{name} (#{f})"))
+    if not found:
+        return "plain", []
+    names = {n.split(" ")[0] for _, n in found}
+    if any(d in DLLS_16 for d, _ in found) or names & CALLS_16:
+        group = "calls"
+    elif names & MEMORY_16:
+        group = "memory"
+    else:
+        group = "krnl386"
+    return group, [f"{d}: {n}" for d, n in found]
+
+
+def main(argv):
+    show_all = "-a" in argv
+    targets = [a for a in argv if a != "-a"]
+    if not targets or any(a in ("-h", "--help") for a in targets):
+        print(__doc__.strip())
+        return 0 if targets else 2
+    results = {g: [] for g, _ in GROUPS}
+    for t in targets:
+        paths = [t] if os.path.isfile(t) else sorted(
+            os.path.join(d, f) for d, _, fs in os.walk(t) for f in fs)
+        for p in paths:
+            r = classify(p)
+            if r:
+                results[r[0]].append((p, r[1]))
+    for group, title in GROUPS:
+        items = results[group]
+        if not items or (group == "plain" and not show_all):
+            continue
+        print(f"{title} ({len(items)})")
+        for p, details in items:
+            print(f"  {p}")
+            for d in details:
+                print(f"      {d}")
+        print()
+    plain = len(results["plain"])
+    if plain and not show_all:
+        print(f"{plain} other Windows file(s) with no 16-bit use found (-a lists them)")
+    flagged = sum(len(v) for g, v in results.items() if g != "plain")
+    return 1 if flagged else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
