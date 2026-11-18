@@ -8,6 +8,7 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.
 CW-Hack: 24256, 24265
 Upstream: no
 Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
 Port: to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:
  CX's __restore_mxcsr_thunk reads the TEB from %gs:0x30 and stashes the value in amd64_thread_data()->mxcsr (offset 0x33c). In 11.21 both are wrong: 0x33c is upstream's

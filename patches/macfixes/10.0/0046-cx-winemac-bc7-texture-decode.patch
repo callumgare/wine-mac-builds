@@ -12,6 +12,8 @@ Why: macOS OpenGL has no BC7 (BPTC). Tomb Raider I-III Remastered upload
  Hooks glCompressedTexImage3D and glCompressedTexSubImage3D; other formats
  and targets pass straight through. opengl_bcdec.h is bcdec 0.96 by Sergii
  Kudlai (MIT or Unlicense, at the user's choice; text at its end).
+Programs: Tomb Raider I-III Remastered: its BC7 textures upload as nothing,
+ as macOS OpenGL has no BC7
 Evidence: Sikarugir 10.0_8: winemac.so's init_opengl looks up both functions, and
  it has the bcdec BC7 decoder and two wrappers ours lacked (found by
  comparing functions, 2026-11-15).

@@ -8,6 +8,8 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.
 CW-Hack: 22131, 21217
 Upstream: no
 Why: Rosetta 2 cannot set or read x86 debug registers; report success (ntdll) and return zeroed debug registers (wineserver) instead of failing, so anti-debug/DRM checks and debuggers don't abort.
+Programs: Big Fish games (Armadillo DRM): setting debug registers fails
+ under Rosetta (Armadillo's parent relies on the faked success)
 Evidence: Sikarugir 10.0_8: ntdll.so: "Setting debug registers is not supported under Rosetta, faking success"; wineserver: "%04x: thread_get_state failed on Apple Silicon - faking zero debug registers"
 Applies to: wine 10.0
 

@@ -5,19 +5,24 @@
  * Versions: 11.22
  * Timeout: 60
  * Libs: -lgdi32 -luser32 -ladvapi32
- * Guards: 0064 winemac-per-program-color-depth
+ * Guards: 0064 gdi32-per-program-color-depth
  *
  * An old program (a Director projector, say) asks the screen's colour depth
  * and won't run unless it's 8 or 16 bits. AppDefaults\<exe>\Mac
- * Driver\ColorDepth makes the Mac driver report that depth to that program.
+ * Driver\ColorDepth makes gdi32 report that depth to that program, while
+ * Wine's own bitmaps for the screen stay 32-bit (an 8-bit one gets Wine's
+ * fixed colour table and the program's pictures lose their colours). At 8
+ * bits the program also reads the system palette after realizing its own,
+ * to learn what its pixels will show as.
  *
  * The program checks that the screen reports 32 bits with no value set,
  * then sets ColorDepth for its own exe name to 8 and to 16 in turn and runs
- * a copy of itself each time (the driver reads the value when it starts).
- * The copy checks BITSPIXEL on the screen DC and on a memory DC made from
- * it, and the depth of a compatible bitmap: 8 at 8 bits, but 32 at 16,
- * since win32u's emulated 16-bit mode makes 32-bit bitmaps. The value is
- * removed afterwards.
+ * a copy of itself each time (gdi32 reads the value once). The copy checks
+ * BITSPIXEL on the screen DC and on a memory DC made from it, that a
+ * compatible bitmap is still 32-bit, and at 8 bits that after it selects
+ * and realizes a 256-entry palette, GetSystemPaletteEntries gives Windows'
+ * 20 static colours at either end and the palette's own entries between.
+ * The value is removed afterwards.
  */
 
 #include <windows.h>
@@ -25,18 +30,55 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int check_palette(HDC screen)
+{
+    struct { WORD version, count; PALETTEENTRY e[256]; } lp = {0x300, 256};
+    PALETTEENTRY sys[256], stock[20];
+    HPALETTE pal, old;
+    UINT n, i, wrong = 0;
+
+    for (i = 0; i < 256; i++)
+    {
+        lp.e[i].peRed = i; lp.e[i].peGreen = 255 - i; lp.e[i].peBlue = (i * 7) & 0xff;
+        lp.e[i].peFlags = 0;
+    }
+    pal = CreatePalette((LOGPALETTE *)&lp);
+    old = SelectPalette(screen, pal, FALSE);
+    RealizePalette(screen);
+    GetPaletteEntries(GetStockObject(DEFAULT_PALETTE), 0, 20, stock);
+    memset(sys, 0xcc, sizeof(sys));
+    n = GetSystemPaletteEntries(screen, 0, 256, sys);
+    for (i = 0; i < 256; i++)
+    {
+        const PALETTEENTRY *want = i < 10 ? &stock[i] : i >= 246 ? &stock[i - 236] : &lp.e[i];
+        if (sys[i].peRed != want->peRed || sys[i].peGreen != want->peGreen ||
+            sys[i].peBlue != want->peBlue)
+        {
+            if (!wrong) printf("color-depth: system palette entry %u is %02x%02x%02x, want %02x%02x%02x\n",
+                               i, sys[i].peRed, sys[i].peGreen, sys[i].peBlue,
+                               want->peRed, want->peGreen, want->peBlue);
+            wrong++;
+        }
+    }
+    printf("color-depth: system palette: %u entries returned, %u of 256 wrong\n", n, wrong);
+    SelectPalette(screen, old, FALSE);
+    DeleteObject(pal);
+    return n == 256 && !wrong;
+}
+
 static int check(int want)
 {
     HDC screen = GetDC(NULL), mem = CreateCompatibleDC(screen);
     HBITMAP bmp = CreateCompatibleBitmap(screen, 4, 4);
     BITMAP bm = {0};
     int bits = GetDeviceCaps(screen, BITSPIXEL), membits = GetDeviceCaps(mem, BITSPIXEL);
-    int ok, want_bmp = want == 16 ? 32 : want;
+    int ok;
 
     GetObjectA(bmp, sizeof(bm), &bm);
-    printf("color-depth: want %d: screen %d, memory DC %d, compatible bitmap %d bits\n",
+    printf("color-depth: want %d: screen %d, memory DC %d, compatible bitmap %d bits (want 32)\n",
            want, bits, membits, bm.bmBitsPixel);
-    ok = bits == want && membits == want && bm.bmBitsPixel == want_bmp;
+    ok = bits == want && membits == want && bm.bmBitsPixel == 32;
+    if (want == 8 && !check_palette(screen)) ok = 0;
     DeleteObject(bmp);
     DeleteDC(mem);
     ReleaseDC(NULL, screen);

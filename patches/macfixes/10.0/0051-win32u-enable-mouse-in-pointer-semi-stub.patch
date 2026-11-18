@@ -12,6 +12,7 @@ Why: EnableMouseInPointer and IsMouseInPointerEnabled were stubs that
  ERROR_ACCESS_DENIED, and while it is enabled each mouse move, button and
  wheel message also sends the window the matching WM_POINTER* message
  (except for mouse input generated from pen or touch).
+Programs: none known
 Evidence: Sikarugir 10.0_8: its win32u has the semi-stub and the mouse-to-
  WM_POINTER conversion.
 Port: to 10.0: win32u_private.h context differs (10.0 has destroy_caret

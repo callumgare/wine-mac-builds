@@ -8,6 +8,7 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.
 CW-Hack: 24945
 Upstream: no
 Why: On macOS a write fault can hit a page that is mapped w|x; drop and re-add exec on the page and retry instead of raising an exception.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "HACK: write fault on a w|x page, addr %p"
 Applies to: wine 10.0
 

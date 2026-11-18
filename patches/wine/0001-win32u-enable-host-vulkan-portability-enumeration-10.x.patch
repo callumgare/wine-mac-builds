@@ -10,6 +10,7 @@ Upstream: no (not in WineHQ as of 11.21)
 Why: as the 11.x patch. MoltenVK is a "portability" Vulkan driver, and the
  bundled Vulkan loader hides it unless the instance asks for portability
  enumeration, so Vulkan finds no device.
+Programs: none known
 Applies to: wine 10.20 (later 10.x versions with host_extensions in win32u)
 
 --- a/dlls/win32u/vulkan.c

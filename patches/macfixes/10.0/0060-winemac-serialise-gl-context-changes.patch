@@ -24,6 +24,9 @@ Why: A WineOpenGLContext's view, latent view and update flags are changed
  ("Pattern A"), but it isn't that crash: an instrumented build logged no
  pending-context update and no overlap in any of the games' launches,
  crashed or not.
+Programs: Nancy Drew games (Shadow Ranch, Old Clock, Crystal Skull, Castle
+ Malloy): a crash at objc_release+34 ("Pattern A") led to this patch, but
+ the race it fixes isn't shown to be that crash
 Evidence: A winemac instrumented to count threads inside each context's
  functions reported about 40 overlaps in 15 s of a stress program (one
  context per render thread, two render threads switching between two

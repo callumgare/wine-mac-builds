@@ -9,6 +9,7 @@ Upstream: no (not in WineHQ as of 11.21)
 Why: Gcenx gives no reason; our reading: MoltenVK is a "portability" Vulkan driver. Without this, a Vulkan loader
  that enforces portability enumeration hides it from Wine, so Vulkan (and
  anything layered on it) finds no device. Carried by every Gcenx 11.x build.
+Programs: none known
 Applies to: wine 11.x (plain, staging)
 
 diff --git a/dlls/win32u/vulkan.c b/dlls/win32u/vulkan.c

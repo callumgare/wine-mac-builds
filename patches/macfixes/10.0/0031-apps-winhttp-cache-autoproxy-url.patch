@@ -7,6 +7,7 @@ From: CrossOver 25.1.1
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/winhttp/session.c)
 Upstream: no
 Why: WinHttpDetectAutoProxyConfigUrl does slow DHCP/DNS lookups on every call; cache the results and drop the cache when NotifyAddrChange (patch 0005 on macOS) signals a network change. Also makes the DHCP path allocate with GlobalAlloc, as callers free with GlobalFree.
+Programs: none known
 Evidence: Sikarugir 10.0_8: winhttp.dll (both arches): 'network config changed, invalidating cache'.
 Applies to: wine 10.0
 

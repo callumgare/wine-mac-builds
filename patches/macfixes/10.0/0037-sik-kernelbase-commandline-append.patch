@@ -7,6 +7,7 @@ From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
 Why: Per-application extra command-line arguments set from the registry, so users and the Sikarugir app can add game options without editing shortcuts: when a process is created, the REG_SZ value HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend (if non-empty) is appended to its command line after a space. A FIXME is logged when it happens.
+Programs: none known
 Uncertain: limits copied from 10.0_8: exe names of 260+ characters are skipped and values over 2048 bytes (1023 characters) are ignored (the query fails). REG_EXPAND_SZ values are ignored, as in 10.0_8.
 Expects before it: nothing. In 10.0_8 the call runs right after the tidy command line is built, before CrossOver's hack_append_command_line/hack_replace_command_line blocks (so the registry key is looked up with the pre-replacement exe name and CX's forbidden-args check sees the appended text). Applied after apps/0007+0008 this 10.0-based hunk still applies cleanly but lands after the CX blocks; use on-top-of-apps/0004-kernelbase-commandline-append.patch instead in that stack to keep 10.0_8's order.
 Applies to: wine 10.0

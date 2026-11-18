@@ -22,6 +22,8 @@ Why: since Wine 11, the server gives each 64-bit exe a random base in
  start.exe crashed at base+0x36a0 (its entry point) before Shadow at the
  Water's Edge and Sea of Darkness started; explorer.exe at base+0xefa0
  in a build step.
+Programs: Nancy Drew games (Shadow at the Water's Edge, Sea of Darkness):
+ start.exe crashes at its entry point before the game starts (11.22)
 Evidence: tests/regress/exe-base-taken.c takes the child's assigned base
  on the host side before the child maps its exe: the child crashes at
  base + entry every time without this patch.

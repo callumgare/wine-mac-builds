@@ -7,6 +7,7 @@ From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8
 Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
 Why: DLSS-capable games (NVIDIA's Streamline/NGX loader) open c:\windows\system32\nvngx.dll directly with CreateFileW(GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING) to read it; that open is redirected to D3DMetal's copy at $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that file exists. Any other open, or a missing/unset path, goes through unchanged.
+Programs: none known
 Uncertain: the path suffix is hard-coded to x86_64-windows in both of 10.0_8's x86_64 and i386 kernelbase, kept as is. 10.0_8 looks up wine_unix_to_nt_file_name with GetProcAddress; this calls ntdll's export directly (same function). Only exact access/sharing/disposition values trigger it, as in 10.0_8; ntdll's LoadLibrary path is not affected.
 Expects before it: nothing in code. At run time it needs CX_D3DMETALPATH set (as with the D3DMetal hooks patches) and D3DMetal's nvngx.dll present.
 Applies to: wine 10.0

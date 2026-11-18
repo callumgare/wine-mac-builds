@@ -7,6 +7,7 @@ From: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] v
 Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
 Upstream: no
 Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach messages plus shared memory and __ulock waits, CodeWeavers' macOS-native variant of esync). Off unless the variable is set.
+Programs: none known
 Evidence: Sikarugir 10.0_8: wineserver has "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-msync", "msync: bootstrapped mach port on %s.", "msync: up and running."; ntdll.so has "Server is running with WINEMSYNC but this process is not, ...". (10.0_8 also carries esync; see below.)
 Port: to 11.21: replaces the 10.0 patch (CX 25.1.1's esync + msync, ~7700 lines). Wine 11 has upstream's in-process sync framework (inproc_sync, used with Linux ntsync), and CX 26.3.0 re-implements msync as a macOS backend of that framework instead of carrying its own wait/object plumbing; this patch takes CX 26.3.0's form. Changes against CX 26.3.0:
  - server/inproc_sync.c: the macOS object_ops uses 11.21's designated-initialiser form (CX's positional table matches Wine 11.0's struct object_ops).

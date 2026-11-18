@@ -8,6 +8,7 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.
 CW-Hack: 24711
 Upstream: no
 Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
 Applies to: wine 10.0
 

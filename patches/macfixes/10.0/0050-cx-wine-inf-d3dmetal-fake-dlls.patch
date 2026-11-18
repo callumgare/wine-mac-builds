@@ -12,6 +12,7 @@ Why: Have wineboot put fake (stub) atidxx64.dll, nvapi64.dll and nvngx.dll
  presumably D3DMetal, or games running on it, check that these AMD/NVIDIA
  DLLs exist. No builtin DLLs have those names, so setupapi writes generic
  fake DLLs.
+Programs: none known
 Evidence: Sikarugir 10.0_8: its share/wine/wine.inf has these lines with this
  comment; it is the only difference in share/.
 Port: to 10.0: CX 25.1.1 lacks this; CX 26.3's lines added to 10.0's [FakeDllsWin64] unchanged.

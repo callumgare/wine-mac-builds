@@ -12,6 +12,7 @@ Why: When a Mac input method (IME) is active, macdrv_ImeProcessKey passed
  there now; key-ups go through as ordinary WM_KEYUP. The Cocoa function is
  renamed macdrv_send_keydown_to_input_source, drops its "pressed"
  argument and always builds a key-down CGEvent.
+Programs: none known
 Evidence: Sikarugir 10.0_8: its macdrv_send_text_input_event takes five register
  arguments (ours six) and its macdrv_ImeProcessKey differs (disassembly).
 Applies to: wine 10.0 (macfixes, after 0048)

@@ -11,6 +11,7 @@ Why: Windows code (D3DMetal among it) reads the PEB from %gs:0x60. On macOS %gs 
  pthread TSD, where slot 0x60 belongs to localtime(), so CrossOver stores the PEB there,
  hooks localtime() to a thread-local localtime_r(), and clears the slot before pthread_exit
  so libSystem won't free() it.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so writes %gs:0x60 in call_init_thunk (movq %rax,%gs:0x60 right
  after the %gs:0x30 and %gs:0x58 writes) and zeroes it before pthread_exit; the localtime
  hook's movabsq $0xcccc0000000225ff (jmp *2(%rip); int3; int3) is present

@@ -24,6 +24,8 @@ Why: under EmulateModeset, when a program switches to a mode whose shape
  OpenGL and Vulkan output already gets the offset from win32u.
  Seen in Bioscopia (Director 8, GDI, 800x600 on 2560x1440): the picture at
  x=0 with a white band to its right.
+Programs: Bioscopia: its fullscreen GDI picture is drawn at the left edge
+ with a white band beside it (EmulateModeset)
 Evidence: test program switching to 960x540 on a 1024x768 screen and
  painting a 1024x576 frame with GDI: before, the frame sat at the top with
  a white band below it; after, it fills rows 96-672 with black bars above

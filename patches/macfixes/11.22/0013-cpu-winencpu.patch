@@ -8,6 +8,7 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.
 CW-Hack: 24711
 Upstream: no
 Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
 Port: to 11.21: the create_logical_proc_info() hunks are CX's. 11.21's init_cpu_info() no longer sets peb->NumberOfProcessors from a local "num": the count lives in the global cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical processor info), so the WINENCPU override now lowers cpu_count.
 Applies to: wine 11.22

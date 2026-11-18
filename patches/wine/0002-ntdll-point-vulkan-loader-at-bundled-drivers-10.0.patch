@@ -10,6 +10,7 @@ Source: none published; see the 11.x patch's header.
 Upstream: no
 Why: as the 11.x patch: without it the bundled Vulkan loader finds no driver
  manifest, so no MoltenVK.
+Programs: none known
 Applies to: wine 10.0
 
 --- a/dlls/ntdll/unix/loader.c

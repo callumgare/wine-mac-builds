@@ -15,6 +15,7 @@ Why: On x86_64 macOS, allocate the thread's TLS expansion slots
  64-entry TLS bitmap as used, so every TlsAlloc hands out an expansion
  slot. Not for WoW64 threads. is_macos() checks wine_get_host_version
  for "Darwin".
+Programs: none known
 Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
  movq %rax, %gs:0x1780; ours had neither.
 Port: to 11.21: as for 10.0, placed after 0001's testing-version warning, just

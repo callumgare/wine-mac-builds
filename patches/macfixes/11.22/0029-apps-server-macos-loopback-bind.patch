@@ -8,6 +8,8 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.
 CW-Hack: 24472
 Upstream: no
 Why: macOS only lets sockets bind to 127.0.0.1 among the 127/8 addresses; rewrite other 127.x.x.x binds so GOG Galaxy can start.
+Programs: GOG Galaxy: doesn't start, as macOS refuses binds to 127.x.x.x
+ addresses other than 127.0.0.1
 Evidence: Sikarugir 10.0_8: wineserver: 'HACK: rewriting bind loopback address to 127.0.0.1'.
 Port: unchanged from 10.0 (applies with offsets); CX 26.3.0's server/sock.c has the
  identical hunk.

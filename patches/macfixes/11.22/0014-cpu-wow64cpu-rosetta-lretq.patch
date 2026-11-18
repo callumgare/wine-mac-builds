@@ -8,6 +8,8 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.
 CW-Hack: 20760
 Upstream: no
 Why: Under Rosetta 2 (CPU brand "VirtualApple") use lcall/lretq rather than ljmp for 32-to-64-bit transitions, to avoid a SIGUSR1 race.
+Programs: Iji: crashes in wow64cpu's 32-to-64-bit switch under Rosetta
+ (plain 11.21, fault at syscall_32to64)
 Evidence: Sikarugir 10.0_8: wow64cpu.dll: "VirtualApple"; two lretq in its disassembly
 Port: to 11.21: unchanged from 10.0 (CX 26.3.0's hack is identical to 25.1.1's and applies to 11.21 as-is).
 Applies to: wine 11.22

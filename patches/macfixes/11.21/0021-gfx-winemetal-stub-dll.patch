@@ -9,6 +9,7 @@ Source: https://github.com/dblark/macos-wine-build/blob/71877c1/patches/0004-add
 Upstream: no
 Why: DXMT's d3d11/dxgi import winemetal.dll; the stub lets the builtin load until the
  user drops in DXMT's own winemetal.dll/.so.
+Programs: none known
 Evidence: Sikarugir 10.0_8: lib/wine/{x86_64,i386}-windows/winemetal.dll, whose only export is
  WineMetalEntry (a stub)
 Port: unchanged from 10.0 (only line offsets differ; configure hunks match what

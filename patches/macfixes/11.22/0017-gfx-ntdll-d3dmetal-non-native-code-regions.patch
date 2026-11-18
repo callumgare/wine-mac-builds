@@ -11,6 +11,7 @@ Upstream: no
 Why: D3DMetal (Apple's Game Porting Toolkit) needs every native PE module registered
  as a "non-native code region" with libd3dshared.dylib. Only active when the user sets
  CX_APPLEGPTK_LIBD3DSHARED_PATH to their own copy of libd3dshared.dylib, on macOS 14+.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so strings CX_APPLEGPTK_LIBD3DSHARED_PATH,
  register_non_native_code_region, supports_non_native_code_regions,
  init_non_native_support, "Marking non_native_code_region: %p-%p",

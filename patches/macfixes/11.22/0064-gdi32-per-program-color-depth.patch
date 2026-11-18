@@ -1,0 +1,194 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: gdi32: per-program ColorDepth: the screen depth one program sees, and its palette at 8 bits
+Category: graphics
+Kind: feature
+Origin: wine-mac-builds
+From: dlls/gdi32/dc.c (GetDeviceCaps, SelectPalette) and dlls/gdi32/objects.c
+ (GetSystemPaletteEntries); written for wine-mac-builds after Second
+ Chance's screen_depth.m helper, which does the same by replacing win32u's
+ system-call table entries. None of its code is used.
+Source: none published
+Upstream: no
+Why: Some old programs (Director projectors among them) refuse to start, or
+ draw wrongly, unless the screen is 8 or 16 bits, and a Mac display is
+ always 32. AppDefaults\<exe>\Mac Driver\ColorDepth (8, 16 or 24, as a
+ string or a DWORD; there is no global value) makes GetDeviceCaps(BITSPIXEL)
+ on a screen DC answer that in that program. Only calls through gdi32 get
+ it: win32u asks NtGdiGetDeviceCaps itself and keeps the real depth, so the
+ bitmaps Wine makes for the screen stay 32-bit. Telling win32u too makes
+ compatible bitmaps 8-bit with Wine's fixed colour table, and pictures
+ drawn through them lose their colours. At 8 bits a program also reads the
+ system palette after realizing its own (Director asks for all 256
+ entries) to learn what its pixels will show as. Wine has no system
+ palette, so gdi32 notes the palette of more than 20 entries the program
+ last selected for the foreground and GetSystemPaletteEntries on a screen
+ DC answers as Windows would once it was realized: the 20 static colours at
+ either end, the palette's own entries between them. Without the value
+ nothing changes. The display modes Wine reports are unchanged.
+Programs: Webmaster (a Director 7 projector): needs an 8-bit screen to pass
+ its 256-colour check
+Uncertain: whether a program needs RC_PALETTE and SIZEPALETTE 256 at 8 bits;
+ Director doesn't.
+Applies to: wine 11.22, macfixes
+Status: 2026-11-18 rewritten. In a host quick build on meeka (macOS 26.7;
+ not for release; smoke and the host OpenGL tests pass): with 8 and 16 the
+ program's screen and memory DCs report that depth, compatible bitmaps stay
+ 32-bit, and at 8 GetSystemPaletteEntries gives all 256 entries as expected
+ after a 256-entry palette is realized; color-depth passes there and fails
+ on 11.22-build9. Not yet tried with Webmaster. The first version of this
+ patch (in 11.22-build10) changed BITSPIXEL in the Mac driver, for win32u as
+ well as the program; Webmaster (a Director 7 projector) passed its colour
+ check there but drew in wrong colours.
+
+diff --git a/dlls/gdi32/dc.c b/dlls/gdi32/dc.c
+index adfcd51..bec8710 100644
+--- a/dlls/gdi32/dc.c
++++ b/dlls/gdi32/dc.c
+@@ -25,6 +25,7 @@
+ #include "ntuser.h"
+ #include "ddrawgdi.h"
+ #include "winnls.h"
++#include "winreg.h"
+ #include "winppi.h"
+ 
+ #include "wine/list.h"
+@@ -615,14 +616,67 @@ BOOL WINAPI RestoreDC( HDC hdc, INT level )
+     return NtGdiRestoreDC( hdc, level );
+ }
+ 
++/* AppDefaults\<exe>\Mac Driver\ColorDepth: the screen depth this program
++ * is told, for old programs that want 8 or 16 bits.  Only the program's own
++ * questions get it, through gdi32; win32u asks NtGdiGetDeviceCaps directly
++ * and keeps the real depth, so the bitmaps Wine makes for the screen stay
++ * 32-bit.  0 when unset. */
++static int app_color_depth = -1;
++HPALETTE app_foreground_palette;
++
++int get_app_color_depth(void)
++{
++    WCHAR *name, *p, key[MAX_PATH + 64], buffer[16];
++    DWORD type, size = sizeof(buffer);
++    HKEY hkey;
++    int depth = 0;
++
++    if (app_color_depth >= 0) return app_color_depth;
++
++    name = NtCurrentTeb()->Peb->ProcessParameters->ImagePathName.Buffer;
++    if ((p = wcsrchr( name, '/' ))) name = p + 1;
++    if ((p = wcsrchr( name, '\\' ))) name = p + 1;
++    if (wcslen( name ) < MAX_PATH)
++    {
++        wcscpy( key, L"Software\\Wine\\AppDefaults\\" );
++        wcscat( key, name );
++        wcscat( key, L"\\Mac Driver" );
++        if (!RegOpenKeyExW( HKEY_CURRENT_USER, key, 0, KEY_QUERY_VALUE, &hkey ))
++        {
++            if (!RegQueryValueExW( hkey, L"ColorDepth", NULL, &type, (BYTE *)buffer, &size ))
++            {
++                if (type == REG_DWORD) depth = *(DWORD *)buffer;
++                else if (type == REG_SZ)
++                    for (p = buffer; *p >= '0' && *p <= '9' && depth < 1000; p++)
++                        depth = depth * 10 + *p - '0';
++                if (depth != 8 && depth != 16 && depth != 24)
++                {
++                    WARN( "ignoring ColorDepth %d: not 8, 16 or 24\n", depth );
++                    depth = 0;
++                }
++            }
++            RegCloseKey( hkey );
++        }
++    }
++    if (depth) TRACE( "%s: the screen reports %d bits\n", debugstr_w(name), depth );
++    app_color_depth = depth;
++    return depth;
++}
++
+ /***********************************************************************
+  *           GetDeviceCaps    (GDI32.@)
+  */
+ INT WINAPI GetDeviceCaps( HDC hdc, INT cap )
+ {
++    INT ret, depth;
++
+     if (is_meta_dc( hdc )) return METADC_GetDeviceCaps( hdc, cap );
+     if (!get_dc_attr( hdc )) return FALSE;
+-    return NtGdiGetDeviceCaps( hdc, cap );
++    ret = NtGdiGetDeviceCaps( hdc, cap );
++    if (cap == BITSPIXEL && (depth = get_app_color_depth()) && ret > depth &&
++        NtGdiGetDeviceCaps( hdc, TECHNOLOGY ) == DT_RASDISPLAY)
++        ret = depth;
++    return ret;
+ }
+ 
+ /***********************************************************************
+@@ -2393,6 +2447,12 @@ HPALETTE WINAPI SelectPalette( HDC hdc, HPALETTE palette, BOOL force_background
+     if (is_meta_dc( hdc )) return ULongToHandle( METADC_SelectPalette( hdc, palette ) );
+     if (!(dc_attr = get_dc_attr( hdc ))) return FALSE;
+     if (dc_attr->emf && !EMFDC_SelectPalette( dc_attr, palette )) return 0;
++    /* At a ColorDepth of 8, note the program's own palette (more entries
++       than the default 20) when it's selected for the foreground; see
++       GetSystemPaletteEntries. */
++    if (!force_background && get_app_color_depth() == 8 &&
++        GetPaletteEntries( palette, 0, 0, NULL ) > 20)
++        app_foreground_palette = palette;
+     return pfnSelectPalette( hdc, palette, force_background );
+ }
+ 
+diff --git a/dlls/gdi32/gdi_private.h b/dlls/gdi32/gdi_private.h
+index ee94e5e..0647d22 100644
+--- a/dlls/gdi32/gdi_private.h
++++ b/dlls/gdi32/gdi_private.h
+@@ -32,6 +32,8 @@
+ void set_gdi_client_ptr( HGDIOBJ handle, void *ptr );
+ void *get_gdi_client_ptr( HGDIOBJ handle, DWORD type );
+ DC_ATTR *get_dc_attr( HDC hdc );
++extern int get_app_color_depth(void);
++extern HPALETTE app_foreground_palette;
+ HGDIOBJ get_full_gdi_handle( HGDIOBJ handle );
+ void GDI_hdc_using_object( HGDIOBJ obj, HDC hdc, void (*delete)( HDC hdc, HGDIOBJ handle ));
+ void GDI_hdc_not_using_object( HGDIOBJ obj, HDC hdc );
+diff --git a/dlls/gdi32/objects.c b/dlls/gdi32/objects.c
+index f2b353c..44a803b 100644
+--- a/dlls/gdi32/objects.c
++++ b/dlls/gdi32/objects.c
+@@ -801,6 +801,40 @@ UINT WINAPI GetSystemPaletteEntries( HDC hdc, UINT start, UINT count, PALETTEENT
+ {
+     UINT i, ret;
+ 
++    /* At a ColorDepth of 8 the program sees a 256-colour screen, and reads
++       the system palette to learn what its pixels will show as: answer as
++       Windows would once its foreground palette was realized, the 20 static
++       colours at either end and the palette's own entries, at their own
++       indices, between them.  Read again at each call, so a palette the
++       program changes or animates is followed. */
++    if (get_app_color_depth() == 8 && NtGdiGetDeviceCaps( hdc, TECHNOLOGY ) == DT_RASDISPLAY)
++    {
++        PALETTEENTRY pal[256];
++        UINT n = 0;
++
++        if (!entries) return 256;
++        if (start >= 256) return 0;
++        if (start + count > 256) count = 256 - start;
++        if (app_foreground_palette)
++            n = GetPaletteEntries( app_foreground_palette, 0, 256, pal );
++        for (i = 0; i < count; i++)
++        {
++            UINT idx = start + i;
++            if (idx < 10)
++                entries[i] = default_system_palette_low[idx];
++            else if (idx >= 246)
++                entries[i] = default_system_palette_high[idx - 246];
++            else if (idx < n)
++            {
++                entries[i] = pal[idx];
++                entries[i].peFlags = 0;
++            }
++            else
++                memset( &entries[i], 0, sizeof(entries[i]) );
++        }
++        return count;
++    }
++
+     ret = NtGdiDoPalette( hdc, start, count, (void *)entries,
+                           NtGdiGetSystemPaletteEntries, FALSE );
+     if (ret) return ret;

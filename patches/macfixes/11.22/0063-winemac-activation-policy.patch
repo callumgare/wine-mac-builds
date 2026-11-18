@@ -18,6 +18,8 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
  when it first shows a window, instead of the regular policy and the Wine
  menu, and the driver never asks macOS to activate it. Its windows are
  still shown. Any other value, or none, changes nothing.
+Programs: Second Chance (an app that embeds Wine): wants its helper
+ processes run without a Dock icon or menu bar and without taking focus
 Uncertain: macOS can still activate an accessory process when its window is
  clicked; the driver only stops activating it itself.
 Applies to: wine 11.22, macfixes

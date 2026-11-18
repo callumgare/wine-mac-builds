@@ -16,6 +16,8 @@ Why: Wine 11 implements NtSetLdtEntries for wow64 processes and passes the
  Seen in Bioscopia (Director 8): it stops on its first title frame after
  "rosetta error: LDT 0xf00f3210488323f not supported" (base 0x0f210488,
  limit 0x323f, 16-bit data, DPL 3).
+Programs: Bioscopia: stops on its first title frame after "rosetta error:
+ LDT ... not supported" (Wine 11)
 Evidence: a 32-bit test program calling NtSetLdtEntries with that
  descriptor: on macfixes 11.22-build3 Rosetta prints the error and the
  process spins at 100% CPU; with this patch the call returns 0xc0000002

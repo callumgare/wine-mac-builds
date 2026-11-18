@@ -13,6 +13,7 @@ Why: as patch 0001. If the host loader offers VK_KHR_portability_enumeration,
  enable it and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, so the
  bundled Vulkan loader doesn't hide MoltenVK. (Sikarugir's 10.0_8 doesn't need
  this: its wrapper supplies MoltenVK as libvulkan.1.dylib, with no loader.)
+Programs: none known
 Applies to: wine 10.0
 
 --- a/dlls/winevulkan/vulkan.c

@@ -8,6 +8,8 @@ Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.
 CW-Hack: 13322, 17315, 21883, 18582, 19610
 Upstream: no
 Why: CEF-based launchers (Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club) render blank or crash in Wine unless their GPU process runs in-process with a software/ANGLE GL. Allocation uses lstrlenW(tidy_cmdline) and checks for failure; CX sizes it from cmd_line, which overflows when cmd_line is NULL or shorter. 10.0_8 logs nothing when it appends from the table, so neither does this. The registry part (Sikarugir's CommandLineAppend) is not included.
+Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their
+ CEF UIs render blank or crash
 Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64 file offset 0x9c1a0) with exactly these strings and NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
 Applies to: wine 10.0
 

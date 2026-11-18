@@ -16,6 +16,8 @@ Why: NtWriteVirtualMemory writes another process's memory with
  child's entry point, waits for the child to reach it, then writes the
  original bytes back; without this the child spins on the stale "jmp $"
  for ever and activation fails.
+Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
+ child spins for ever on a stale "jmp $"
 Evidence: Sikarugir 10.0_8: its NtWriteVirtualMemory calls NtQueryVirtualMemory and
  NtProtectVirtualMemory twice after the server call (disassembly). The
  inventory missed it because it adds no strings of its own.

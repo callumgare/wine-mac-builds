@@ -18,6 +18,8 @@ Why: macdrv_update_opengl_context updates the context through
  10.0 and 11.x.
  Seen in White Wolf Queen (Big Fish trial, Direct3D on OpenGL): on macOS 26
  it hung in 2 of 4 launches as its window went into its fullscreen Space.
+Programs: White Wolf Queen (Big Fish trial): hangs as its window goes into
+ its fullscreen Space on macOS 26 (2 of 4 launches)
 Evidence: samples of the hung game (Second Chance integration run on
  meeka, 2026-11-16, 11.22-build4, six samples over 3 minutes, all the
  same): main thread in -[_NSEnterFullScreenTransitionController

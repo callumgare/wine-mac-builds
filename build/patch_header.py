@@ -32,6 +32,7 @@ FIELDS = [
     ("CW-Hack", False),
     ("Upstream", True),
     ("Why", True),
+    ("Programs", True),
     ("Uncertain", False),
     ("Evidence", False),
     ("Port", False),
@@ -82,6 +83,7 @@ JSON_KEYS = {
     "Summary": "summary", "Origin": "origin", "From": "from", "Source": "source",
     "Category": "category", "Kind": "kinds",
     "CW-Hack": "cw_hacks", "Upstream": "upstream", "Why": "why",
+    "Programs": "programs",
     "Uncertain": "uncertain", "Evidence": "evidence", "Port": "port",
     "Expects before it": "expects_before", "Applies to": "applies_to",
 }

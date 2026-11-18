@@ -7,6 +7,7 @@ From: upstream commits 98a370e5e1877e011880e582126958755bcfd455 and c8b715068001
 Source: https://gitlab.winehq.org/wine/wine/-/commit/98a370e5e1877e011880e582126958755bcfd455 ; https://gitlab.winehq.org/wine/wine/-/commit/c8b715068001cbae25f72372e71c70db1a06d381
 Upstream: yes, commits 98a370e5e1 (in Wine 11.2) and c8b7150680 (in Wine 11.7)
 Why: Report free space "for important usage" (what Finder shows, including purgeable space) in FileFsFullSizeInformation, falling back to statfs when it is 0.
+Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so imports kCFURLVolumeAvailableCapacityForImportantUsageKey; the "space == 0 -> -1" fallback is in its disassembly
 Applies to: wine 10.0
 
