@@ -37,8 +37,12 @@ Status: 2026-11-19: not yet in a build. Tested by swapping a ntdll.so built
  with it into 11.22-build12 on meeka (macOS 26.7.2): async-iosb-decommitted
  passes (i686 and x86_64); without it both hang the reading thread, with
  the same "nested exception on signal stack" as Steam. The rest of the
- regression suite passes on that tree (screen-taking tests skipped). Not
- yet run with Steam.
+ regression suite passes on that tree (screen-taking tests skipped).
+ Confirmed with Steam on kiya (macOS 15.6.1, the same tree packed as a
+ release): from an empty client cache, Steam updated (twice), started the
+ updated client and signed in, and Blue Moon installed, with no nested
+ exception or loader-lock wait. Whether the drop warning fired isn't known
+ (no WINEDEBUG in that run).
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 --- a/dlls/ntdll/unix/server.c

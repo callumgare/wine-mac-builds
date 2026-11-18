@@ -88,4 +88,5 @@ PATCHES=(
     patches/macfixes/11.21/0060-winemac-serialise-gl-context-changes.patch
     patches/macfixes/11.21/0065-krnl386-attach-without-16bit.patch
     patches/macfixes/11.21/0066-winemac-gl-context-dealloc-off-main-thread.patch
+    patches/macfixes/11.21/0067-ntdll-async-iosb-unwritable.patch
 )

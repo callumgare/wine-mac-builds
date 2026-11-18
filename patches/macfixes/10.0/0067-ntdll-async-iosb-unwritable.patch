@@ -1,0 +1,95 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't fault in a system APC storing an async result into a status block that isn't writable
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/ntdll/unix/server.c (invoke_system_apc); written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: When an asynchronous read or write finishes, the APC_ASYNC_IO system
+ APC stores the result in the caller's IO_STATUS_BLOCK (set_async_iosb). A
+ thread that is running its own code gets system APCs through SIGUSR1, and
+ runs them on the signal stack. If the status block is no longer writable
+ memory, the store faults there; the fault can't be handled in a signal
+ handler ("nested exception on signal stack"), and the thread never
+ returns to its code. The status block can be freed by the program, or be
+ on the stack of a thread that has exited, in which case the server gives
+ the APC to any thread of the process. Windows ignores a status block it
+ can't write. Now the result is stored with
+ virtual_uninterrupted_write_memory, which checks the pages first, and is
+ dropped with a warning if they aren't writable. Information is still
+ written before Status, as set_async_iosb does.
+Programs: Steam's updater (11.22 on macOS 15): after "Update complete,
+ launching Steam..." a thread holding the loader lock stored a 32-bit
+ status block into a reserved, uncommitted page and hung; every other
+ thread then waited on the loader lock, so the updated Steam never started
+Uncertain: the APC's callback can also write the program's buffer (a read's
+ data); that isn't covered here, and didn't fault for Steam.
+Evidence: A build12 ntdll.so that logs each SIGSEGV showed the fault, the
+ first in the process: a write (err 0x6) at invoke_system_apc's
+ set_async_iosb (server.c:419; movl %edx, 0x4(%rcx), the Information
+ field of an IO_STATUS_BLOCK32) to 0x79ca5268, in a reserved page with
+ reserved pages around it (vmmap). The same in two runs. Wine 10.0 has the
+ same code; why Steam reaches it only on 11.x isn't known.
+Applies to: wine 10.0 (macfixes, after 0066)
+Status: 2026-11-19: ported from 11.22 (applies unchanged); not yet in a build.
+ async-iosb-decommitted hangs the reading thread on macfixes-10.0-build7
+ (i686 and x86_64), as on 11.22 before this patch.
+
+diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
+--- a/dlls/ntdll/unix/server.c
++++ b/dlls/ntdll/unix/server.c
+@@ -390,6 +390,43 @@
+ 
+ 
+ /***********************************************************************
++ *              set_system_apc_iosb
++ *
++ * set_async_iosb for an APC_ASYNC_IO system APC, which may run in a signal
++ * handler (a thread running its own code gets system APCs through SIGUSR1),
++ * where a fault can't be handled. The status block may no longer be
++ * writable memory: a program can free it, or it was on the stack of a
++ * thread that has exited, and the server then gives the APC to any thread.
++ * Windows ignores a status block it can't write; so does this. Information
++ * is written before Status, as set_async_iosb does.
++ */
++static void set_system_apc_iosb( client_ptr_t iosb, NTSTATUS status, ULONG_PTR info )
++{
++    NTSTATUS ret;
++
++    if (!iosb) return;
++
++    if (in_wow64_call())
++    {
++        IO_STATUS_BLOCK32 *io = wine_server_get_ptr( iosb );
++        ULONG info32 = info;
++
++        if (!(ret = virtual_uninterrupted_write_memory( &io->Information, &info32, sizeof(info32) )))
++            ret = virtual_uninterrupted_write_memory( &io->Status, &status, sizeof(status) );
++        if (ret) WARN( "status block %p isn't writable; result %#x not stored\n", io, (int)status );
++    }
++    else
++    {
++        IO_STATUS_BLOCK *io = wine_server_get_ptr( iosb );
++
++        if (!(ret = virtual_uninterrupted_write_memory( &io->Information, &info, sizeof(info) )))
++            ret = virtual_uninterrupted_write_memory( &io->Status, &status, sizeof(status) );
++        if (ret) WARN( "status block %p isn't writable; result %#x not stored\n", io, (int)status );
++    }
++}
++
++
++/***********************************************************************
+  *              invoke_system_apc
+  */
+ static void invoke_system_apc( const union apc_call *call, union apc_result *result, BOOL self )
+@@ -416,7 +453,7 @@
+             result->async_io.status = status;
+             result->async_io.total = info;
+             /* the server will pass us NULL if a call failed synchronously */
+-            set_async_iosb( call->async_io.sb, result->async_io.status, info );
++            set_system_apc_iosb( call->async_io.sb, result->async_io.status, info );
+         }
+         else result->async_io.status = STATUS_PENDING; /* restart it */
+         break;
