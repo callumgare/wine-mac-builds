@@ -71,11 +71,18 @@ export PKG_CONFIG_LIBDIR="$TC/lib/pkgconfig:$TC/share/pkgconfig"
 unset PKG_CONFIG_PATH CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 
 PREFIX_MAP="-ffile-prefix-map=$SRC=$MAPPED_SRC"
+# The debug info names the SDK's headers by path, and Xcode's folder name
+# differs between builders (/Applications/Xcode_27.2.app in the CI VM image,
+# Xcode.app on a Mac), so a VM and a Mac build of the same commit differed in
+# every dSYM. Record the usual location: debuggers find the headers there on
+# most Macs, and it's the same from every builder.
+XCODE_DEV="${DEVELOPER_DIR:-$(xcode-select -p)}"
+XCODE_MAP="-ffile-prefix-map=$XCODE_DEV=/Applications/Xcode.app/Contents/Developer"
 CC="/usr/bin/clang -arch x86_64"
 CXX="/usr/bin/clang++ -arch x86_64"
 # -O2 as Gcenx's Portfile. -g only adds debug info, which package.sh moves
 # into the debug-symbols asset; the shipped binaries end up without it.
-CFLAGS="-O2 -g $PREFIX_MAP"
+CFLAGS="-O2 -g $PREFIX_MAP $XCODE_MAP"
 CPPFLAGS="-I$TC/include"
 # headerpad leaves room for package.sh to rewrite library paths.
 # -L as MacPorts adds to every port (configure.ldflags).
