@@ -172,10 +172,24 @@ require_x86_64() {
 # write different streams. WMB_XZ_LEVEL (default 9) is lowered only for
 # quick builds, which are tested and thrown away.
 deterministic_tar() {
-    local parent="$1" top="$2" out="$3" epoch="$4" stamp
-    stamp="$(date -u -r "$epoch" +%Y%m%d%H%M.%S)"
+    stamp_tree "$1" "$2" "$4"
+    tar_stamped_tree "$1" "$2" "$3"
+}
+
+# stamp_tree <dir containing top> <top folder name> <epoch>: every entry's
+# mtime set to <epoch>, as deterministic_tar does first.
+stamp_tree() {
+    local stamp
+    stamp="$(date -u -r "$3" +%Y%m%d%H%M.%S)"
     # touch -t reads the stamp as local time; the stamp is UTC.
-    TZ=UTC0 find "$parent/$top" -exec touch -h -t "$stamp" {} +
+    TZ=UTC0 find "$1/$2" -exec touch -h -t "$stamp" {} +
+}
+
+# tar_stamped_tree <dir containing top> <top folder name> <output .tar.xz>:
+# the rest of deterministic_tar, for a tree stamp_tree has done. It only
+# reads the tree.
+tar_stamped_tree() {
+    local parent="$1" top="$2" out="$3"
     mkdir -p "$(dirname "$out")"
     (
         cd "$parent"

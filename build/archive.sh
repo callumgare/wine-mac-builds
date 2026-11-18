@@ -34,14 +34,29 @@ fi
 # and together took as long as the main one alone (about 5.5 minutes on a
 # 10-core Mac, against 10 one after another). The output is the same either
 # way: xz's stream doesn't depend on its thread count beyond one.
+#
+# `wmb build` runs this alongside the smoke and regression tests, which run
+# Wine from the release tree. They mustn't change it, and if anything in the
+# trees changes while they're read (ctime newer than the marker), the build
+# fails rather than ship archives that don't match the tree that was tested.
+for a in "${assets[@]}"; do
+    stamp_tree "$PKG" "$a" "$WINE_RELEASE_EPOCH"
+done
+marker="$WMB_WORK_DIR/$BUILD_ID/archive.started"
+touch "$marker"
+# A change once the archives start is then newer even if times were only
+# compared to the second.
+sleep 1
 pids=()
 for a in "${assets[@]}"; do
-    deterministic_tar "$PKG" "$a" "$WMB_OUT_DIR/$a.tar.xz" "$WINE_RELEASE_EPOCH" &
+    tar_stamped_tree "$PKG" "$a" "$WMB_OUT_DIR/$a.tar.xz" &
     pids+=($!)
 done
 failed=0
 for p in "${pids[@]}"; do wait "$p" || failed=1; done
 [[ $failed == 0 ]] || die "archiving failed"
+changed="$(cd "$PKG" && find "${assets[@]}" -cnewer "$marker" | head -5)"
+[[ -z $changed ]] || die "the release tree changed while it was archived (by a test?):"$'\n'"$changed"
 (
     cd "$WMB_OUT_DIR"
     shasum -a 256 "${assets[@]/%/.tar.xz}" "$BUILD_ID".build-info.json "$BUILD_ID".spdx.json \

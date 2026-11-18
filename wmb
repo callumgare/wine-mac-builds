@@ -4,8 +4,8 @@
 # wmb: the one entry point, used the same way locally and in CI.
 #
 #   ./wmb toolchain <id> [--archive]     assemble toolchain <id> at /opt/wmb/toolchains/<id>
-#   ./wmb build <flavour> <version>      compile, package, smoke, regress, manifest, check,
-#                                        archive -> out/
+#   ./wmb build <flavour> <version>      compile, package, manifest, check, then
+#                                        archive -> out/ while smoke and regress run
 #   ./wmb quick <flavour> <version>      a quick test build: reuses the last source tree
 #                                        and compiles only what changed; no debug
 #                                        symbols, and only the changed modules' tests;
@@ -21,8 +21,9 @@
 #                                        in a VM kept for quick builds)
 #
 # `build` runs on this Mac, using whatever macOS and Xcode it has; the
-# manifest records them. `vm` is how releases are made: the pinned image
-# gives the same macOS and Xcode every time.
+# manifest records them. CI makes releases with `host build` (the Mac's
+# Xcode must be the build the toolchain pins) or `vm build` (the pinned
+# image); the two give the same files apart from BUILD-INFO.json.
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -35,11 +36,20 @@ case "$cmd" in
         [[ $# -eq 2 ]] || { echo "usage: wmb build <flavour> <version>" >&2; exit 2; }
         "$ROOT/build/compile.sh" "$@"
         "$ROOT/build/package.sh" "$@"
-        "$ROOT/build/smoke.sh" "$@"
-        "$ROOT/build/regress.sh" "$@"
         "$ROOT/build/manifest.sh" "$@"
         "$ROOT/build/check.sh" "$@"
-        "$ROOT/build/archive.sh" "$@" ;;
+        # The archives (about 5 minutes of xz) are written while the tests
+        # run; archive.sh fails if the tests change the tree meanwhile. Its
+        # own process group, so a failed test stops it and its xz too.
+        set -m
+        "$ROOT/build/archive.sh" "$@" &
+        archive_pid=$!
+        set +m
+        trap 'kill -TERM -- -$archive_pid 2>/dev/null || true' EXIT
+        "$ROOT/build/smoke.sh" "$@"
+        "$ROOT/build/regress.sh" "$@"
+        wait $archive_pid || { echo "wmb: archiving failed" >&2; exit 1; }
+        trap - EXIT ;;
     quick)
         [[ $# -eq 2 ]] || { echo "usage: wmb quick <flavour> <version>" >&2; exit 2; }
         WMB_QUICK="${WMB_QUICK:-$(date -u +%Y%m%dT%H%M%S)}"

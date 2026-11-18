@@ -15,8 +15,8 @@
 #
 # quick: no VM to start or stop, all the Mac's cores, and the OpenGL tests
 # run on the same build straight away (`wmb quick` runs them on a Mac).
-# build: a full build with debug symbols, then the OpenGL tests (hostgl.sh),
-# for comparing with a VM build of the same commit.
+# build: a full build with debug symbols, the OpenGL tests included in its
+# regression run; how CI makes releases.
 #
 # The toolchain must already be installed in /opt/wmb. The repo staged is
 # this one, working-tree changes and .git included (the manifest records the
@@ -80,8 +80,8 @@ for f in "$H/out/$BUILD_ID".* "$H/out/$BUILD_ID"-*; do
     [[ -e $f ]] || continue
     cp -c "$f" "$WMB_OUT_DIR/" 2>/dev/null || cp "$f" "$WMB_OUT_DIR/"
 done
-if [[ $mode == build ]]; then
-    rm -rf "$work"
-    "$WMB_ROOT/build/hostgl.sh" "$WMB_OUT_DIR/$BUILD_ID.tar.xz"
-fi
+# No hostgl.sh run after a full build, as vm.sh does: the build's own
+# regression run was in the GUI session on this Mac, so it ran the OpenGL
+# tests already. A quick build runs them itself (wmb quick).
+[[ $mode != build ]] || rm -rf "$work"
 log "host: done; $WMB_OUT_DIR/$BUILD_ID.tar.xz"
