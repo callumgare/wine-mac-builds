@@ -66,9 +66,28 @@ readable by any process).
    features it supports. A host that won't take the process answers with
    version 0.
 
-If the versions differ, or no reply comes within 2 seconds, the driver
-falls back to the plain driver for this process. Features unknown to one
-side are off.
+If the versions differ, or no reply comes within 10 seconds, the driver
+falls back to the plain driver for this process and logs a warning: the
+program's windows then appear outside the host, so a fallback should never
+be silent. The wait is long because a fully loaded Mac is where Wine has
+already run out its wait for Cocoa to start. Features unknown to one side
+are off.
+
+The host checks who is connecting: any process in the login session can
+look the service name up. It receives `hello` with `MACH_RCV_TRAILER_AUDIT`,
+takes the sender's pid from the audit token, and answers version 0 to a
+process it didn't start or descend from one it started.
+
+## Coordinates
+
+Every position and size in the protocol, in both directions (window and view
+frames, `WINDOW_FRAME_CHANGED`, the cursor messages, mouse events, dirty
+rects), is in one space: the one the Mac driver already uses between its C
+and Cocoa halves. The origin is the top left of the primary display, y grows
+downwards, and units are points; `retina_mode` says whether a point is one
+pixel or two. Surfaces are in pixels. The host maps this space onto
+whatever it shows (its own window, scaled or letterboxed) and maps input
+back into it, so scaling needs nothing from Wine.
 
 ## Calls and timeouts
 
@@ -98,6 +117,10 @@ the compositor is done with it (`IOSurfaceIsInUse` false, checked after the
 transaction that replaced it has committed). `IOSurfaceIsInUse` alone isn't
 enough: a surface that has been sent but not yet shown looks free.
 
+Frame messages carry the surface's width and height. A resize races with
+frames already sent, so the host drops a frame whose size doesn't match the
+surface as registered (and releases the surface).
+
 The driver draws only into surfaces it owns. Three per OpenGL view and two
 per GDI window are the starting counts. With none free, a GL view waits
 (bounded) and a GDI window draws into memory and copies it into the next
@@ -112,7 +135,12 @@ thread may replace `glFinish` later if a program needs it.
 
 **GDI.** Window surfaces are already IOSurfaces in Wine 11
 (`dlls/winemac.drv/surface.c`). Each present sends `window_frame_ready` with
-the surface and its dirty rect.
+the surface and its dirty rect. With two surfaces, the one the driver moves
+to still holds the picture from two presents before, so before drawing into
+it the driver brings it up to date: it copies in the union of the dirty
+rects since that surface was last sent, or the whole picture (cheap at
+these sizes). The host always shows a whole surface; the dirty rect is only
+a hint.
 
 ## Driver → host messages
 
@@ -130,14 +158,14 @@ One-way unless marked *call*. Each corresponds to a function in
 | `window_hide` | `hide_cocoa_window` | |
 | `window_frame` | `set_cocoa_window_frame` | the host may answer with `WINDOW_FRAME_CHANGED` if it disagrees |
 | `window_parent` | `set_cocoa_parent_window` | owned windows in the same process; owners in another process aren't supported in v1 |
-| `window_frame_ready` | `window_set_io_surface` | surface id, rect, dirty rect |
+| `window_frame_ready` | `window_set_io_surface` | surface id, its width and height, rect, dirty rect |
 | `window_shape`, `window_alpha`, `window_color_key` | `set_window_shape`, `window_shape_changed`, `set_window_alpha`, `window_use_per_pixel_alpha`, `set_window_mask` | |
 | `window_focus` | `give_cocoa_window_focus` | |
 | `window_min_max` | `set_window_min_max_sizes` | |
 | `window_background` | `window_background_color` | |
 | `focus_rejected` | `window_rejected_focus` | |
 | `view_create`, `view_destroy`, `view_frame`, `view_parent`, `view_hidden` | `create_view`, `dispose_view`, `set_view_frame`, `set_view_superview`, `set_view_hidden` | a GL region of a window: a layer over the window's picture |
-| `view_frame_ready` | `flush_opengl_context` | surface id |
+| `view_frame_ready` | `flush_opengl_context` | surface id, its width and height |
 | `surface_add`, `surface_remove` | | see Surfaces |
 | `cursor_set` | `set_cursor` | a system cursor name, or an image (IOSurface or inline ARGB) with its hot spot; cached by id |
 | `cursor_warp` | `set_cursor_position` | the host decides whether to move the real pointer |
@@ -164,8 +192,10 @@ Win32 side through its pipe, so no main thread is involved).
 
 - Input: `KEY_PRESS`, `KEY_RELEASE` (Mac key code, modifiers, time),
   `MOUSE_BUTTON`, `MOUSE_MOVED_ABSOLUTE`, `MOUSE_MOVED_RELATIVE`,
-  `MOUSE_SCROLL`, `HOTKEY_PRESS`, `KEYBOARD_CHANGED`. Coordinates are in the
-  program's own (Windows) space: the host undoes any scaling it applies.
+  `MOUSE_SCROLL`, `HOTKEY_PRESS`, `KEYBOARD_CHANGED`. Positions are in the
+  protocol's space (see Coordinates): the host undoes any scaling it
+  applies. `KEYBOARD_CHANGED` is only a nudge: the driver reads the new
+  layout itself through Text Input Sources, which work in any process.
 - Focus: `WINDOW_GOT_FOCUS`, `WINDOW_LOST_FOCUS`, `APP_DEACTIVATED`,
   `WINDOW_BROUGHT_FORWARD`, `RELEASE_CAPTURE`. There's no `APP_ACTIVATED`:
   activation shows as a window getting focus.
