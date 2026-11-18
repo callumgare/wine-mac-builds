@@ -129,6 +129,15 @@ projects.
   `loader/main.c` is the build-tree loader, not the one that ships.
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
+- "Exception c0000005 in system thread at <addr>" is a crash in a macOS
+  thread Wine didn't create (the main thread's run loop, say), which
+  winedbg can't backtrace. Print its native stack from ntdll instead: in
+  `send_debug_event` (dlls/ntdll/unix/thread.c), where that message is
+  logged, walk the context's frame pointers and the words above its stack
+  pointer and name each with `dladdr`. For a block being released, read
+  callee-saved registers as block pointers (with `mach_vm_read_overwrite`)
+  and name the block's invoke function: that names the code that made it.
+  This is how 0066's crash was found.
 - A GUI program started straight from an SSH session can't reach the
   window server (Wine logs "no driver could be loaded"). Start it as a
   one-off LaunchAgent in the user's GUI session instead: a plist with

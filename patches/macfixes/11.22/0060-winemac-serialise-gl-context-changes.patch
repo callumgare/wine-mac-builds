@@ -47,6 +47,9 @@ Status: built in macfixes-11.22-build7 (2026-11-17); the regression suite passes
  54 launches), with no c0000005, including the six that had crashed on
  earlier builds. With the 32 launches above, that's no Pattern A crash in
  about 86 launches with 0060, though it's still not shown why.
+ 2026-11-18: Pattern A's cause was found and is fixed by 0066 (a context
+ released on the main thread after a GL thread freed it); it still
+ happened with this patch (d3d8-up-draw-speed, 4 of 115 runs on build12).
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 5488840..5bb2850 100644
