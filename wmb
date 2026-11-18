@@ -10,8 +10,9 @@
 #                                        and compiles only what changed; no debug
 #                                        symbols, and only the changed modules' tests;
 #                                        then the OpenGL tests (WMB_HOST_GL=0 skips)
-#   ./wmb hostquick <flavour> <version> the same quick build on this Mac, run in the
-#                                        user's GUI session (build/hostquick.sh)
+#   ./wmb host quick|build <flavour> <version>
+#                                        quick or build on this Mac, run in the user's
+#                                        GUI session (build/host.sh)
 #   ./wmb regress --tree <release dir>   run the regression tests on an unpacked release
 #   ./wmb hostgl <build .tar.xz>         run the OpenGL tests on this Mac (vm.sh does this
 #                                        after a build, as VMs have no accelerated OpenGL)
@@ -54,8 +55,8 @@ case "$cmd" in
         if [[ ${WMB_LANE:-} != tart && ${WMB_HOST_GL:-1} == 1 ]]; then
             "$ROOT/build/hostgl.sh" "${WMB_OUT_DIR:-$ROOT/out}/wine-$( [[ $1 == wine ]] || echo "$1-")$2-quick$WMB_QUICK-macos-x86_64.tar.xz"
         fi ;;
-    hostquick)
-        exec "$ROOT/build/hostquick.sh" "$@" ;;
+    host)
+        exec "$ROOT/build/host.sh" "$@" ;;
     compile|package|smoke|regress|manifest|check|archive|hostgl)
         exec "$ROOT/build/$cmd.sh" "$@" ;;
     vm)

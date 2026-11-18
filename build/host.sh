@@ -1,0 +1,72 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# host.sh quick|build <flavour> <version>
+#
+# `wmb quick` or `wmb build` on this Mac itself rather than in a VM, run as
+# a one-off LaunchAgent in the user's GUI session (gui_job, lib.sh): the
+# smoke test opens windows, and Wine started from SSH can't reach the
+# window server. A LaunchAgent can't read a removable volume either, so
+# everything is on the internal disk, in WMB_HOST_DIR (default
+# ~/Library/Caches/wmb-host): a copy of the repo, the downloads cache, and
+# the work directories. A quick build's (work-quick, about 7 GB per Wine
+# version) is kept, so the next one compiles only what changed. A full
+# build's (work-build) is deleted once it succeeds.
+#
+# quick: no VM to start or stop, all the Mac's cores, and the OpenGL tests
+# run on the same build straight away (`wmb quick` runs them on a Mac).
+# build: a full build with debug symbols, then the OpenGL tests (hostgl.sh),
+# for comparing with a VM build of the same commit.
+#
+# The toolchain must already be installed in /opt/wmb. The repo staged is
+# this one, working-tree changes and .git included (the manifest records the
+# commit), or WMB_HOST_REPO, another clone. The archive and its companion
+# files are copied to WMB_OUT_DIR (default ./out). WMB_* variables set by
+# the caller (WMB_BUILD_NUMBER, WMB_TESTS, WMB_REGRESS_*,
+# WMB_HOSTGL_SCREEN, ...) are passed through. The smoke test's windows
+# appear in the user's session, on screen if they're at the Mac.
+
+source "$(dirname "$0")/lib.sh"
+
+[[ $# -eq 3 && ( $1 == quick || $1 == build ) ]] || die "usage: host.sh quick|build <flavour> <version>"
+mode="$1"; shift
+[[ ${WMB_LANE:-} != tart ]] || die "host: this is for a Mac, not a build VM"
+H="${WMB_HOST_DIR:-$HOME/Library/Caches/wmb-host}"
+[[ "$H" != *" "* ]] || die "host: WMB_HOST_DIR ($H) has a space in it, which Wine's build can't take"
+REPO="${WMB_HOST_REPO:-$WMB_ROOT}"
+[[ -d "$REPO/.git" ]] || die "host: $REPO has no .git (the manifest records the commit)"
+[[ $mode == build ]] || WMB_QUICK="${WMB_QUICK:-$(date -u +%Y%m%dT%H%M%S)}"
+export WMB_QUICK
+load_build_inputs "$1" "$2"
+[[ -d "$WMB_TOOLCHAINS_DIR/$TOOLCHAIN" ]] ||
+    die "host: toolchain $TOOLCHAIN isn't installed in $WMB_TOOLCHAINS_DIR (./wmb toolchain $TOOLCHAIN)"
+work="$H/work-$mode"
+log "host: wmb $mode $1 $2 -> $BUILD_ID, in the GUI session, work in $work"
+
+mkdir -p "$H/repo" "$H/cache" "$work" "$H/out"
+rsync -a --delete --exclude /.local --exclude /vm-share --exclude /work \
+    --exclude /out --exclude /.cache --exclude /up "$REPO/" "$H/repo/"
+rm -f "$H/out/$BUILD_ID".* "$H/out/$BUILD_ID"-*
+
+rc=0
+{
+    printf 'export PATH=%q\n' "$PATH"
+    export -p | grep -E '^declare -x WMB_' |
+        grep -vE '^declare -x WMB_(ROOT|WORK_DIR|CACHE_DIR|OUT_DIR|QUICK|HOST_[A-Z]+)=' || true
+    printf 'export WMB_WORK_DIR=%q WMB_CACHE_DIR=%q WMB_OUT_DIR=%q\n' "$work" "$H/cache" "$H/out"
+    [[ -z ${WMB_QUICK:-} ]] || printf 'export WMB_QUICK=%q\n' "$WMB_QUICK"
+    printf 'cd %q && exec ./wmb %q %q %q\n' "$H/repo" "$mode" "$1" "$2"
+} | gui_job "$H" "host$mode" $((6 * 3600)) || rc=$?
+[[ $rc != 124 ]] || die "host: wmb $mode didn't finish within 6 hours"
+[[ $rc == 0 ]] || die "host: wmb $mode failed (exit $rc)"
+
+mkdir -p "$WMB_OUT_DIR"
+for f in "$H/out/$BUILD_ID".* "$H/out/$BUILD_ID"-*; do
+    [[ -e $f ]] || continue
+    cp -c "$f" "$WMB_OUT_DIR/" 2>/dev/null || cp "$f" "$WMB_OUT_DIR/"
+done
+if [[ $mode == build ]]; then
+    rm -rf "$work"
+    "$WMB_ROOT/build/hostgl.sh" "$WMB_OUT_DIR/$BUILD_ID.tar.xz"
+fi
+log "host: done; $WMB_OUT_DIR/$BUILD_ID.tar.xz"

@@ -59,10 +59,10 @@ projects.
    that changed, plus any named in `WMB_TESTS="user32 winemac.drv"`
    (`wine x86_64-windows/user32_test.exe win` runs one). The first quick
    build of a version compiles everything. Quick builds aren't for release.
-   `./wmb hostquick <flavour> <version>` does the same quick build on the
+   `./wmb host quick <flavour> <version>` does the same quick build on the
    Mac itself, run in the user's GUI session as a LaunchAgent (the smoke
    test opens windows), with its work on the internal disk
-   (`~/Library/Caches/wmb-hostquick`, about 7 GB per version). It needs the
+   (`~/Library/Caches/wmb-host`, about 7 GB per version). It needs the
    toolchain installed in `/opt/wmb` and a user logged in. A change to
    one DLL took about 6 minutes there, OpenGL tests included. Neither
    kind of quick build runs the regression suite: run a new test yourself
