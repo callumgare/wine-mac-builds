@@ -35,7 +35,10 @@ Status: 2026-11-18 rewritten. In a host quick build on meeka (macOS 26.7;
  program's screen and memory DCs report that depth, compatible bitmaps stay
  32-bit, and at 8 GetSystemPaletteEntries gives all 256 entries as expected
  after a 256-entry palette is realized; color-depth passes there and fails
- on 11.22-build9. Not yet tried with Webmaster. The first version of this
+ on 11.22-build9. On 11.22-build11 with ColorDepth "8" for Webmaster.exe
+ (and the embedding app's own depth workaround removed): no depth prompt,
+ and the colours are right on the Tivola logo, the main menu and the first
+ scene (the embedding app's tests). The first version of this
  patch (in 11.22-build10) changed BITSPIXEL in the Mac driver, for win32u as
  well as the program; Webmaster (a Director 7 projector) passed its colour
  check there but drew in wrong colours.

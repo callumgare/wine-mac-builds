@@ -41,7 +41,10 @@ Applies to: wine 11.22, macfixes
 Status: 2026-11-18 host quick build on macOS 26.7.2 (Apple silicon):
  krnl386-attach passes; krnl386.exe16 loads, LoadLibrary16("user.exe")
  returns 2 and WOWCallback16Ex returns FALSE, each with its error in the
- log. Not yet tried with Webmaster or Bioscopia. krnl386-attach fails on
+ log. On 11.22-build11 Webmaster works: Budapi.x32 and krnl386.exe16 load
+ and stay loaded, with no #baRegister alert or Lingo error and no 16-bit
+ err lines in two launches (the embedding app's tests). Not yet tried with
+ Bioscopia. krnl386-attach fails on
  11.22-build9 (LoadLibrary("krnl386.exe16") gives error 998 after the fault
  at krnl386.exe16+0x21d54).
 
