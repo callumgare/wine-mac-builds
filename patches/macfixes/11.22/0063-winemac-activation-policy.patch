@@ -18,8 +18,10 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
  overrides the registry, so a launcher can set it for the programs it runs
  (installers during a build, say) without changing the prefix. With
  "accessory", topmost (WS_EX_TOPMOST) windows also stay at the normal
- window level, as with TopmostFloatInactive=none: by default an inactive
- process's topmost windows float above every other app's windows.
+ window level, since the process is never active: TopmostFloatInactive is
+ treated as none, and -adjustWindowLevels doesn't raise them to its floor
+ for floating windows (above the Dock, level 21), which otherwise applies
+ whatever TopmostFloatInactive says.
  With "accessory", the process gets NSApplicationActivationPolicyAccessory
  when it first shows a window, instead of the regular policy and the Wine
  menu, and the driver never asks macOS to activate it. Its windows are
@@ -29,8 +31,17 @@ Programs: Second Chance (an app that embeds Wine): wants its helper
 Uncertain: macOS can still activate an accessory process when its window is
  clicked; the driver only stops activating it itself.
 Applies to: wine 11.22, macfixes
-Status: 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added;
- not yet built.
+Status: 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added.
+ In a host quick build of 11.22 on meeka (macOS 26.7.2; the topmost change
+ swapped in as a rebuilt winemac.so): winemac-activation-policy passes, all
+ six cases, the variable reaching notepad started by cmd included; on
+ 11.22-build14 its three variable cases fail. A program with a normal and a
+ topmost window, started while Calculator was up: on build14, with
+ ActivationPolicy=accessory or with nothing set, the topmost window was at
+ layer 21, above everything; with this patch and the variable, both windows
+ were at layer 0 behind Calculator's. That session wasn't the console's,
+ and no app became active there, so "behind the active app" was shown only
+ as "behind another app's window".
  2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
  smoke and the host OpenGL tests pass). On meeka (macOS 26.7, in a GUI
  session that didn't hold the screen): notepad became Foreground with
@@ -41,11 +52,11 @@ Status: 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added;
  bfgclient.exe alongside an embedding app's own hidden-windows helper: no
  harm shown, but that doesn't show the value hides the Dock icon by itself.
 
+
 diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
-index 37f7c85..98ba8ee 100644
 --- a/dlls/winemac.drv/cocoa_app.m
 +++ b/dlls/winemac.drv/cocoa_app.m
-@@ -223,6 +223,22 @@ - (void) dealloc
+@@ -223,6 +223,22 @@
  
      - (void) transformProcessToForeground:(BOOL)activateIfTransformed
      {
@@ -68,7 +79,19 @@ index 37f7c85..98ba8ee 100644
          if ([NSApp activationPolicy] != NSApplicationActivationPolicyRegular)
          {
              NSMenu* mainMenu;
-@@ -1998,6 +2014,7 @@ - (void) tryToActivateIgnoringOtherApps:(BOOL)ignore
+@@ -618,7 +634,10 @@
+             NSInteger origLevel = [window level];
+             NSInteger newLevel = [window minimumLevelForActive:active];
+ 
+-            if (window.floating)
++            /* An accessory process is never active: its topmost windows keep
++               the level -minimumLevelForActive: gives them, instead of being
++               raised above the Dock, so they don't cover the active app. */
++            if (window.floating && !(accessory_activation_policy && newLevel < NSFloatingWindowLevel))
+             {
+                 if (minFloatingLevel <= maxNonfloatingLevel)
+                     minFloatingLevel = maxNonfloatingLevel + 1;
+@@ -1998,6 +2017,7 @@
          NSDictionary *userInfo;
  
          if ([NSApp isActive]) return;  /* Nothing to do. */
@@ -77,7 +100,6 @@ index 37f7c85..98ba8ee 100644
          if (!ignore ||
              ![NSApplication instancesRespondToSelector:@selector(yieldActivationToApplication:)])
 diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
-index 88fe8b8..33ab140 100644
 --- a/dlls/winemac.drv/macdrv_cocoa.h
 +++ b/dlls/winemac.drv/macdrv_cocoa.h
 @@ -118,6 +118,7 @@
@@ -89,10 +111,9 @@ index 88fe8b8..33ab140 100644
  
  static inline CGRect cgrect_mac_from_win(CGRect rect)
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
-index 8d5d71f..3d68cac 100644
 --- a/dlls/winemac.drv/macdrv_main.c
 +++ b/dlls/winemac.drv/macdrv_main.c
-@@ -54,6 +54,7 @@ bool use_precise_scrolling = true;
+@@ -54,6 +54,7 @@
  int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
  bool retina_enabled = false;
  bool enable_app_nap = false;
@@ -100,10 +121,11 @@ index 8d5d71f..3d68cac 100644
   bool force_backing_store = FALSE;
  int cocoa_start_timeout = 60;
  
-@@ -369,6 +370,29 @@ static void setup_options(void)
+@@ -368,7 +369,30 @@
+ 
      if (!get_config_key(hkey, appkey, "EnableAppNap", buffer, sizeof(buffer)))
          enable_app_nap = IS_OPTION_TRUE(buffer[0]);
- 
++
 +    /* "accessory": no Dock icon or menu bar, and the driver never activates
 +       the process; its windows are still shown.  For helper processes. */
 +    if (!get_config_key(hkey, appkey, "ActivationPolicy", buffer, sizeof(buffer)))
@@ -120,7 +142,7 @@ index 8d5d71f..3d68cac 100644
 +        if (env && !strcasecmp(env, "accessory")) accessory_activation_policy = true;
 +        else if (env && !strcasecmp(env, "regular")) accessory_activation_policy = false;
 +    }
-+
+ 
 +    /* An accessory process is never active, and a topmost window of an
 +       inactive process still floats (TopmostFloatInactive): keep them at the
 +       normal level, so they don't go over the app that is active. */
