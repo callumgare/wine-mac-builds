@@ -2,7 +2,7 @@
  *
  * Arch: i686
  * Flavours: macfixes
- * Versions: 11.22
+ * Versions: 10.0 11.21 11.22
  * Timeout: 300
  * Libs: -mwindows -ld3d8 -luser32
  * Wrapper: needs-opengl

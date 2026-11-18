@@ -2,7 +2,7 @@
  *
  * Arch: i686
  * Flavours: macfixes
- * Versions: 11.22
+ * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Libs: -lkernel32
  * Guards: 0065 krnl386-attach-without-16bit

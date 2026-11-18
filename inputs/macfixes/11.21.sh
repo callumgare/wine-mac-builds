@@ -86,4 +86,6 @@ PATCHES=(
     patches/macfixes/11.21/0057-cpu-rosetta-refuse-program-ldt-entries.patch
     patches/macfixes/11.21/0058-winemac-update-gl-context-on-main-thread.patch
     patches/macfixes/11.21/0060-winemac-serialise-gl-context-changes.patch
+    patches/macfixes/11.21/0065-krnl386-attach-without-16bit.patch
+    patches/macfixes/11.21/0066-winemac-gl-context-dealloc-off-main-thread.patch
 )
