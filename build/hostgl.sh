@@ -75,10 +75,16 @@ fi
 # timeouts bound each test; 30 minutes bounds the whole run.
 rc=0
 {
-    printf 'export PATH=%q WMB_WORK_DIR=%q WMB_CACHE_DIR=%q WMB_REGRESS_GL=only\n' \
+    printf 'export PATH=%q WMB_WORK_DIR=%q WMB_CACHE_DIR=%q\n' \
         "$MINGW/bin:/usr/bin:/bin:/usr/sbin:/sbin" "$H/work" "$H/cache"
     [[ -z $no_screen ]] || echo 'export WMB_REGRESS_NO_SCREEN=1'
-    [[ -z ${WMB_REGRESS_ONLY:-} ]] || printf 'export WMB_REGRESS_ONLY=%q\n' "$WMB_REGRESS_ONLY"
+    # A test named in WMB_REGRESS_ONLY runs whether it uses OpenGL or not,
+    # so this also runs any one test in the GUI session.
+    if [[ -n ${WMB_REGRESS_ONLY:-} ]]; then
+        printf 'export WMB_REGRESS_ONLY=%q\n' "$WMB_REGRESS_ONLY"
+    else
+        echo 'export WMB_REGRESS_GL=only'
+    fi
     printf 'exec %q --tree %q\n' "$R/build/regress.sh" "$T"
 } | gui_job "$H" hostgl 1800 || rc=$?
 [[ $rc != 124 ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes"

@@ -79,7 +79,13 @@ CFLAGS="-O2 -g $PREFIX_MAP"
 CPPFLAGS="-I$TC/include"
 # headerpad leaves room for package.sh to rewrite library paths.
 # -L as MacPorts adds to every port (configure.ldflags).
-LDFLAGS="-L$TC/lib -Wl,-headerpad_max_install_names"
+# -oso_prefix: the debug map ld leaves in each Mach-O names every object file
+# (dsymutil reads the DWARF from them), and ld makes the UUID from the output
+# with that map still in it. With absolute paths, a build in the VM and one on
+# a Mac differed in every Mach-O's UUID, and so its signature, and nothing
+# else. Relative to the source tree, they match (ZERO_AR_DATE, above, takes
+# the objects' times out of the map); package.sh tells dsymutil where.
+LDFLAGS="-L$TC/lib -Wl,-headerpad_max_install_names -Wl,-oso_prefix,$SRC/"
 # -gno-codeview-command-line: clang otherwise records each compile's full
 # command line in the CodeView debug info (LF_BUILDINFO), and so in the .pdb.
 # It holds paths the prefix map doesn't rewrite (the toolchain's, the build

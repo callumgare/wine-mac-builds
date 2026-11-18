@@ -174,7 +174,8 @@ require_x86_64() {
 deterministic_tar() {
     local parent="$1" top="$2" out="$3" epoch="$4" stamp
     stamp="$(date -u -r "$epoch" +%Y%m%d%H%M.%S)"
-    find "$parent/$top" -exec touch -h -t "$stamp" {} +
+    # touch -t reads the stamp as local time; the stamp is UTC.
+    TZ=UTC0 find "$parent/$top" -exec touch -h -t "$stamp" {} +
     mkdir -p "$(dirname "$out")"
     (
         cd "$parent"

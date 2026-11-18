@@ -184,7 +184,14 @@ while read -r f; do
     fi
     mkdir -p "$D/$(dirname "$rel")"
     # From inside the tree: the dSYM records the binary's path as given.
-    (cd "$T" && dsymutil --out "$D/$rel.dSYM" "$rel")
+    # The debug map's object paths are relative to the source tree
+    # (-oso_prefix in compile.sh). dsymutil only warns about objects it can't
+    # open, and leaves their DWARF out.
+    out="$(cd "$T" && dsymutil --oso-prepend-path "$SRC" --out "$D/$rel.dSYM" "$rel" 2>&1)" || die "dsymutil $rel: $out"
+    if grep -q "unable to open object file" <<<"$out"; then
+        echo "$out" | head -3 >&2
+        die "dsymutil $rel couldn't open its object files"
+    fi
     strip -S "$f"
 done < <(wine_machos)
 

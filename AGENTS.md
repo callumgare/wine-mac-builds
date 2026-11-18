@@ -67,7 +67,9 @@ projects.
    one DLL took about 6 minutes there, OpenGL tests included. Neither
    kind of quick build runs the regression suite: run a new test yourself
    with `WMB_REGRESS_ONLY=<name> ./wmb regress --tree <unpacked build>` (in
-   a GUI session, for tests that open windows).
+   a GUI session, for tests that open windows). From SSH,
+   `WMB_REGRESS_ONLY=<name> build/hostgl.sh <build .tar.xz>` runs it in
+   the GUI session of the user you log in as.
    For one changed `.so` or `.dll`, you can also rebuild it in a configured
    tree and swap it into a copy of the last release (`cp -c` makes an APFS
    clone). Then refresh the directories you touch from the release's
@@ -138,6 +140,12 @@ projects.
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
   not NULL. Unset it when a test program checks whether it exists.
+- `tools/scan16 <game folder>` reads every Windows file's headers and lists
+  the 16-bit ones (NE), DOS ones, and 32-bit ones that import 16-bit
+  thunks (LoadLibrary16, QT_Thunk and the like, often by ordinal). No 16-bit
+  code runs under Rosetta 2, so these say where a failure may come from. A
+  DLL found this way is often loaded by another file at run time (a
+  Director Xtra loading its helper DLL), which no import table shows.
 
 ## Tart build VMs
 
