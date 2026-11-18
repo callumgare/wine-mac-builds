@@ -50,7 +50,13 @@ projects.
    For a quiet run, set `WINEDLLOVERRIDES="winedbg.exe=d;mscoree=;mshtml="`.
 2. Write the patch for the version where the bug was seen, and only that one.
    Port it to the other versions once it's confirmed (the regression suite
-   plus the run that showed the bug). Then build the ports together. Each
+   plus the run that showed the bug). A port that applies can still fail to
+   compile: Wine's own APIs change between versions (10.0's
+   `NtSetLdtEntries` takes two `LDT_ENTRY` values, 11.x's six `ULONG`s). So
+   compile the changed files before queueing the build. For PE files,
+   `<arch>-w64-mingw32-clang -fsyntax-only -D__WINESRC__ -I<module dir>
+   -Iinclude -Iinclude/msvcrt` in the patched source catches that without
+   configuring. Then build the ports together. Each
    full build takes over an hour, and a fix whose premise turns out wrong
    costs one build instead of several.
 3. Test it with a quick build before queueing a full build:
