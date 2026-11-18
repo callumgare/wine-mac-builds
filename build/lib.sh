@@ -186,3 +186,41 @@ deterministic_tar() {
     )
     rm -f "$out.list"
 }
+
+# gui_job <dir> <name> <limit-seconds> < script: run the bash script on
+# stdin as a one-off LaunchAgent in this user's GUI session, show its output
+# as it runs, and return its exit status. Programs started from SSH or the
+# CI runner's detached shell can't reach the window server; this way they
+# can. A LaunchAgent can't read a removable volume (macOS privacy rules), so
+# <dir> and everything the script uses must be on the internal disk. The
+# job is stopped if this shell exits first or <limit-seconds> pass.
+gui_job() {
+    local dir="$1" name="$2" limit="$3" uid label job out status plist tail_pid rc
+    uid="$(id -u)"
+    launchctl print "gui/$uid" > /dev/null 2>&1 ||
+        die "$(id -un) has no GUI session on this Mac; log in at the console (or via Screen Sharing)"
+    label="wmb.$name.$$"
+    job="$dir/$label.sh" out="$dir/$label.log" status="$dir/$label.exit" plist="$dir/$label.plist"
+    mkdir -p "$dir"; rm -f "$status"; : > "$out"
+    { echo '#!/bin/bash'; cat; } > "$job"
+    /usr/bin/python3 -I - "$plist" "$label" "$job" "$out" "$status" <<'PY'
+import plistlib, sys
+path, label, job, out, status = sys.argv[1:]
+cmd = '/bin/bash "$0" > "$1" 2>&1 < /dev/null; echo $? > "$2"'
+with open(path, "wb") as f:
+    plistlib.dump({"Label": label, "RunAtLoad": True,
+                   "ProgramArguments": ["/bin/bash", "-c", cmd, job, out, status]}, f)
+PY
+    # shellcheck disable=SC2064
+    trap "launchctl bootout 'gui/$uid/$label' > /dev/null 2>&1 || true; rm -f '$plist'" EXIT
+    launchctl bootstrap "gui/$uid" "$plist" || die "launchd wouldn't start $label"
+    tail -n +1 -F "$out" &
+    tail_pid=$!
+    for _ in $(seq "$limit"); do [[ -s $status ]] && break; sleep 1; done
+    sleep 1; kill "$tail_pid" 2>/dev/null || true; wait "$tail_pid" 2>/dev/null || true
+    launchctl bootout "gui/$uid/$label" > /dev/null 2>&1 || true; rm -f "$plist"
+    trap - EXIT
+    [[ -s $status ]] || { warn "$label didn't finish within $limit seconds (log: $out)"; return 124; }
+    rc="$(cat "$status")"
+    return "$rc"
+}

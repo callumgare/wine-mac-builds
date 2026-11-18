@@ -30,6 +30,10 @@ INSTALL="$W/install"
 MAPPED_SRC="/wmb/src/$SRC_NAME"
 PREFIX="/opt/wmb/wine"   # never used at run time; Wine finds its files relative to itself
 
+# Wine's configure and makefiles don't take a path with a space in it.
+[[ "$WMB_WORK_DIR" != *" "* ]] ||
+    die "WMB_WORK_DIR ($WMB_WORK_DIR) has a space in it, which Wine's build can't take; set WMB_WORK_DIR to a path without one (a symlink will do)"
+
 # --- Source --------------------------------------------------------------------
 # Patched in $NEW_SRC, then moved to $SRC (or, in a quick build, merged
 # into the existing tree; see "Source tree" below).

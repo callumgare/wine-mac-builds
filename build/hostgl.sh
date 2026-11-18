@@ -38,8 +38,7 @@ if ! "$WMB_ROOT/tests/regress/helpers/needs-opengl" /usr/bin/true > /dev/null; t
     log "hostgl: this Mac offers no accelerated OpenGL; OpenGL tests not run"
     exit 0
 fi
-uid="$(id -u)"
-launchctl print "gui/$uid" > /dev/null 2>&1 ||
+launchctl print "gui/$(id -u)" > /dev/null 2>&1 ||
     die "hostgl: $(id -un) has no GUI session on this Mac; log in at the console (or via Screen Sharing)"
 
 log "hostgl: OpenGL tests of $BUILD_ID on this Mac"
@@ -72,35 +71,17 @@ else
     log "hostgl: the screen belongs to $(stat -f %Su /dev/console); tests that take it over are skipped"
 fi
 
-# The job, run by launchd in the GUI session; it reports back through files.
-label="wmb.hostgl.$$"
-job="$H/$label.sh" out="$H/$label.log" status="$H/$label.exit" plist="$H/$label.plist"
-rm -f "$status"; : > "$out"
+# The tests run in the GUI session (gui_job, lib.sh). The suite's own
+# timeouts bound each test; 30 minutes bounds the whole run.
+rc=0
 {
-    echo '#!/bin/bash'
     printf 'export PATH=%q WMB_WORK_DIR=%q WMB_CACHE_DIR=%q WMB_REGRESS_GL=only\n' \
         "$MINGW/bin:/usr/bin:/bin:/usr/sbin:/sbin" "$H/work" "$H/cache"
     [[ -z $no_screen ]] || echo 'export WMB_REGRESS_NO_SCREEN=1'
-    printf '%q --tree %q > %q 2>&1 < /dev/null\n' "$R/build/regress.sh" "$T" "$out"
-    printf 'echo $? > %q\n' "$status"
-} > "$job"
-/usr/bin/python3 -I - "$plist" "$label" "$job" <<'EOF'
-import plistlib, sys
-path, label, job = sys.argv[1:]
-with open(path, "wb") as f:
-    plistlib.dump({"Label": label, "ProgramArguments": ["/bin/bash", job], "RunAtLoad": True}, f)
-EOF
-stop_job() { launchctl bootout "gui/$uid/$label" > /dev/null 2>&1 || true; rm -f "$plist"; }
-trap stop_job EXIT
-launchctl bootstrap "gui/$uid" "$plist" || die "hostgl: launchd wouldn't start the test job"
-
-tail -n +1 -F "$out" &
-tail_pid=$!
-# The suite's own timeouts bound each test; this bounds the whole run.
-for _ in $(seq 1800); do [[ -s $status ]] && break; sleep 1; done
-sleep 1; kill "$tail_pid" 2>/dev/null || true; wait "$tail_pid" 2>/dev/null || true
-[[ -s $status ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes (log: $out)"
-rc="$(cat "$status")"
-[[ $rc == 0 ]] || die "hostgl: OpenGL tests failed (exit $rc; log: $out)"
+    [[ -z ${WMB_REGRESS_ONLY:-} ]] || printf 'export WMB_REGRESS_ONLY=%q\n' "$WMB_REGRESS_ONLY"
+    printf 'exec %q --tree %q\n' "$R/build/regress.sh" "$T"
+} | gui_job "$H" hostgl 1800 || rc=$?
+[[ $rc != 124 ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes"
+[[ $rc == 0 ]] || die "hostgl: OpenGL tests failed (exit $rc)"
 rm -rf "$T" "$H/work"
 log "hostgl: OpenGL tests passed"
