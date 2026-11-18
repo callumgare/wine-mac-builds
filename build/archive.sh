@@ -28,9 +28,20 @@ if [[ -n "${WMB_QUICK:-}" ]]; then
 else
     assets+=("$BUILD_ID-debug" "$BUILD_ID-tests" "$BUILD_ID-sources")
 fi
+# All at once: xz at level 9 compresses in 192 MB blocks, a thread each, so
+# the gigabyte main archive keeps only about 5 threads busy and more don't
+# help (8 or 10 were slower than 4). The archives don't depend on each other,
+# and together took as long as the main one alone (about 5.5 minutes on a
+# 10-core Mac, against 10 one after another). The output is the same either
+# way: xz's stream doesn't depend on its thread count beyond one.
+pids=()
 for a in "${assets[@]}"; do
-    deterministic_tar "$PKG" "$a" "$WMB_OUT_DIR/$a.tar.xz" "$WINE_RELEASE_EPOCH"
+    deterministic_tar "$PKG" "$a" "$WMB_OUT_DIR/$a.tar.xz" "$WINE_RELEASE_EPOCH" &
+    pids+=($!)
 done
+failed=0
+for p in "${pids[@]}"; do wait "$p" || failed=1; done
+[[ $failed == 0 ]] || die "archiving failed"
 (
     cd "$WMB_OUT_DIR"
     shasum -a 256 "${assets[@]/%/.tar.xz}" "$BUILD_ID".build-info.json "$BUILD_ID".spdx.json \

@@ -25,6 +25,10 @@
 # the caller (WMB_BUILD_NUMBER, WMB_TESTS, WMB_REGRESS_*,
 # WMB_HOSTGL_SCREEN, ...) are passed through. The smoke test's windows
 # appear in the user's session, on screen if they're at the Mac.
+#
+# WMB_HOST_CCACHE=1 gives a full build the compiler cache (compile.sh) in
+# $WMB_HOST_DIR/ccache, capped at WMB_CCACHE_MAXSIZE (default 10G here). A
+# quick build keeps its compiled tree instead, as in the VM.
 
 source "$(dirname "$0")/lib.sh"
 
@@ -63,6 +67,9 @@ rc=0
         grep -vE '^declare -x WMB_(ROOT|WORK_DIR|CACHE_DIR|OUT_DIR|QUICK|HOST_[A-Z]+)=' || true
     printf 'export WMB_WORK_DIR=%q WMB_CACHE_DIR=%q WMB_OUT_DIR=%q\n' "$work" "$H/cache" "$H/out"
     [[ -z ${WMB_QUICK:-} ]] || printf 'export WMB_QUICK=%q\n' "$WMB_QUICK"
+    if [[ $mode == build && ${WMB_HOST_CCACHE:-0} == 1 ]]; then
+        printf 'export WMB_CCACHE_DIR=%q WMB_CCACHE_MAXSIZE=%q\n' "$H/ccache" "${WMB_CCACHE_MAXSIZE:-10G}"
+    fi
     printf 'cd %q && exec ./wmb %q %q %q\n' "$H/repo" "$mode" "$1" "$2"
 } | gui_job "$H" "host$mode" $((6 * 3600)) || rc=$?
 [[ $rc != 124 ]] || die "host: wmb $mode didn't finish within 6 hours"
