@@ -17,6 +17,10 @@
 # tag, so the same image comes back years later.
 TART_IMAGE="ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f627daf64ab2c4e11d29a4d267953902a16151ee28fcdd7185927c317"
 XCODE_VERSION="27.2"
+# Xcode's build of that version, as `xcodebuild -version` prints it. Full
+# builds stop on any other (compile.sh): a build on a Mac is meant to come
+# out the same as one in this image, and a different Xcode changes it.
+XCODE_BUILD="27B52"
 
 # The published archive: an OCI artifact on GitHub's container registry,
 # pushed by the toolchain workflow (tag 20261115). Builds without a local

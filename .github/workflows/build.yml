@@ -1,8 +1,12 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Builds one Wine version in a fresh VM from the toolchain's pinned Tart image
-# on the self-hosted Mac, then attests the files and puts them on a draft
-# release named after the build (wine-11.21-build1).
+# Builds one Wine version on the self-hosted Mac, then attests the files and
+# puts them on a draft release named after the build (wine-11.21-build1).
+# Lane host (the default) builds on the Mac itself, in the GUI session of the
+# runner's user, with the Xcode the toolchain pins (wmb host build); lane vm
+# builds in a fresh VM from the toolchain's pinned Tart image (wmb vm build).
+# The two give the same files apart from BUILD-INFO.json (macfixes 11.22,
+# 2026-11-18); host takes about half the time.
 #
 # Manual only. The self-hosted runner must never run pull-request code,
 # which anyone can open: don't add pull_request triggers here.
@@ -19,6 +23,11 @@ on:
       version:
         description: Wine version (inputs/<flavour>/<version>.sh)
         required: true
+      lane:
+        description: Where to build (host = on the Mac, vm = in a fresh Tart VM)
+        type: choice
+        options: [host, vm]
+        default: host
 
 permissions: {}
 
@@ -77,6 +86,7 @@ jobs:
     env:
       FLAVOUR: ${{ inputs.flavour }}
       VERSION: ${{ inputs.version }}
+      LANE: ${{ inputs.lane || 'host' }}
       WMB_BUILD_NUMBER: ${{ needs.number.outputs.build_number }}
       # The compiler cache (vm.sh): builds with a warm cache, a cold one and
       # none came out byte-identical (macfixes 11.22, 2026-11-18).
@@ -94,28 +104,36 @@ jobs:
           echo "name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
           echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_ENV"
 
-      - name: Build in a fresh VM
+      - name: Build (${{ env.LANE }})
         run: |
-          out="$WMB_VM_SHARE/out"
-          rm -f "$out/$BUILD_ID".*
-          rm -f "$out/$BUILD_ID"-*
-          ./wmb vm build "$FLAVOUR" "$VERSION" &
-          echo $! > "$RUNNER_TEMP/vm.pid"
-          wait $!
           rm -rf dist; mkdir dist
-          mv "$out/$BUILD_ID".* "$out/$BUILD_ID"-* dist/
+          if [[ $LANE == vm ]]; then
+            out="$WMB_VM_SHARE/out"
+            rm -f "$out/$BUILD_ID".*
+            rm -f "$out/$BUILD_ID"-*
+            ./wmb vm build "$FLAVOUR" "$VERSION" &
+            echo $! > "$RUNNER_TEMP/build.pid"
+            wait $!
+            mv "$out/$BUILD_ID".* "$out/$BUILD_ID"-* dist/
+          else
+            WMB_OUT_DIR="$PWD/dist" ./wmb host build "$FLAVOUR" "$VERSION" &
+            echo $! > "$RUNNER_TEMP/build.pid"
+            wait $!
+          fi
           ls -l dist
 
-      # A cancelled or timed-out step leaves vm.sh running (the runner
-      # doesn't stop it), and with it the VM. SIGTERM runs vm.sh's cleanup,
-      # which shuts the VM down and deletes it.
-      - name: Stop the VM if the build didn't finish
+      # A cancelled or timed-out step leaves vm.sh or host.sh running (the
+      # runner doesn't stop it), and with it the VM or the build's job in the
+      # GUI session. SIGTERM runs their cleanup: vm.sh shuts the VM down and
+      # deletes it; host.sh's gui_job removes its LaunchAgent, which ends the
+      # build.
+      - name: Stop the build if it didn't finish
         if: always()
         timeout-minutes: 5
         run: |
-          pid="$(cat "$RUNNER_TEMP/vm.pid" 2>/dev/null)" || exit 0
-          if ps -p "$pid" -o command= | grep -q 'build/vm\.sh'; then
-            echo "Stopping vm.sh ($pid)"
+          pid="$(cat "$RUNNER_TEMP/build.pid" 2>/dev/null)" || exit 0
+          if ps -p "$pid" -o command= | grep -qE 'build/(vm|host)\.sh'; then
+            echo "Stopping $(ps -p "$pid" -o command=) ($pid)"
             kill -TERM "$pid"
             while kill -0 "$pid" 2>/dev/null; do sleep 5; done
           fi

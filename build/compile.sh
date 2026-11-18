@@ -70,6 +70,14 @@ export PKG_CONFIG="$TC/bin/pkg-config"
 export PKG_CONFIG_LIBDIR="$TC/lib/pkgconfig:$TC/share/pkgconfig"
 unset PKG_CONFIG_PATH CPATH LIBRARY_PATH DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 
+# The toolchain names the Xcode it's used with. A full build on another
+# would differ from one in the VM image (a quick build only warns).
+xcode_build="$(xcodebuild -version | sed -n 's/^Build version //p')"
+if [[ -n ${XCODE_BUILD:-} && $xcode_build != "$XCODE_BUILD" ]]; then
+    msg="Xcode build $xcode_build, but toolchain $TOOLCHAIN is pinned to $XCODE_BUILD (Xcode $XCODE_VERSION)"
+    [[ -n ${WMB_QUICK:-} ]] && log "warning: $msg" || die "$msg"
+fi
+
 PREFIX_MAP="-ffile-prefix-map=$SRC=$MAPPED_SRC"
 # The debug info names the SDK's headers by path, and Xcode's folder name
 # differs between builders (/Applications/Xcode_27.2.app in the CI VM image,

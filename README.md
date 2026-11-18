@@ -37,9 +37,12 @@ The same commands run on a developer's Mac and in CI:
 ```
 
 `./wmb vm …` runs the command inside a clean macOS VM ([Tart](https://tart.run))
-from the image pinned in `toolchains/<id>.sh`. That's how releases are made.
-`./wmb build …` runs on the current Mac instead, which is quicker for
-development.
+from the image pinned in `toolchains/<id>.sh`. `./wmb host build …` runs the
+same build on the Mac itself, in the logged-in user's GUI session, with the
+toolchain installed in `/opt/wmb`; its output is byte-identical to the VM's
+apart from `BUILD-INFO.json`, and it's how CI makes releases (the VM lane is
+still available). `./wmb build …` runs in the current shell, which is
+quicker for development.
 
 | Path | What it is |
 |---|---|

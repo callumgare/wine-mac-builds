@@ -28,8 +28,10 @@ projects.
 ## Layout
 
 - `wmb` is the one entry point, locally and in CI: `./wmb build <flavour>
-  <version>`, `./wmb vm build …` (the same in a fresh Tart VM, which is how
-  releases are made), `./wmb vm quick …` (a test build; see below),
+  <version>`, `./wmb vm build …` (the same in a fresh Tart VM),
+  `./wmb host build …` (the same on the Mac in the user's GUI session, which
+  is how CI makes releases; byte-identical to a VM build apart from
+  `BUILD-INFO.json`), `./wmb vm quick …` (a test build; see below),
   `./wmb regress --tree <dir>`.
 - `flavours/` defines each flavour, and `inputs/<flavour>/<version>.sh` pins
   a version's inputs, including its patch list in order.
