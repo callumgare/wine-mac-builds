@@ -22,6 +22,12 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
  treated as none, and -adjustWindowLevels doesn't raise them to its floor
  for floating windows (above the Dock, level 21), which otherwise applies
  whatever TopmostFloatInactive says.
+ macOS also shows an accessory app's windows over another app's fullscreen
+ Space, even while the accessory app is inactive; a regular app's windows
+ aren't. Of the collection behaviours tried on a native accessory window
+ (default, FullScreenPrimary, Managed, MoveToActiveSpace, Transient), only
+ FullScreenNone kept it out. So with "accessory", -adjustFullScreenBehavior:
+ clears FullScreenPrimary and FullScreenAuxiliary and sets FullScreenNone.
  With "accessory", the process gets NSApplicationActivationPolicyAccessory
  when it first shows a window, instead of the regular policy and the Wine
  menu, and the driver never asks macOS to activate it. Its windows are
@@ -29,9 +35,22 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
 Programs: Second Chance (an app that embeds Wine): wants its helper
  processes run without a Dock icon or menu bar and without taking focus
 Uncertain: macOS can still activate an accessory process when its window is
- clicked; the driver only stops activating it itself.
+ clicked; the driver only stops activating it itself. With FullScreenNone,
+ an accessory process's windows can't use macOS's own fullscreen (a Space
+ of their own); Wine's usual fullscreen (a window covering the display)
+ isn't affected, but this hasn't been tested with a game run as accessory.
 Applies to: wine 11.22, macfixes
-Status: 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added.
+Status: 2026-11-19 (later): FullScreenNone for accessory windows added. In
+ a host quick build of 11.22 on meeka (macOS 26.7.2), in a Screen Slots
+ login session: a native app fullscreen in its own Space and staying
+ active, then a Wine dialog-style window (WS_POPUP|WS_CAPTION) shown with
+ WINEMAC_ACTIVATION_POLICY=accessory, with and without SetForegroundWindow.
+ Without this change the Wine window was on screen over the fullscreen
+ window in every run; with it, it wasn't, in 4 of 4 runs (both modes
+ among them). Removing only FullScreenAuxiliary, and ordering new windows to the
+ back instead of the front, changed nothing. Not yet shown with a game or
+ with Second Chance's installer wizards; not yet in a CI build.
+ 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added.
  In a host quick build of 11.22 on meeka (macOS 26.7.2; the topmost change
  swapped in as a rebuilt winemac.so): winemac-activation-policy passes, all
  six cases, the variable reaching notepad started by cmd included; on
@@ -99,6 +118,26 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
  
          if (!ignore ||
              ![NSApplication instancesRespondToSelector:@selector(yieldActivationToApplication:)])
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -1044,6 +1044,16 @@
+             behavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
+             if (style & NSWindowStyleMaskFullScreen)
+                 [super toggleFullScreen:nil];
++        }
++
++        /* macOS shows an accessory app's windows over another app's
++           fullscreen Space, even while the accessory app is inactive.
++           FullScreenNone keeps them out of it (and they can't go fullscreen
++           themselves, which a helper process doesn't need). */
++        if (accessory_activation_policy)
++        {
++            behavior &= ~(NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorFullScreenAuxiliary);
++            behavior |= NSWindowCollectionBehaviorFullScreenNone;
+         }
+ 
+         if (behavior != [self collectionBehavior])
 diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
 --- a/dlls/winemac.drv/macdrv_cocoa.h
 +++ b/dlls/winemac.drv/macdrv_cocoa.h

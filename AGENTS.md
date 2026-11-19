@@ -159,6 +159,18 @@ projects.
   Without `RunAtLoad` the job loads and never runs.
   Such a job can't read a removable volume ("Operation not permitted"), so
   stage what it runs on the internal disk.
+- To find out how macOS treats a kind of window (activation policy,
+  collection behaviour, level), first reproduce it with a small native app
+  (a few dozen lines of Swift, built with `swiftc`) that shows one window
+  with the settings to compare, and list what's on screen front to back
+  with `CGWindowListCopyWindowInfo`. This separates macOS's behaviour from
+  Wine's in minutes, before patching winemac.drv. Fullscreen and "active
+  app" tests need a GUI session where an app can be active (a locked
+  console session doesn't do).
+  Found this way (macOS 26.7): an accessory-policy app's windows show over
+  another app's fullscreen Space even while it's inactive, which a
+  regular app's don't. Only `NSWindowCollectionBehaviorFullScreenNone`
+  keeps them out (0063).
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
