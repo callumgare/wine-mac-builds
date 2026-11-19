@@ -40,7 +40,16 @@ Uncertain: macOS can still activate an accessory process when its window is
  of their own); Wine's usual fullscreen (a window covering the display)
  isn't affected, but this hasn't been tested with a game run as accessory.
 Applies to: wine 11.22, macfixes
-Status: 2026-11-19 (later): FullScreenNone for accessory windows added. In
+Status: 2026-11-20: in 11.22-build0 (a local host build of this commit
+ on meeka; suite 51 passed, 2 skipped, 0 failed). Second Chance's
+ integration run on meeka, its installer wizards (ten different ones,
+ AutoIt-driven, run as accessory) building while other games ran
+ fullscreen: a wizard came in front of a game 0 times in 10, against 3 on
+ 11.22-build15 in a comparable run. The wizards still worked off the
+ game's Space: every patch step moved on and those games built. Nothing
+ in that run needed a click on a wizard, so reaching one that does wasn't
+ tested.
+ 2026-11-19 (later): FullScreenNone for accessory windows added. In
  a host quick build of 11.22 on meeka (macOS 26.7.2), in a Screen Slots
  login session: a native app fullscreen in its own Space and staying
  active, then a Wine dialog-style window (WS_POPUP|WS_CAPTION) shown with
