@@ -95,4 +95,5 @@ PATCHES=(
     patches/macfixes/11.22/0066-winemac-gl-context-dealloc-off-main-thread.patch
     patches/macfixes/11.22/0067-ntdll-async-iosb-unwritable.patch
     patches/macfixes/11.22/0068-ntdll-suspend-context-syscall-return.patch
+    patches/macfixes/11.22/0069-winemac-host-windows.patch
 )

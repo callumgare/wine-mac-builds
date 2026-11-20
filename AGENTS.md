@@ -181,6 +181,15 @@ projects.
   memory list, enough to recognise the loop. 0068 was found this way: the
   faulting loop was Chromium's stack copier, copying from a suspended
   thread's reported rsp.
+- Host mode (0069, docs/app-embedded-protocol.md) can be tested without a
+  real host and without the screen: `tools/wmh-testhost` checks in a Mach
+  service, logs the driver's messages, saves each window's picture as a
+  PNG, and asks the windows to close after a while. Run it as a one-off
+  LaunchAgent that declares the service under `MachServices`, as the
+  job's own process (a child of the job's script can't check the service
+  in); it starts the Wine side itself. Set HostWindows=y in the prefix
+  first. If the host doesn't answer, Wine falls back to the plain driver
+  and its windows do appear.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
