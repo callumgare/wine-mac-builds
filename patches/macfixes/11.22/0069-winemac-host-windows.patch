@@ -35,7 +35,14 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: GL and D3D programs show nothing in host mode yet. Windows of
  other processes as owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21: not yet in a build. With winemac.so built with it
+Status: 2026-11-21 (later): with Second Chance's host (a prototype), in a
+ Screen Slots login on meeka, the same swapped tree: SkiFree's window
+ showed and animated; clicks and steering by the pointer worked, so mouse
+ positions come back right; F2 restarted it; the host's quit request
+ (APP_QUIT_REQUESTED) ended ski32.exe and explorer.exe and the launcher
+ exited 0. Moving windows not yet tested. One "no free surface" warning in
+ a run, from that host releasing surfaces late.
+ 2026-11-21: not yet in a build. With winemac.so built with it
  swapped into 11.22-build0 (plus 0068's ntdll.so), on meeka (macOS
  26.7.2), run in a LaunchAgent with a headless test host: explorer.exe and
  notepad.exe each connected; Notepad's window, title, frames and focus

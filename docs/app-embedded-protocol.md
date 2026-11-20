@@ -83,8 +83,12 @@ are off.
 
 The host checks who is connecting: any process in the login session can
 look the service name up. It receives `hello` with `MACH_RCV_TRAILER_AUDIT`,
-takes the sender's pid from the audit token, and answers version 0 to a
-process it didn't start or descend from one it started.
+and answers version 0 unless the sender is a Wine process of the Wine it
+started: the audit token's euid is the host's own, and the executable of
+the token's pid (`proc_pidpath`) lies inside the Wine folder the host
+launched. Parentage can't be used: Wine processes are re-parented to
+launchd, and Wine rewrites a process's argument area, so its arguments and
+environment can't be read either.
 
 ## Coordinates
 
