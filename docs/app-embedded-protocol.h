@@ -71,6 +71,11 @@ enum {
     WMH_KIND_WINDOW_FOCUS,
     WMH_KIND_WINDOW_FRAME_READY,
     WMH_KIND_FOCUS_REJECTED,
+    WMH_KIND_VIEW_CREATE = 30,          /* struct wmh_view_ref */
+    WMH_KIND_VIEW_DESTROY,              /* struct wmh_view_ref */
+    WMH_KIND_VIEW_FRAME,
+    WMH_KIND_VIEW_HIDDEN,
+    WMH_KIND_VIEW_FRAME_READY,
     WMH_KIND_SURFACE_ADD = 40,          /* PORTS: [0] the IOSurface (IOSurfaceCreateMachPort), moved */
     WMH_KIND_SURFACE_REMOVE,
     WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
@@ -91,7 +96,7 @@ enum {
  * part the host will use). */
 #define WMH_FEATURE_GDI_SURFACES  (1u << 0)
 #define WMH_FEATURE_INPUT         (1u << 1)
-#define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* not in the first part */
+#define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* takes view surfaces */
 #define WMH_FEATURE_CURSOR        (1u << 3)   /* not in the first part */
 
 struct wmh_hello {
@@ -184,6 +189,36 @@ struct wmh_window_frame_ready {
     struct wmh_rect dirty;
 };
 
+/* ---- views ----
+ *
+ * A view is a region of a window that a program draws into with OpenGL
+ * (Direct3D through wined3d, DirectDraw wrappers, games): a layer over the
+ * window's own picture, shown only while not hidden (views start hidden).
+ * Its pictures come in view_frame_ready, from surfaces registered and
+ * released as for windows. They're bottom-up (row 0 is the bottom) when
+ * WMH_SURFACE_BOTTOM_UP is set, as OpenGL draws them; the host flips them.
+ * A host scales the surface to the view's frame. */
+
+struct wmh_view_ref { uint32_t view; uint32_t reserved; };
+
+struct wmh_view_frame {
+    uint32_t        view;
+    wmh_window_id   window;             /* the window it's in; 0: in none, don't show */
+    struct wmh_rect frame;              /* in the window's content area, points */
+};
+
+struct wmh_view_hidden { uint32_t view; uint32_t hidden; };
+
+#define WMH_SURFACE_BOTTOM_UP (1u << 0)
+
+struct wmh_view_frame_ready {
+    uint32_t       view;
+    wmh_surface_id surface;
+    uint32_t       width, height;       /* as registered */
+    uint32_t       flags;               /* WMH_SURFACE_* */
+    uint32_t       reserved;
+};
+
 /* ---- calls and replies ---- */
 
 struct wmh_window_get_frame { wmh_window_id window; uint32_t reserved; };
@@ -263,6 +298,8 @@ WMH_ASSERT_SIZE(wmh_window_order, 16);
 WMH_ASSERT_SIZE(wmh_window_frame, 40);
 WMH_ASSERT_SIZE(wmh_surface_add, 16);
 WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
+WMH_ASSERT_SIZE(wmh_view_frame, 40);
+WMH_ASSERT_SIZE(wmh_view_frame_ready, 24);
 WMH_ASSERT_SIZE(wmh_reply, 8);
 WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 WMH_ASSERT_SIZE(wmh_event, 104);

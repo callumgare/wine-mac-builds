@@ -33,7 +33,7 @@ struct conn {
     int pid;
     char exe[64];
     IOSurfaceRef surfaces[MAXW];
-    unsigned frames[MAXW], visible[MAXW];
+    unsigned frames[MAXW], visible[MAXW], view_frames[MAXW], view_window[MAXW];
     char titles[MAXW][64];
 };
 static struct conn conns[32];
@@ -69,7 +69,7 @@ static void send_to(mach_port_t port, uint32_t kind, const void *payload, size_t
     if (kr) printf("host: send %u failed %x\n", kind, kr);
 }
 
-static void save_png(struct conn *c, uint32_t wid, IOSurfaceRef s)
+static void save_png(struct conn *c, const char *what, uint32_t wid, IOSurfaceRef s, int bottom_up)
 {
     char path[1024];
     size_t w = IOSurfaceGetWidth(s), h = IOSurfaceGetHeight(s);
@@ -79,7 +79,17 @@ static void save_png(struct conn *c, uint32_t wid, IOSurfaceRef s)
                                              kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
     CGImageRef img = ctx ? CGBitmapContextCreateImage(ctx) : NULL;
     IOSurfaceUnlock(s, kIOSurfaceLockReadOnly, NULL);
-    snprintf(path, sizeof(path), "%s/%s-%u.png", outdir, c->exe, wid);
+    if (img && bottom_up)
+    {
+        CGContextRef flip = CGBitmapContextCreate(NULL, w, h, 8, 0, cs, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
+        CGContextTranslateCTM(flip, 0, h);
+        CGContextScaleCTM(flip, 1, -1);
+        CGContextDrawImage(flip, CGRectMake(0, 0, w, h), img);
+        CGImageRelease(img);
+        img = CGBitmapContextCreateImage(flip);
+        CGContextRelease(flip);
+    }
+    snprintf(path, sizeof(path), "%s/%s-%s%u.png", outdir, c->exe, what, wid);
     CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, (const UInt8 *)path, strlen(path), false);
     CGImageDestinationRef dst = CGImageDestinationCreateWithURL(url, CFSTR("public.png"), 1, NULL);
     if (dst && img) { CGImageDestinationAddImage(dst, img, NULL); CGImageDestinationFinalize(dst); }
@@ -151,7 +161,7 @@ int main(int argc, char **argv)
         if (w->kind == WMH_KIND_HELLO && m.h.msgh_local_port == service && nconns < 32)
         {
             struct wmh_hello *h = pl;
-            struct wmh_hello_reply r = { WMH_PROTOCOL_VERSION, WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT };
+            struct wmh_hello_reply r = { WMH_PROTOCOL_VERSION, WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS };
             c = &conns[nconns++];
             c->driver = port;
             c->pid = h->pid;
@@ -219,7 +229,33 @@ int main(int argc, char **argv)
             if (f->window < MAXW && c->frames[f->window]++ < 3)
                 printf("host: %s frame_ready window %u surface %u %ux%u rect %.0f,%.0f %.0fx%.0f\n", c->exe, f->window, f->surface,
                        f->width, f->height, f->rect.x, f->rect.y, f->rect.width, f->rect.height);
-            if (f->surface < MAXW && c->surfaces[f->surface]) save_png(c, f->window, c->surfaces[f->surface]);
+            if (f->surface < MAXW && c->surfaces[f->surface]) save_png(c, "window", f->window, c->surfaces[f->surface], 0);
+            send_to(c->driver, WMH_KIND_SURFACE_RELEASE, &r, sizeof(r), 0, 0);
+            break; }
+        case WMH_KIND_VIEW_CREATE:
+        case WMH_KIND_VIEW_DESTROY: {
+            struct wmh_view_ref *v = pl;
+            printf("host: %s %s %u\n", c->exe, w->kind == WMH_KIND_VIEW_CREATE ? "view_create" : "view_destroy", v->view);
+            break; }
+        case WMH_KIND_VIEW_FRAME: {
+            struct wmh_view_frame *v = pl;
+            if (v->view < MAXW) c->view_window[v->view] = v->window;
+            printf("host: %s view_frame %u in window %u %.0f,%.0f %.0fx%.0f\n", c->exe, v->view, v->window,
+                   v->frame.x, v->frame.y, v->frame.width, v->frame.height);
+            break; }
+        case WMH_KIND_VIEW_HIDDEN: {
+            struct wmh_view_hidden *v = pl;
+            printf("host: %s view_hidden %u %u\n", c->exe, v->view, v->hidden);
+            break; }
+        case WMH_KIND_VIEW_FRAME_READY: {
+            struct wmh_view_frame_ready *f = pl;
+            struct wmh_surface_ref r = { f->surface };
+            if (f->view < MAXW && c->view_window[f->view] < MAXW) c->frames[c->view_window[f->view]]++;
+            if (f->view < MAXW && c->view_frames[f->view]++ < 3)
+                printf("host: %s view_frame_ready view %u surface %u %ux%u flags %#x\n", c->exe, f->view, f->surface,
+                       f->width, f->height, f->flags);
+            if (f->surface < MAXW && c->surfaces[f->surface] && f->view < MAXW && c->view_frames[f->view] % 10 == 1)
+                save_png(c, "view", f->view, c->surfaces[f->surface], f->flags & WMH_SURFACE_BOTTOM_UP);
             send_to(c->driver, WMH_KIND_SURFACE_RELEASE, &r, sizeof(r), 0, 0);
             break; }
         default:
@@ -231,5 +267,8 @@ int main(int argc, char **argv)
     for (int ci = 0; ci < nconns; ci++)
         for (uint32_t i = 1; i < MAXW; i++)
             if (conns[ci].frames[i]) printf("host: %s window %u (%s): %u frames\n", conns[ci].exe, i, conns[ci].titles[i], conns[ci].frames[i]);
+    for (int ci = 0; ci < nconns; ci++)
+        for (uint32_t i = 1; i < MAXW; i++)
+            if (conns[ci].view_frames[i]) printf("host: %s view %u: %u frames\n", conns[ci].exe, i, conns[ci].view_frames[i]);
     return 0;
 }
