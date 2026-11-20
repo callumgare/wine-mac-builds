@@ -48,7 +48,11 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (cursor): with the test host, on the same swapped
+Status: 2026-11-21 (cursor, real host): through Second Chance's host in a
+ Screen Slots login: cursortest's hourglass became the host's NSCursor
+ (32x32, hot 15,15); Notepad got the I-beam over its edit area and the
+ arrow over its menu. Warp not exercised by any program yet.
+ 2026-11-21 (cursor): with the test host, on the same swapped
  tree: Notepad's I-beam came as the system cursor "IBeamCursor" once the
  pointer was over its edit area, and a window using IDC_WAIT got the
  hourglass as a 32x32 image with its hot spot at 15,15. Warp and clip
