@@ -274,6 +274,11 @@ int main(int argc, char **argv)
             }
             else printf("host: %s cursor_set hidden\n", c->exe);
             break; }
+        case WMH_KIND_WINDOW_MIN_MAX: {
+            struct wmh_window_min_max *mm = pl;
+            printf("host: %s window_min_max %u min %.0fx%.0f max %.0fx%.0f\n", c->exe, mm->window,
+                   mm->min_width, mm->min_height, mm->max_width, mm->max_height);
+            break; }
         case WMH_KIND_CURSOR_WARP: {
             struct wmh_cursor_warp *cw = pl;
             printf("host: %s cursor_warp %.0f,%.0f\n", c->exe, cw->x, cw->y);
@@ -297,6 +302,10 @@ int main(int argc, char **argv)
                 c->moved[i] = 1;
                 printf("host: %s moving the pointer to %.0f,%.0f in window %u\n", c->exe, ev.x, ev.y, i);
                 send_to(c->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+                {
+                    struct wmh_event q = { .type = WMH_EV_QUERY_MIN_MAX_INFO, .window = i };
+                    send_to(c->driver, WMH_KIND_EVENT, &q, sizeof(q), 0, 0);
+                }
             }
         fflush(stdout);
     }

@@ -73,6 +73,7 @@ enum {
     WMH_KIND_WINDOW_FOCUS,
     WMH_KIND_WINDOW_FRAME_READY,
     WMH_KIND_FOCUS_REJECTED,
+    WMH_KIND_WINDOW_MIN_MAX,
     WMH_KIND_VIEW_CREATE = 30,          /* struct wmh_view_ref */
     WMH_KIND_VIEW_DESTROY,              /* struct wmh_view_ref */
     WMH_KIND_VIEW_FRAME,
@@ -154,6 +155,14 @@ struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destr
 struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
 struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
 struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };
+
+/* The content size the user may resize the window to (WM_GETMINMAXINFO).
+ * 0 for a max dimension: no limit. */
+struct wmh_window_min_max {
+    wmh_window_id window;
+    uint32_t      reserved;
+    double        min_width, min_height, max_width, max_height;
+};
 struct wmh_window_title  { wmh_window_id window; uint32_t reserved; char title[WMH_TITLE_MAX]; };
 
 /* macdrv_order_cocoa_window(window, prev, next): below prev if there is
@@ -296,6 +305,11 @@ enum {
     WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
     WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
     WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
+    /* Questions the driver answers with messages, not a reply:
+     * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);
+     * QUERY_RESIZE_START: the user is starting to resize or move the window
+     * (WM_ENTERSIZEMOVE; WINDOW_RESIZE_ENDED ends it); window_min_max follows. */
+    WMH_EV_QUERY_MIN_MAX_INFO = 50, WMH_EV_QUERY_RESIZE_START,
 };
 
 /* WINDOW_FRAME_CHANGED flags */
@@ -337,6 +351,7 @@ WMH_ASSERT_SIZE(wmh_window_create, 56);
 WMH_ASSERT_SIZE(wmh_window_title, 520);
 WMH_ASSERT_SIZE(wmh_window_order, 16);
 WMH_ASSERT_SIZE(wmh_window_frame, 40);
+WMH_ASSERT_SIZE(wmh_window_min_max, 40);
 WMH_ASSERT_SIZE(wmh_surface_add, 16);
 WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
 WMH_ASSERT_SIZE(wmh_view_frame, 40);

@@ -37,10 +37,14 @@ Why: An app that embeds Wine wants a program's windows inside its own
  a system cursor by its NSCursor name, an image as an IOSurface (the
  first frame of an animated one), hidden; SetCursorPos and ClipCursor are
  passed on, and the cursor position is the last one the host reported.
- Repeated identical messages aren't resent.
+ The host can ask for a window's size limits (WM_GETMINMAXINFO) and say
+ a resize is starting; the driver posts those as queries without waiting
+ and answers with window_min_max. Repeated identical messages aren't
+ resent.
  Covered: the handshake, windows, GDI surfaces, OpenGL views, cursor,
- keys, mouse, focus, close and quit. Not yet: animated cursors, window
- shape and alpha, min/max sizes, Metal and Vulkan, displays_get, and
+ size limits, keys, mouse, focus, close and quit. Not yet: animated
+ cursors, window shape and alpha, Metal and Vulkan, displays_get, the
+ resize-size query, and
  window_get_frame as a call (the driver keeps the frame it last set or the
  host last reported).
 Programs: Second Chance (an app that embeds Wine): shows a program inside
@@ -48,7 +52,10 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (cursor, real host): through Second Chance's host in a
+Status: 2026-11-21 (size limits): with the test host, Notepad answered the
+ min/max query with min 111x0, max 5120x2880 (no limit, clamped to the
+ desktop as the plain driver does).
+ 2026-11-21 (cursor, real host): through Second Chance's host in a
  Screen Slots login: cursortest's hourglass became the host's NSCursor
  (32x32, hot 15,15); Notepad got the I-beam over its edit area and the
  arrow over its menu. Warp not exercised by any program yet.
@@ -192,7 +199,7 @@ diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,50 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -201,6 +208,7 @@ new file mode 100644
 +
 +#import <AppKit/AppKit.h>
 +#include "macdrv_cocoa.h"
++#include "wmh_protocol.h"
 +
 +@class WineEventQueue;
 +
@@ -217,6 +225,8 @@ new file mode 100644
 +    uint32_t        sent_features, sent_state;  /* the last sent, to skip repeats */
 +    BOOL            state_sent, parent_sent;
 +    uint32_t        sent_parent;
++    BOOL            min_max_sent;
++    struct wmh_window_min_max sent_min_max;
 +}
 +@property (readonly, nonatomic) WineEventQueue* queue;
 +@end
@@ -234,6 +244,7 @@ new file mode 100644
 +extern void host_set_parent_window(WineWindow *window, WineWindow *parent);
 +extern void host_window_set_io_surface(WineWindow *window, IOSurfaceRef surface, CGRect rect, CGRect dirty);
 +extern void host_give_window_focus(WineWindow *window, bool activate);
++extern void host_set_window_min_max(WineWindow *window, CGSize min_size, CGSize max_size);
 +extern void host_window_rejected_focus(WineWindow *window);
 +extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
 +extern int host_get_cursor_position(CGPoint *pos);
@@ -243,7 +254,7 @@ diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -0,0 +1,1098 @@
+@@ -0,0 +1,1134 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -486,6 +497,23 @@ new file mode 100644
 +    unsigned long time_ms = event_time_ms(ev->time);
 +    int type;
 +
++    /* Queries are posted without waiting: the answer goes back as messages. */
++    if (ev->type == WMH_EV_QUERY_MIN_MAX_INFO || ev->type == WMH_EV_QUERY_RESIZE_START)
++    {
++        macdrv_query *query;
++
++        if (!(window = window_for_id(ev->window))) return;
++        query = macdrv_create_query();
++        query->type = ev->type == WMH_EV_QUERY_MIN_MAX_INFO ? QUERY_MIN_MAX_INFO : QUERY_RESIZE_START;
++        query->window = (WineWindow *)[window retain];
++        event = macdrv_create_event(QUERY_EVENT, (WineWindow *)window);
++        event->query_event.query = macdrv_retain_query(query);
++        [window->queue postEvent:event];
++        macdrv_release_event(event);
++        macdrv_release_query(query);
++        return;
++    }
++
 +    /* The table holds macdrv's type + 1, so an unset slot is 0. */
 +    if (ev->type >= sizeof(types) / sizeof(types[0]) || !types[ev->type])
 +    {
@@ -499,6 +527,7 @@ new file mode 100644
 +        TRACE("host: event %u for unknown window %u\n", ev->type, ev->window);
 +        return;
 +    }
++
 +
 +    event = macdrv_create_event(type, (WineWindow *)window);
 +    switch (type)
@@ -958,6 +987,24 @@ new file mode 100644
 +    window->parent_sent = YES;
 +    window->sent_parent = msg.parent;
 +    host_send(WMH_KIND_WINDOW_PARENT, &msg, sizeof(msg));
++}
++
++void host_set_window_min_max(WineWindow *w, CGSize min_size, CGSize max_size)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_min_max msg;
++
++    memset(&msg, 0, sizeof(msg));
++    msg.window = window->wid;
++    msg.min_width = min_size.width;
++    msg.min_height = min_size.height;
++    /* No limit comes as CGFLOAT_MAX, possibly clamped to the desktop. */
++    msg.max_width = max_size.width >= 1e9 ? 0 : max_size.width;
++    msg.max_height = max_size.height >= 1e9 ? 0 : max_size.height;
++    if (window->min_max_sent && !memcmp(&msg, &window->sent_min_max, sizeof(msg))) return;
++    window->min_max_sent = YES;
++    window->sent_min_max = msg;
++    host_send(WMH_KIND_WINDOW_MIN_MAX, &msg, sizeof(msg));
 +}
 +
 +void host_give_window_focus(WineWindow *window, bool activate)
@@ -1502,7 +1549,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
   */
  void macdrv_set_window_min_max_sizes(WineWindow *window, CGSize min_size, CGSize max_size)
  {
-+    if (host_mode) return;  /* not in v1 */
++    if (host_mode) { host_set_window_min_max(window, min_size, max_size); return; }
      OnMainThread(^{
          [window setWineMinSize:NSSizeFromCGSize(cgsize_mac_from_win(min_size)) maxSize:NSSizeFromCGSize(cgsize_mac_from_win(max_size))];
      });
@@ -2117,7 +2164,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,351 @@
+@@ -0,0 +1,366 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2193,6 +2240,7 @@ new file mode 100644
 +    WMH_KIND_WINDOW_FOCUS,
 +    WMH_KIND_WINDOW_FRAME_READY,
 +    WMH_KIND_FOCUS_REJECTED,
++    WMH_KIND_WINDOW_MIN_MAX,
 +    WMH_KIND_VIEW_CREATE = 30,          /* struct wmh_view_ref */
 +    WMH_KIND_VIEW_DESTROY,              /* struct wmh_view_ref */
 +    WMH_KIND_VIEW_FRAME,
@@ -2274,6 +2322,14 @@ new file mode 100644
 +struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
 +struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
 +struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };
++
++/* The content size the user may resize the window to (WM_GETMINMAXINFO).
++ * 0 for a max dimension: no limit. */
++struct wmh_window_min_max {
++    wmh_window_id window;
++    uint32_t      reserved;
++    double        min_width, min_height, max_width, max_height;
++};
 +struct wmh_window_title  { wmh_window_id window; uint32_t reserved; char title[WMH_TITLE_MAX]; };
 +
 +/* macdrv_order_cocoa_window(window, prev, next): below prev if there is
@@ -2416,6 +2472,11 @@ new file mode 100644
 +    WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
 +    WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
 +    WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
++    /* Questions the driver answers with messages, not a reply:
++     * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);
++     * QUERY_RESIZE_START: the user is starting to resize or move the window
++     * (WM_ENTERSIZEMOVE; WINDOW_RESIZE_ENDED ends it); window_min_max follows. */
++    WMH_EV_QUERY_MIN_MAX_INFO = 50, WMH_EV_QUERY_RESIZE_START,
 +};
 +
 +/* WINDOW_FRAME_CHANGED flags */
@@ -2457,6 +2518,7 @@ new file mode 100644
 +WMH_ASSERT_SIZE(wmh_window_title, 520);
 +WMH_ASSERT_SIZE(wmh_window_order, 16);
 +WMH_ASSERT_SIZE(wmh_window_frame, 40);
++WMH_ASSERT_SIZE(wmh_window_min_max, 40);
 +WMH_ASSERT_SIZE(wmh_surface_add, 16);
 +WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
 +WMH_ASSERT_SIZE(wmh_view_frame, 40);
