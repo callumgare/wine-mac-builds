@@ -171,6 +171,16 @@ projects.
   another app's fullscreen Space even while it's inactive, which a
   regular app's don't. Only `NSWindowCollectionBehaviorFullScreenNone`
   keeps them out (0063).
+- For a crash someone else hits rarely, have them set AeDebug in the prefix
+  (`HKLM\Software\Microsoft\Windows NT\CurrentVersion\AeDebug`:
+  `Debugger` = `winedbg --minidump C:\users\Public\x.mdmp %ld %ld`,
+  `Auto` = `1`). It writes a minidump without opening winedbg's console
+  window. The module list, exception record, thread contexts and stack
+  memory in it can be read with a short Python script (stream types 3, 4,
+  5 and 6). A few code bytes around the faulting rip are often in the
+  memory list, enough to recognise the loop. 0068 was found this way: the
+  faulting loop was Chromium's stack copier, copying from a suspended
+  thread's reported rsp.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
