@@ -229,8 +229,10 @@ adjusted rect); the receive thread doesn't wait for the answer.
 - Status items (tray icons).
 - Input source lists.
 - OpenGL contexts themselves: only where a view's frames go changes.
-- `start_cocoa_app` starts no `NSApplication` in host mode, only the
-  receive thread. The process has no Dock icon of its own.
+- `NSApplication` still runs in host mode: the driver's main-thread
+  dispatch, event queues, displays, pasteboard and keyboard layouts rely
+  on it. The process never orders a window in, so it keeps the prohibited
+  activation policy: no Dock icon, menu bar or window of its own.
 
 ## Not in version 1
 
