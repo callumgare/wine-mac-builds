@@ -52,7 +52,12 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (size limits): with the test host, Notepad answered the
+Status: 2026-11-21 (size limits, real host): through Second Chance's host,
+ Notepad's limits (asked for after window_create) were applied as the
+ window's content min/max; a live resize (QUERY_RESIZE_START, then
+ FRAME_CHANGED and RESIZE_ENDED) stopped at 111 wide, Notepad redrew at
+ that size from a new surface, and quit cleanly.
+ 2026-11-21 (size limits): with the test host, Notepad answered the
  min/max query with min 111x0, max 5120x2880 (no limit, clamped to the
  desktop as the plain driver does).
  2026-11-21 (cursor, real host): through Second Chance's host in a
