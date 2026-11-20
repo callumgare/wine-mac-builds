@@ -33,9 +33,11 @@ mode. If the variable is unset, the look-up fails or the handshake fails
 
 Mach messages, both ways:
 
-- **Driver → host**: the host's service port, found with
+- **Driver → host**: `hello` goes to the host's service port, found with
   `bootstrap_look_up`. The host checks the name in with
-  `bootstrap_check_in`, one name per host instance.
+  `bootstrap_check_in`, one name per host instance. `hello_reply` carries a
+  send right to a port the host makes for this connection, and everything
+  after `hello` goes there, so the host can tell processes apart.
 - **Host → driver**: a receive right the driver creates and sends in
   `hello`. A driver thread receives on it.
 

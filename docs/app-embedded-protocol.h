@@ -21,8 +21,11 @@
  * are ignored; a call of an unknown kind is answered with a WMH_KIND_REPLY
  * whose status is WMH_STATUS_UNSUPPORTED.
  *
- * Driver -> host goes to the host's service port; host -> driver to the
- * receive right the driver sends in hello. Each direction is ordered.
+ * hello goes to the host's service port. The host answers with a port of
+ * its own for this connection (in hello_reply), and the driver sends
+ * everything after hello there, so the host knows which process each
+ * message comes from. Host -> driver goes to the receive right the driver
+ * sends in hello. Each direction is ordered.
  *
  * Ids (window, surface) are chosen by the driver, per connection, never 0,
  * never reused while live. 0 means "none".
@@ -76,7 +79,7 @@ enum {
     WMH_KIND_QUIT_REPLY = 80,
 
     /* ---- host -> driver ---- */
-    WMH_KIND_HELLO_REPLY = 1001,
+    WMH_KIND_HELLO_REPLY = 1001,        /* PORTS: [0] send right to the host's port for this connection */
     WMH_KIND_REPLY,                     /* struct wmh_reply, then the call's reply struct */
     WMH_KIND_SURFACE_RELEASE = 1010,
     WMH_KIND_EVENT = 1020,              /* struct wmh_event */
@@ -99,6 +102,7 @@ struct wmh_hello {
     char     exe_name[WMH_EXE_NAME_MAX]; /* "Game.exe", as AppDefaults names it; NUL-terminated */
 };
 
+/* A refusal (version 0) needs no port. */
 struct wmh_hello_reply {
     uint32_t protocol_version;          /* 0: the host won't take this process */
     uint32_t features;
