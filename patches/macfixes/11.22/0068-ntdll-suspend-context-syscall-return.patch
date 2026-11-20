@@ -39,7 +39,11 @@ Evidence: Two minidumps (both 11.22-build0): the faulting loop is
  253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
  234757.
 Applies to: wine 11.22 (macfixes, after 0067)
-Status: 2026-11-21: not yet in a build. Tested by swapping a ntdll.so built
+Status: 2026-11-21 (later): confirmed with Steam by Second Chance on meeka,
+ with the same swapped tree: 0 crashes in 28 Steam starts (Blue Moon
+ Canyon x3 and the four games whose launches crashed on build0), against
+ 7 in about 35 on 11.22-build0 the same night. Still not in a build.
+ 2026-11-21: not yet in a build. Tested by swapping a ntdll.so built
  with it into 11.22-build0 on meeka (macOS 26.7.2): the regression test
  suspend-context-syscall-return passes (163987 contexts, none outside the
  stack; a longer probe: 0 of 315133); on build0 it fails (49579 of 163306).
