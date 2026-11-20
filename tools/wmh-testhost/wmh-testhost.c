@@ -33,7 +33,8 @@ struct conn {
     int pid;
     char exe[64];
     IOSurfaceRef surfaces[MAXW];
-    unsigned frames[MAXW], visible[MAXW], view_frames[MAXW], view_window[MAXW];
+    unsigned frames[MAXW], visible[MAXW], view_frames[MAXW], view_window[MAXW], moved[MAXW];
+    struct wmh_rect wframe[MAXW];
     char titles[MAXW][64];
 };
 static struct conn conns[32];
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
         if (w->kind == WMH_KIND_HELLO && m.h.msgh_local_port == service && nconns < 32)
         {
             struct wmh_hello *h = pl;
-            struct wmh_hello_reply r = { WMH_PROTOCOL_VERSION, WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS };
+            struct wmh_hello_reply r = { WMH_PROTOCOL_VERSION, WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS | WMH_FEATURE_CURSOR };
             c = &conns[nconns++];
             c->driver = port;
             c->pid = h->pid;
@@ -180,6 +181,7 @@ int main(int argc, char **argv)
         {
         case WMH_KIND_WINDOW_CREATE: {
             struct wmh_window_create *cr = pl;
+            if (cr->window < MAXW) c->wframe[cr->window] = cr->frame;
             printf("host: %s window_create %u owner %u features %#x frame %.0f,%.0f %.0fx%.0f\n", c->exe, cr->window,
                    cr->owner, cr->features, cr->frame.x, cr->frame.y, cr->frame.width, cr->frame.height);
             break; }
@@ -209,6 +211,7 @@ int main(int argc, char **argv)
             break; }
         case WMH_KIND_WINDOW_FRAME: {
             struct wmh_window_frame *f = pl;
+            if (f->window < MAXW) c->wframe[f->window] = f->frame;
             printf("host: %s window_frame %u %.0f,%.0f %.0fx%.0f\n", c->exe, f->window, f->frame.x, f->frame.y, f->frame.width, f->frame.height);
             break; }
         case WMH_KIND_SURFACE_ADD: {
@@ -258,10 +261,43 @@ int main(int argc, char **argv)
                 save_png(c, "view", f->view, c->surfaces[f->surface], f->flags & WMH_SURFACE_BOTTOM_UP);
             send_to(c->driver, WMH_KIND_SURFACE_RELEASE, &r, sizeof(r), 0, 0);
             break; }
+        case WMH_KIND_CURSOR_SET: {
+            struct wmh_cursor_set *cs = pl;
+            if (cs->type == WMH_CURSOR_SYSTEM) printf("host: %s cursor_set system %s\n", c->exe, cs->name);
+            else if (cs->type == WMH_CURSOR_IMAGE)
+            {
+                IOSurfaceRef img = port ? IOSurfaceLookupFromMachPort(port) : NULL;
+                printf("host: %s cursor_set image %ux%u hot %.0f,%.0f %s\n", c->exe, cs->width, cs->height,
+                       cs->hot_x, cs->hot_y, img ? "mapped" : "NOT MAPPED");
+                if (img) { save_png(c, "cursor", 0, img, 0); CFRelease(img); }
+                if (port) mach_port_deallocate(mach_task_self(), port);
+            }
+            else printf("host: %s cursor_set hidden\n", c->exe);
+            break; }
+        case WMH_KIND_CURSOR_WARP: {
+            struct wmh_cursor_warp *cw = pl;
+            printf("host: %s cursor_warp %.0f,%.0f\n", c->exe, cw->x, cw->y);
+            break; }
+        case WMH_KIND_CURSOR_CLIP: {
+            struct wmh_cursor_clip *cc = pl;
+            printf("host: %s cursor_clip %u %.0f,%.0f %.0fx%.0f\n", c->exe, cc->clipped, cc->rect.x, cc->rect.y, cc->rect.width, cc->rect.height);
+            break; }
         default:
             printf("host: %s kind %u\n", c->exe, w->kind);
             break;
         }
+        /* After a window's first frame, move the pointer to its centre, so the
+           program sets its cursor. */
+        for (uint32_t i = 1; i < MAXW; i++)
+            if (c->frames[i] && !c->moved[i] && c->visible[i])
+            {
+                struct wmh_event ev = { .type = WMH_EV_MOUSE_MOVED_ABSOLUTE, .window = i,
+                                        .x = c->wframe[i].x + c->wframe[i].width / 2,
+                                        .y = c->wframe[i].y + c->wframe[i].height / 2 };
+                c->moved[i] = 1;
+                printf("host: %s moving the pointer to %.0f,%.0f in window %u\n", c->exe, ev.x, ev.y, i);
+                send_to(c->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+            }
         fflush(stdout);
     }
     for (int ci = 0; ci < nconns; ci++)

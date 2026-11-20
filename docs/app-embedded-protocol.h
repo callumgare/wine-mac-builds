@@ -30,9 +30,11 @@
  * Ids (window, surface) are chosen by the driver, per connection, never 0,
  * never reused while live. 0 means "none".
  *
- * Positions and sizes are in the protocol's space (see the design doc):
- * points, origin at the top left of the primary display, y down, as doubles.
- * Surface sizes are in pixels.
+ * Positions and sizes are in the protocol's space (see the design doc): the
+ * units the Mac driver uses between its C and Cocoa halves, origin at the
+ * top left of the primary display, y down, as doubles. They're points
+ * unless Wine's RetinaMode is on, when they're pixels (the host halves
+ * them). Surface sizes are in pixels.
  */
 
 #ifndef WMH_PROTOCOL_H
@@ -76,6 +78,9 @@ enum {
     WMH_KIND_VIEW_FRAME,
     WMH_KIND_VIEW_HIDDEN,
     WMH_KIND_VIEW_FRAME_READY,
+    WMH_KIND_CURSOR_SET = 50,           /* PORTS (image only): [0] the image's IOSurface, moved */
+    WMH_KIND_CURSOR_WARP,
+    WMH_KIND_CURSOR_CLIP,
     WMH_KIND_SURFACE_ADD = 40,          /* PORTS: [0] the IOSurface (IOSurfaceCreateMachPort), moved */
     WMH_KIND_SURFACE_REMOVE,
     WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
@@ -97,7 +102,7 @@ enum {
 #define WMH_FEATURE_GDI_SURFACES  (1u << 0)
 #define WMH_FEATURE_INPUT         (1u << 1)
 #define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* takes view surfaces */
-#define WMH_FEATURE_CURSOR        (1u << 3)   /* not in the first part */
+#define WMH_FEATURE_CURSOR        (1u << 3)   /* takes cursor_set, cursor_warp, cursor_clip */
 
 struct wmh_hello {
     uint32_t protocol_version;          /* WMH_PROTOCOL_VERSION */
@@ -177,8 +182,7 @@ struct wmh_surface_ref { wmh_surface_id surface; uint32_t reserved; };  /* remov
 /* The surface belongs to the host from here until it sends surface_release.
  * rect: where the surface goes in the window's content area; dirty: the
  * part that changed, a hint (the host shows the whole surface). Both in
- * points, relative to the content area, as the plain driver's
- * -setSurfaceRect: and -setNeedsDisplayInRect: get them. A host drops (and
+ * the protocol's space, relative to the content area. A host drops (and
  * releases) a frame whose width and height don't match the surface as
  * registered. */
 struct wmh_window_frame_ready {
@@ -217,6 +221,43 @@ struct wmh_view_frame_ready {
     uint32_t       width, height;       /* as registered */
     uint32_t       flags;               /* WMH_SURFACE_* */
     uint32_t       reserved;
+};
+
+/* ---- cursor ----
+ *
+ * cursor_set: what the pointer looks like over the program's windows. A
+ * system cursor is named as NSCursor's class method ("arrowCursor",
+ * "IBeamCursor", "pointingHandCursor", ...). An image comes as a BGRA
+ * IOSurface (premultiplied, top row first), shown at one point per image
+ * pixel, with its hot spot in image pixels; animated cursors send their
+ * first frame. The driver sends it when the cursor changes.
+ *
+ * cursor_warp: the program moved the pointer (SetCursorPos). The host
+ * decides whether to move the real one; either way, its next mouse events
+ * say where the pointer is.
+ *
+ * cursor_clip: the program confined the pointer (ClipCursor) to a rect, or
+ * released it. A host that can't confine the real pointer can keep its
+ * reported positions inside the rect. */
+
+#define WMH_CURSOR_HIDDEN 0u
+#define WMH_CURSOR_SYSTEM 1u
+#define WMH_CURSOR_IMAGE  2u
+
+struct wmh_cursor_set {
+    uint32_t type;                      /* WMH_CURSOR_* */
+    uint32_t width, height;             /* IMAGE: pixels */
+    uint32_t reserved;
+    double   hot_x, hot_y;              /* IMAGE: image pixels from the top left */
+    char     name[64];                  /* SYSTEM: NUL-terminated */
+};
+
+struct wmh_cursor_warp { double x, y; };
+
+struct wmh_cursor_clip {
+    uint32_t        clipped;            /* 0: released */
+    uint32_t        reserved;
+    struct wmh_rect rect;
 };
 
 /* ---- calls and replies ---- */
@@ -300,6 +341,8 @@ WMH_ASSERT_SIZE(wmh_surface_add, 16);
 WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
 WMH_ASSERT_SIZE(wmh_view_frame, 40);
 WMH_ASSERT_SIZE(wmh_view_frame_ready, 24);
+WMH_ASSERT_SIZE(wmh_cursor_set, 96);
+WMH_ASSERT_SIZE(wmh_cursor_clip, 40);
 WMH_ASSERT_SIZE(wmh_reply, 8);
 WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 WMH_ASSERT_SIZE(wmh_event, 104);

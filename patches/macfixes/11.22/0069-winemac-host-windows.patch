@@ -33,10 +33,13 @@ Why: An app that embeds Wine wants a program's windows inside its own
  the driver hands out, to an FBO on an IOSurface from the view's pool;
  each present finishes, sends the surface (bottom-up) and points the FBO
  at a free one. Win32u, opengl32 and wined3d are unchanged. The context
- is kept current with no view attached. Repeated identical window and
- view messages aren't resent.
- Covered: the handshake, windows, GDI surfaces, OpenGL views, keys, mouse,
- focus, close and quit. Not yet: cursor shapes, warp and clip, window
+ is kept current with no view attached. The cursor goes to the host too:
+ a system cursor by its NSCursor name, an image as an IOSurface (the
+ first frame of an animated one), hidden; SetCursorPos and ClipCursor are
+ passed on, and the cursor position is the last one the host reported.
+ Repeated identical messages aren't resent.
+ Covered: the handshake, windows, GDI surfaces, OpenGL views, cursor,
+ keys, mouse, focus, close and quit. Not yet: animated cursors, window
  shape and alpha, min/max sizes, Metal and Vulkan, displays_get, and
  window_get_frame as a call (the driver keeps the frame it last set or the
  host last reported).
@@ -45,7 +48,16 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (views): with winemac.so built with the views swapped
+Status: 2026-11-21 (cursor): with the test host, on the same swapped
+ tree: Notepad's I-beam came as the system cursor "IBeamCursor" once the
+ pointer was over its edit area, and a window using IDC_WAIT got the
+ hourglass as a 32x32 image with its hot spot at 15,15. Warp and clip
+ messages arrive; neither was exercised by a program that needs them.
+ Views confirmed by Second Chance's host in a Screen Slots login: the GL
+ and D3D9 tests showed right (flipped as the flag says) and closed;
+ d3d9test took 18.3 s for 279 frames in host mode against 19.9 s on the
+ plain driver from the same tree, on the same loaded Mac.
+ 2026-11-21 (views): with winemac.so built with the views swapped
  into the same tree, and the test host: an OpenGL test window (scissored
  clears) and a Direct3D 9 one (wined3d, windowed) each showed as a view,
  their pictures right after flipping, and closed on request. A first
@@ -91,11 +103,10 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
  #import "cocoa_cursorclipping.h"
  #import "cocoa_event.h"
  #import "cocoa_window.h"
-@@ -114,6 +115,23 @@
- 
+@@ -115,6 +116,23 @@
  
  @implementation WineApplicationController
-+
+ 
 +/***********************************************************************
 + *              macdrv_host_post_app_event
 + *
@@ -112,9 +123,10 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
 +        [queue postEvent:event];
 +    [controller->eventQueuesLock unlock];
 +}
- 
++
      @synthesize keyboardType, lastFlagsChanged;
      @synthesize applicationIcon;
+     @synthesize cursorFrames, cursorTimer, cursor;
 @@ -2405,6 +2423,11 @@
   */
  void macdrv_window_rejected_focus(const macdrv_event *event)
@@ -127,7 +139,44 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      OnMainThread(^{
          [[WineApplicationController sharedController] windowRejectedFocusEvent:event];
      });
-@@ -2644,6 +2667,7 @@
+@@ -2486,6 +2509,12 @@
+ void macdrv_set_cursor(CFStringRef name, CFArrayRef frames)
+ {
+     SEL sel;
++
++    if (host_mode)
++    {
++        host_set_cursor(name, frames);
++        return;
++    }
+ 
+     sel = NSSelectorFromString((NSString*)name);
+     if (sel)
+@@ -2525,6 +2554,7 @@
+  */
+ int macdrv_get_cursor_position(CGPoint *pos)
+ {
++    if (host_mode) return host_get_cursor_position(pos);
+     OnMainThread(^{
+         NSPoint location = [NSEvent mouseLocation];
+         location = [[WineApplicationController sharedController] flippedMouseLocation:location];
+@@ -2542,6 +2572,7 @@
+  */
+ int macdrv_set_cursor_position(CGPoint pos)
+ {
++    if (host_mode) return host_set_cursor_position(pos);
+     __block int ret;
+ 
+     OnMainThread(^{
+@@ -2560,6 +2591,7 @@
+  */
+ int macdrv_clip_cursor(CGRect r)
+ {
++    if (host_mode) return host_clip_cursor(r);
+     __block int ret;
+ 
+     OnMainThread(^{
+@@ -2644,6 +2676,7 @@
   */
  void macdrv_set_mouse_capture_window(WineWindow *window)
  {
@@ -139,7 +188,7 @@ diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,46 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -162,7 +211,8 @@ new file mode 100644
 +    CGRect          frame;
 +    NSMutableArray *surfaces;       /* WineHostSurface, all the same size */
 +    uint32_t        sent_features, sent_state;  /* the last sent, to skip repeats */
-+    BOOL            state_sent;
++    BOOL            state_sent, parent_sent;
++    uint32_t        sent_parent;
 +}
 +@property (readonly, nonatomic) WineEventQueue* queue;
 +@end
@@ -181,11 +231,15 @@ new file mode 100644
 +extern void host_window_set_io_surface(WineWindow *window, IOSurfaceRef surface, CGRect rect, CGRect dirty);
 +extern void host_give_window_focus(WineWindow *window, bool activate);
 +extern void host_window_rejected_focus(WineWindow *window);
++extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
++extern int host_get_cursor_position(CGPoint *pos);
++extern int host_set_cursor_position(CGPoint pos);
++extern int host_clip_cursor(CGRect rect);
 diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -0,0 +1,973 @@
+@@ -0,0 +1,1098 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -227,6 +281,8 @@ new file mode 100644
 +static NSMutableDictionary *views_by_id;           /* NSNumber -> WineHostView */
 +static uint32_t next_view_id = 1;
 +static uint32_t next_window_id = 1, next_surface_id = 1;
++static CGPoint pointer;                             /* where the host last said the pointer is */
++static CFTypeRef sent_cursor;                       /* the name or frames last sent, retained */
 +
 +#define SEND_TIMEOUT_MS 1000
 +#define MAX_SURFACES_PER_WINDOW 3
@@ -450,6 +506,7 @@ new file mode 100644
 +        event->key.time_ms = time_ms;
 +        break;
 +    case MOUSE_BUTTON:
++        pointer = CGPointMake(ev->x, ev->y);
 +        event->mouse_button.button = ev->button;
 +        event->mouse_button.pressed = ev->pressed != 0;
 +        event->mouse_button.x = floor(ev->x);
@@ -458,6 +515,7 @@ new file mode 100644
 +        break;
 +    case MOUSE_MOVED_ABSOLUTE:
 +    case MOUSE_MOVED_RELATIVE:
++        if (type == MOUSE_MOVED_ABSOLUTE) pointer = CGPointMake(ev->x, ev->y);
 +        event->mouse_moved.x = floor(ev->x);
 +        event->mouse_moved.y = floor(ev->y);
 +        event->mouse_moved.drag = ev->pressed != 0;
@@ -634,7 +692,7 @@ new file mode 100644
 +
 +    memset(&hello, 0, sizeof(hello));
 +    hello.protocol_version = WMH_PROTOCOL_VERSION;
-+    hello.features = WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS;
++    hello.features = WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS | WMH_FEATURE_CURSOR;
 +    hello.pid = getpid();
 +    strlcpy(hello.exe_name, exe_name ? exe_name : "", sizeof(hello.exe_name));
 +    if (!host_send_port(WMH_KIND_HELLO, driver_port, MACH_MSG_TYPE_MAKE_SEND, &hello, sizeof(hello)))
@@ -887,9 +945,14 @@ new file mode 100644
 +    pthread_mutex_unlock(&host_lock);
 +}
 +
-+void host_set_parent_window(WineWindow *window, WineWindow *parent)
++void host_set_parent_window(WineWindow *w, WineWindow *parent)
 +{
-+    struct wmh_window_parent msg = { window_id(window), window_id(parent) };
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_parent msg = { window->wid, window_id(parent) };
++
++    if (window->parent_sent && window->sent_parent == msg.parent) return;
++    window->parent_sent = YES;
++    window->sent_parent = msg.parent;
 +    host_send(WMH_KIND_WINDOW_PARENT, &msg, sizeof(msg));
 +}
 +
@@ -1027,8 +1090,8 @@ new file mode 100644
 +    msg.window = window->wid;
 +    msg.width = IOSurfaceGetWidth(surface);
 +    msg.height = IOSurfaceGetHeight(surface);
-+    msg.rect = wmh_rect_from(cgrect_mac_from_win(rect));
-+    msg.dirty = wmh_rect_from(cgrect_mac_from_win(dirty));
++    msg.rect = wmh_rect_from(rect);
++    msg.dirty = wmh_rect_from(dirty);
 +    host_send(WMH_KIND_WINDOW_FRAME_READY, &msg, sizeof(msg));
 +}
 +
@@ -1077,8 +1140,8 @@ new file mode 100644
 +    host_send(WMH_KIND_VIEW_DESTROY, &msg, sizeof(msg));
 +}
 +
-+/* frame: in the window's content area, in Win32 units (as the plain driver
-+   gives macdrv_set_view_frame). */
++/* frame: in the window's content area, in the protocol's space (the units
++   macdrv_set_view_frame gets). */
 +void macdrv_host_view_set_frame(unsigned int vid, WineWindow *window, CGRect frame)
 +{
 +    struct wmh_view_frame msg;
@@ -1089,7 +1152,7 @@ new file mode 100644
 +    if (!vid) return;
 +    msg.view = vid;
 +    msg.window = window_id(window);
-+    msg.frame = wmh_rect_from(cgrect_mac_from_win(frame));
++    msg.frame = wmh_rect_from(frame);
 +    pthread_mutex_lock(&host_lock);
 +    if ((view = view_for_id(vid)))
 +    {
@@ -1158,6 +1221,122 @@ new file mode 100644
 +    msg.height = IOSurfaceGetHeight(surface);
 +    msg.flags = WMH_SURFACE_BOTTOM_UP;
 +    host_send(WMH_KIND_VIEW_FRAME_READY, &msg, sizeof(msg));
++}
++
++
++/***********************************************************************
++ *              cursor
++ */
++static IOSurfaceRef surface_from_image(CGImageRef image)
++{
++    size_t width = CGImageGetWidth(image), height = CGImageGetHeight(image);
++    const void *keys[] = { kIOSurfaceWidth, kIOSurfaceHeight, kIOSurfaceBytesPerElement, kIOSurfacePixelFormat };
++    uint32_t values_raw[] = { width, height, 4, 'BGRA' };
++    const void *values[4];
++    CFDictionaryRef props;
++    IOSurfaceRef surface;
++    CGColorSpaceRef space;
++    CGContextRef ctx;
++    int i;
++
++    for (i = 0; i < 4; i++) values[i] = CFNumberCreate(NULL, kCFNumberSInt32Type, &values_raw[i]);
++    props = CFDictionaryCreate(NULL, keys, values, 4, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
++    surface = IOSurfaceCreate(props);
++    CFRelease(props);
++    for (i = 0; i < 4; i++) CFRelease(values[i]);
++    if (!surface) return NULL;
++
++    IOSurfaceLock(surface, 0, NULL);
++    space = CGColorSpaceCreateDeviceRGB();
++    ctx = CGBitmapContextCreate(IOSurfaceGetBaseAddress(surface), width, height, 8, IOSurfaceGetBytesPerRow(surface),
++                                space, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
++    if (ctx)
++    {
++        CGContextClearRect(ctx, CGRectMake(0, 0, width, height));
++        CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), image);
++        CGContextRelease(ctx);
++    }
++    CGColorSpaceRelease(space);
++    IOSurfaceUnlock(surface, 0, NULL);
++    return surface;
++}
++
++/* name: an NSCursor class method, or frames: Wine's cursor frames (the
++   first is sent); neither: hide the cursor. */
++void host_set_cursor(CFStringRef name, CFArrayRef frames)
++{
++    struct wmh_cursor_set msg;
++    CFTypeRef which = name ? (CFTypeRef)name : (CFTypeRef)frames;
++
++    /* Programs set the same cursor over and over. */
++    if (which && sent_cursor && CFEqual(which, sent_cursor)) return;
++    if (!which && sent_cursor == kCFNull) return;
++    if (sent_cursor) CFRelease(sent_cursor);
++    sent_cursor = CFRetain(which ? which : kCFNull);
++
++    memset(&msg, 0, sizeof(msg));
++    if (name)
++    {
++        msg.type = WMH_CURSOR_SYSTEM;
++        CFStringGetCString(name, msg.name, sizeof(msg.name), kCFStringEncodingUTF8);
++        host_send(WMH_KIND_CURSOR_SET, &msg, sizeof(msg));
++    }
++    else if (frames && CFArrayGetCount(frames))
++    {
++        CFDictionaryRef frame = CFArrayGetValueAtIndex(frames, 0);
++        CGImageRef image = (CGImageRef)CFDictionaryGetValue(frame, CFSTR("image"));
++        CFDictionaryRef hot = CFDictionaryGetValue(frame, CFSTR("hotSpot"));
++        CGPoint hot_spot = CGPointZero;
++        IOSurfaceRef surface;
++
++        if (!image || !(surface = surface_from_image(image))) return;
++        if (hot) CGPointMakeWithDictionaryRepresentation(hot, &hot_spot);
++        msg.type = WMH_CURSOR_IMAGE;
++        msg.width = IOSurfaceGetWidth(surface);
++        msg.height = IOSurfaceGetHeight(surface);
++        msg.hot_x = hot_spot.x;
++        msg.hot_y = hot_spot.y;
++        host_send_port(WMH_KIND_CURSOR_SET, IOSurfaceCreateMachPort(surface), MACH_MSG_TYPE_MOVE_SEND, &msg, sizeof(msg));
++        CFRelease(surface);
++    }
++    else
++    {
++        msg.type = WMH_CURSOR_HIDDEN;
++        host_send(WMH_KIND_CURSOR_SET, &msg, sizeof(msg));
++    }
++}
++
++int host_get_cursor_position(CGPoint *pos)
++{
++    *pos = pointer;
++    return 1;
++}
++
++int host_set_cursor_position(CGPoint pos)
++{
++    struct wmh_cursor_warp msg = { pos.x, pos.y };
++
++    pointer = pos;
++    return host_send(WMH_KIND_CURSOR_WARP, &msg, sizeof(msg));
++}
++
++int host_clip_cursor(CGRect rect)
++{
++    static struct wmh_cursor_clip sent = { 0 };
++    static BOOL clip_sent;
++    struct wmh_cursor_clip msg;
++
++    memset(&msg, 0, sizeof(msg));
++    /* An infinite rect (CGRectInfinite) releases the clip, as for the plain driver. */
++    if (!CGRectIsInfinite(rect) && !CGRectIsNull(rect))
++    {
++        msg.clipped = 1;
++        msg.rect = wmh_rect_from(rect);
++    }
++    if (clip_sent && !memcmp(&msg, &sent, sizeof(msg))) return 1;
++    clip_sent = TRUE;
++    sent = msg;
++    return host_send(WMH_KIND_CURSOR_CLIP, &msg, sizeof(msg));
 +}
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 --- a/dlls/winemac.drv/cocoa_window.m
@@ -1934,7 +2113,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,308 @@
+@@ -0,0 +1,351 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -1967,9 +2146,11 @@ new file mode 100644
 + * Ids (window, surface) are chosen by the driver, per connection, never 0,
 + * never reused while live. 0 means "none".
 + *
-+ * Positions and sizes are in the protocol's space (see the design doc):
-+ * points, origin at the top left of the primary display, y down, as doubles.
-+ * Surface sizes are in pixels.
++ * Positions and sizes are in the protocol's space (see the design doc): the
++ * units the Mac driver uses between its C and Cocoa halves, origin at the
++ * top left of the primary display, y down, as doubles. They're points
++ * unless Wine's RetinaMode is on, when they're pixels (the host halves
++ * them). Surface sizes are in pixels.
 + */
 +
 +#ifndef WMH_PROTOCOL_H
@@ -2013,6 +2194,9 @@ new file mode 100644
 +    WMH_KIND_VIEW_FRAME,
 +    WMH_KIND_VIEW_HIDDEN,
 +    WMH_KIND_VIEW_FRAME_READY,
++    WMH_KIND_CURSOR_SET = 50,           /* PORTS (image only): [0] the image's IOSurface, moved */
++    WMH_KIND_CURSOR_WARP,
++    WMH_KIND_CURSOR_CLIP,
 +    WMH_KIND_SURFACE_ADD = 40,          /* PORTS: [0] the IOSurface (IOSurfaceCreateMachPort), moved */
 +    WMH_KIND_SURFACE_REMOVE,
 +    WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
@@ -2034,7 +2218,7 @@ new file mode 100644
 +#define WMH_FEATURE_GDI_SURFACES  (1u << 0)
 +#define WMH_FEATURE_INPUT         (1u << 1)
 +#define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* takes view surfaces */
-+#define WMH_FEATURE_CURSOR        (1u << 3)   /* not in the first part */
++#define WMH_FEATURE_CURSOR        (1u << 3)   /* takes cursor_set, cursor_warp, cursor_clip */
 +
 +struct wmh_hello {
 +    uint32_t protocol_version;          /* WMH_PROTOCOL_VERSION */
@@ -2114,8 +2298,7 @@ new file mode 100644
 +/* The surface belongs to the host from here until it sends surface_release.
 + * rect: where the surface goes in the window's content area; dirty: the
 + * part that changed, a hint (the host shows the whole surface). Both in
-+ * points, relative to the content area, as the plain driver's
-+ * -setSurfaceRect: and -setNeedsDisplayInRect: get them. A host drops (and
++ * the protocol's space, relative to the content area. A host drops (and
 + * releases) a frame whose width and height don't match the surface as
 + * registered. */
 +struct wmh_window_frame_ready {
@@ -2154,6 +2337,43 @@ new file mode 100644
 +    uint32_t       width, height;       /* as registered */
 +    uint32_t       flags;               /* WMH_SURFACE_* */
 +    uint32_t       reserved;
++};
++
++/* ---- cursor ----
++ *
++ * cursor_set: what the pointer looks like over the program's windows. A
++ * system cursor is named as NSCursor's class method ("arrowCursor",
++ * "IBeamCursor", "pointingHandCursor", ...). An image comes as a BGRA
++ * IOSurface (premultiplied, top row first), shown at one point per image
++ * pixel, with its hot spot in image pixels; animated cursors send their
++ * first frame. The driver sends it when the cursor changes.
++ *
++ * cursor_warp: the program moved the pointer (SetCursorPos). The host
++ * decides whether to move the real one; either way, its next mouse events
++ * say where the pointer is.
++ *
++ * cursor_clip: the program confined the pointer (ClipCursor) to a rect, or
++ * released it. A host that can't confine the real pointer can keep its
++ * reported positions inside the rect. */
++
++#define WMH_CURSOR_HIDDEN 0u
++#define WMH_CURSOR_SYSTEM 1u
++#define WMH_CURSOR_IMAGE  2u
++
++struct wmh_cursor_set {
++    uint32_t type;                      /* WMH_CURSOR_* */
++    uint32_t width, height;             /* IMAGE: pixels */
++    uint32_t reserved;
++    double   hot_x, hot_y;              /* IMAGE: image pixels from the top left */
++    char     name[64];                  /* SYSTEM: NUL-terminated */
++};
++
++struct wmh_cursor_warp { double x, y; };
++
++struct wmh_cursor_clip {
++    uint32_t        clipped;            /* 0: released */
++    uint32_t        reserved;
++    struct wmh_rect rect;
 +};
 +
 +/* ---- calls and replies ---- */
@@ -2237,6 +2457,8 @@ new file mode 100644
 +WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
 +WMH_ASSERT_SIZE(wmh_view_frame, 40);
 +WMH_ASSERT_SIZE(wmh_view_frame_ready, 24);
++WMH_ASSERT_SIZE(wmh_cursor_set, 96);
++WMH_ASSERT_SIZE(wmh_cursor_clip, 40);
 +WMH_ASSERT_SIZE(wmh_reply, 8);
 +WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 +WMH_ASSERT_SIZE(wmh_event, 104);
