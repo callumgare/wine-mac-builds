@@ -29,7 +29,7 @@ Programs: Steam's client (64-bit, its Chromium/CEF), since the client update
  started from Steam quit with it
 Uncertain: Linux has the same window (frame+0x70 before iretq) without the
  extra system call, so there it should be rare; not tested there.
-Evidence: Two minidumps (11.22-build0 and -build15): the faulting loop is
+Evidence: Two minidumps (both 11.22-build0): the faulting loop is
  Chromium's CopyStackContentsAndRewritePointers, copying from 0x410 below a
  thread's stack reservation (the dispatcher's kernel rsp) to its stack
  base, and it faults on reaching the reservation's first page. A probe that
