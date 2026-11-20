@@ -1,30 +1,35 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * App-embedded Mac driver: host protocol wire format, version 1 (draft).
- * The design is docs/app-embedded-protocol.md; this file fixes the bytes.
- * The driver (winemac.drv, x86_64 under Rosetta 2) and hosts (any
- * architecture) both use it. Swift can import it through a bridging header
- * or module map.
+ * The design is docs/app-embedded-protocol.md; this file fixes the bytes,
+ * and is the one copy: the driver and every host use it as is. Plain C,
+ * fixed-width fields, no pointers, no bool, no enums in structs. The sizes
+ * are the same on x86_64 (the driver, under Rosetta 2) and arm64; the
+ * static asserts at the end check them.
  *
  * Every message is one Mach message:
  *
- *   mach_msg_header_t      msgh_id = the message kind (WMH_*)
- *   [mach_msg_body_t + descriptors]   only for the kinds marked "port" below
- *   struct wmh_header      the same kind again, and the serial
- *   the kind's payload     struct wmh_<kind>, then any trailing bytes
+ *     mach_msg_header_t                    msgh_id = WMH_MSG_ID, always
+ *     [mach_msg_body_t + port descriptors] only for the kinds marked PORTS
+ *     struct wmh_header                    kind, serial
+ *     the kind's payload struct
  *
- * A message with descriptors sets MACH_MSGH_BITS_COMPLEX. Payloads use
- * fixed-width types and explicit padding only, so they're the same on
- * x86_64 and arm64; the static asserts at the end check the sizes.
- * Variable-length text (UTF-8, not NUL-terminated) follows its struct, and
- * the struct says how long it is; the message is padded to 4 bytes.
+ * msgh_bits has MACH_MSGH_BITS_COMPLEX set exactly when descriptors follow.
+ * A message shorter than its kind's payload is dropped (and logged). A
+ * longer one is read up to the fields the receiver knows, so either side can
+ * add fields at the end of a payload without a version change. Unknown kinds
+ * are ignored; a call of an unknown kind is answered with a WMH_KIND_REPLY
+ * whose status is WMH_STATUS_UNSUPPORTED.
  *
- * Ids (window, view, surface) are chosen by the driver, per connection,
- * and never 0. 0 means "none".
+ * Driver -> host goes to the host's service port; host -> driver to the
+ * receive right the driver sends in hello. Each direction is ordered.
+ *
+ * Ids (window, surface) are chosen by the driver, per connection, never 0,
+ * never reused while live. 0 means "none".
  *
  * Positions and sizes are in the protocol's space (see the design doc):
- * points, origin at the top left of the primary display, y down. Surface
- * sizes are in pixels.
+ * points, origin at the top left of the primary display, y down, as doubles.
+ * Surface sizes are in pixels.
  */
 
 #ifndef WMH_PROTOCOL_H
@@ -32,249 +37,231 @@
 
 #include <stdint.h>
 
-#define WMH_PROTOCOL_VERSION 1
+#define WMH_PROTOCOL_VERSION 1u
+#define WMH_MSG_ID           0x574d4831u /* 'WMH1' */
 
-/* Longest text that follows a struct (a title, an exe name). */
-#define WMH_MAX_TEXT 4096
+#define WMH_EXE_NAME_MAX     256u        /* bytes of UTF-8 with the NUL; longer is truncated */
+#define WMH_TITLE_MAX        512u
 
-/* Message kinds. Driver -> host are 0x1xx, host -> driver 0x2xx. Kinds
- * not listed here are reserved for the rest of version 1 (cursor, views,
- * displays, queries); a side that gets a kind it doesn't know ignores it,
- * and answers a call it doesn't know with WMH_REPLY_UNSUPPORTED. */
-enum wmh_kind {
-    /* driver -> host */
-    WMH_HELLO               = 0x100,  /* port: the driver's receive port (send right) */
-    WMH_SURFACE_ADD         = 0x101,  /* port: the IOSurface (IOSurfaceCreateMachPort, moved) */
-    WMH_SURFACE_REMOVE      = 0x102,
-    WMH_WINDOW_CREATE       = 0x110,
-    WMH_WINDOW_DESTROY      = 0x111,
-    WMH_WINDOW_FEATURES     = 0x112,
-    WMH_WINDOW_STATE        = 0x113,
-    WMH_WINDOW_TITLE        = 0x114,
-    WMH_WINDOW_ORDER        = 0x115,
-    WMH_WINDOW_HIDE         = 0x116,
-    WMH_WINDOW_FRAME        = 0x117,
-    WMH_WINDOW_PARENT       = 0x118,
-    WMH_WINDOW_FRAME_READY  = 0x119,
-    WMH_WINDOW_FOCUS        = 0x11a,
-    WMH_WINDOW_GET_FRAME    = 0x11b,  /* call: answered with WMH_REPLY_FRAME */
-    WMH_FOCUS_REJECTED      = 0x11c,
-    WMH_QUIT_REPLY          = 0x140,
-
-    /* host -> driver */
-    WMH_HELLO_REPLY         = 0x200,
-    WMH_SURFACE_RELEASE     = 0x201,
-    WMH_REPLY_FRAME         = 0x202,  /* answers WMH_WINDOW_GET_FRAME */
-    WMH_REPLY_UNSUPPORTED   = 0x203,  /* answers any call the host doesn't know */
-    WMH_KEY_PRESS           = 0x210,
-    WMH_KEY_RELEASE         = 0x211,
-    WMH_MOUSE_BUTTON        = 0x212,
-    WMH_MOUSE_MOVED_ABSOLUTE= 0x213,
-    WMH_MOUSE_SCROLL        = 0x214,
-    WMH_WINDOW_GOT_FOCUS    = 0x220,
-    WMH_WINDOW_LOST_FOCUS   = 0x221,
-    WMH_APP_DEACTIVATED     = 0x222,
-    WMH_WINDOW_CLOSE_REQUESTED = 0x223,
-    WMH_WINDOW_FRAME_CHANGED   = 0x224,
-    WMH_APP_QUIT_REQUESTED     = 0x230,
-};
+typedef uint32_t wmh_window_id;
+typedef uint32_t wmh_surface_id;
 
 struct wmh_header {
-    uint32_t kind;      /* the same as msgh_id */
-    uint32_t serial;    /* nonzero on a call that wants a reply; the reply carries it back */
+    uint32_t kind;      /* WMH_KIND_* */
+    uint32_t serial;    /* nonzero on a call; its reply carries it back */
 };
 
-struct wmh_rect {
-    double x, y, width, height;
-};
+struct wmh_rect { double x, y, width, height; };
 
-/* struct macdrv_window_features, as bits */
 enum {
-    WMH_FEATURE_TITLE_BAR           = 1 << 0,
-    WMH_FEATURE_CLOSE_BUTTON        = 1 << 1,
-    WMH_FEATURE_MINIMIZE_BUTTON     = 1 << 2,
-    WMH_FEATURE_RESIZABLE           = 1 << 3,
-    WMH_FEATURE_MAXIMIZE_BUTTON     = 1 << 4,
-    WMH_FEATURE_UTILITY             = 1 << 5,
-    WMH_FEATURE_SHADOW              = 1 << 6,
-    WMH_FEATURE_PREVENTS_ACTIVATION = 1 << 7,
+    /* ---- driver -> host ---- */
+    WMH_KIND_HELLO = 1,                 /* PORTS: [0] send right to the driver's receive port */
+    WMH_KIND_WINDOW_CREATE = 10,
+    WMH_KIND_WINDOW_DESTROY,
+    WMH_KIND_WINDOW_FEATURES,
+    WMH_KIND_WINDOW_STATE,
+    WMH_KIND_WINDOW_TITLE,
+    WMH_KIND_WINDOW_ORDER,
+    WMH_KIND_WINDOW_HIDE,
+    WMH_KIND_WINDOW_FRAME,
+    WMH_KIND_WINDOW_PARENT,
+    WMH_KIND_WINDOW_FOCUS,
+    WMH_KIND_WINDOW_FRAME_READY,
+    WMH_KIND_FOCUS_REJECTED,
+    WMH_KIND_SURFACE_ADD = 40,          /* PORTS: [0] the IOSurface (IOSurfaceCreateMachPort), moved */
+    WMH_KIND_SURFACE_REMOVE,
+    WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
+    WMH_KIND_CURSOR_GET,                /* call: struct wmh_reply_point */
+    WMH_KIND_DISPLAYS_GET,              /* call: struct wmh_reply_displays */
+    WMH_KIND_QUIT_REPLY = 80,
+
+    /* ---- host -> driver ---- */
+    WMH_KIND_HELLO_REPLY = 1001,
+    WMH_KIND_REPLY,                     /* struct wmh_reply, then the call's reply struct */
+    WMH_KIND_SURFACE_RELEASE = 1010,
+    WMH_KIND_EVENT = 1020,              /* struct wmh_event */
 };
 
-/* struct macdrv_window_state, as bits */
-enum {
-    WMH_STATE_DISABLED          = 1 << 0,
-    WMH_STATE_NO_FOREGROUND     = 1 << 1,
-    WMH_STATE_FLOATING          = 1 << 2,
-    WMH_STATE_MINIMIZED         = 1 << 5,
-    WMH_STATE_MINIMIZED_VALID   = 1 << 6,  /* MINIMIZED means something only with this */
-    WMH_STATE_MAXIMIZED         = 1 << 7,
-};
+/* ---- handshake ---- */
 
-/* Handshake */
+/* hello.features (what the driver can send) and hello_reply.features (the
+ * part the host will use). */
+#define WMH_FEATURE_GDI_SURFACES  (1u << 0)
+#define WMH_FEATURE_INPUT         (1u << 1)
+#define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* not in the first part */
+#define WMH_FEATURE_CURSOR        (1u << 3)   /* not in the first part */
 
 struct wmh_hello {
-    uint32_t version;       /* WMH_PROTOCOL_VERSION */
-    int32_t  pid;
-    uint32_t exe_length;    /* bytes of UTF-8 that follow: the exe's file name, e.g. "ski32.exe" */
-    uint32_t pad;
-};
-
-/* hello_reply features */
-enum {
-    WMH_HOST_GDI      = 1 << 0,   /* takes window surfaces (required in v1) */
-    WMH_HOST_OPENGL   = 1 << 1,   /* takes view surfaces */
-    WMH_HOST_CURSOR   = 1 << 2,
+    uint32_t protocol_version;          /* WMH_PROTOCOL_VERSION */
+    uint32_t features;
+    int32_t  pid;                       /* the host checks it against the audit token's */
+    uint32_t reserved;
+    char     exe_name[WMH_EXE_NAME_MAX]; /* "Game.exe", as AppDefaults names it; NUL-terminated */
 };
 
 struct wmh_hello_reply {
-    uint32_t version;       /* WMH_PROTOCOL_VERSION, or 0 to refuse the process */
-    uint32_t features;      /* WMH_HOST_* */
+    uint32_t protocol_version;          /* 0: the host won't take this process */
+    uint32_t features;
+    uint32_t reserved[2];
 };
 
-/* Surfaces */
+/* ---- windows ---- */
 
-#define WMH_PIXEL_FORMAT_BGRA 0x42475241u  /* 'BGRA', 32 bits per pixel, premultiplied */
+/* macdrv_window_features, bit for bit. */
+#define WMH_WF_TITLE_BAR                (1u << 0)
+#define WMH_WF_CLOSE_BUTTON             (1u << 1)
+#define WMH_WF_MINIMIZE_BUTTON          (1u << 2)
+#define WMH_WF_RESIZABLE                (1u << 3)
+#define WMH_WF_MAXIMIZE_BUTTON          (1u << 4)
+#define WMH_WF_UTILITY                  (1u << 5)
+#define WMH_WF_SHADOW                   (1u << 6)
+#define WMH_WF_PREVENTS_APP_ACTIVATION  (1u << 7)
 
-struct wmh_surface_add {
-    uint32_t surface;
-    uint32_t width;         /* pixels */
-    uint32_t height;
-    uint32_t pixel_format;  /* WMH_PIXEL_FORMAT_* */
-};
-
-struct wmh_surface_remove  { uint32_t surface; uint32_t pad; };
-struct wmh_surface_release { uint32_t surface; uint32_t pad; };
-
-/* Windows */
+/* macdrv_window_state, bit for bit. */
+#define WMH_WS_DISABLED                 (1u << 0)
+#define WMH_WS_NO_FOREGROUND            (1u << 1)
+#define WMH_WS_FLOATING                 (1u << 2)
+#define WMH_WS_EXCLUDED_BY_EXPOSE       (1u << 3)
+#define WMH_WS_EXCLUDED_BY_CYCLE        (1u << 4)
+#define WMH_WS_MINIMIZED                (1u << 5)
+#define WMH_WS_MINIMIZED_VALID          (1u << 6)   /* MINIMIZED means something only with this */
+#define WMH_WS_MAXIMIZED                (1u << 7)
 
 struct wmh_window_create {
-    uint32_t window;
-    uint32_t owner;         /* 0, or the window that owns it (same process) */
-    uint64_t hwnd;          /* for logs only */
-    struct wmh_rect frame;
-    uint32_t features;      /* WMH_FEATURE_* */
-    uint32_t pad;
+    wmh_window_id   window;
+    wmh_window_id   owner;              /* 0: none; same connection only in v1 */
+    uint32_t        features;           /* WMH_WF_* */
+    uint32_t        state;              /* WMH_WS_* */
+    struct wmh_rect frame;              /* the content area */
+    uint64_t        hwnd;               /* for logs only */
 };
 
-struct wmh_window          { uint32_t window; uint32_t pad; };  /* destroy, hide, focus, focus_rejected */
-struct wmh_window_features { uint32_t window; uint32_t features; };
-struct wmh_window_state    { uint32_t window; uint32_t state; };
+struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destroy, hide, focus, focus_rejected */
+struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
+struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
+struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };
+struct wmh_window_title  { wmh_window_id window; uint32_t reserved; char title[WMH_TITLE_MAX]; };
 
-struct wmh_window_title {
-    uint32_t window;
-    uint32_t length;        /* bytes of UTF-8 that follow */
-};
-
-/* Place window directly below `below`, or else directly above `above`
- * (macdrv_order_cocoa_window's prev and next); both 0: on top. */
+/* macdrv_order_cocoa_window(window, prev, next): below prev if there is
+ * one, else above next, else above every window of the connection. */
+#define WMH_ORDER_ABOVE 0u
+#define WMH_ORDER_BELOW 1u
 struct wmh_window_order {
-    uint32_t window;
-    uint32_t below;
-    uint32_t above;
-    uint32_t activate;      /* 0 or 1 */
+    wmh_window_id window;
+    wmh_window_id relative;             /* 0: every window of the connection */
+    uint32_t      position;             /* WMH_ORDER_* */
+    uint32_t      activate;             /* nonzero: the program wants it active */
 };
 
-struct wmh_window_frame {
-    uint32_t window;
-    uint32_t pad;
-    struct wmh_rect frame;
+/* ---- surfaces ---- */
+
+#define WMH_PIXEL_BGRA8 0x42475241u     /* 'BGRA', kCVPixelFormatType_32BGRA, premultiplied */
+
+struct wmh_surface_add {                /* plus the IOSurface port descriptor */
+    wmh_surface_id surface;
+    uint32_t       width, height;       /* pixels */
+    uint32_t       pixel_format;        /* WMH_PIXEL_* */
 };
 
-struct wmh_window_parent   { uint32_t window; uint32_t parent; };
+struct wmh_surface_ref { wmh_surface_id surface; uint32_t reserved; };  /* remove, release */
 
-/* The surface now belongs to the host until it sends surface_release.
- * rect: where the surface's picture goes, in the window's content area
- * (points); dirty: the part that changed (a hint). Drop the frame if
- * width/height don't match the surface as registered. */
+/* The surface belongs to the host from here until it sends surface_release.
+ * rect: where the surface goes in the window's content area; dirty: the
+ * part that changed, a hint (the host shows the whole surface). Both in
+ * points, relative to the content area, as the plain driver's
+ * -setSurfaceRect: and -setNeedsDisplayInRect: get them. A host drops (and
+ * releases) a frame whose width and height don't match the surface as
+ * registered. */
 struct wmh_window_frame_ready {
-    uint32_t window;
-    uint32_t surface;
-    uint32_t width;
-    uint32_t height;
+    wmh_window_id   window;
+    wmh_surface_id  surface;
+    uint32_t        width, height;
     struct wmh_rect rect;
     struct wmh_rect dirty;
 };
 
-struct wmh_reply_frame {
-    struct wmh_rect frame;
+/* ---- calls and replies ---- */
+
+struct wmh_window_get_frame { wmh_window_id window; uint32_t reserved; };
+
+#define WMH_STATUS_OK          0u
+#define WMH_STATUS_UNSUPPORTED 1u       /* the driver uses its fallback answer */
+#define WMH_STATUS_FAILED      2u
+
+struct wmh_reply { uint32_t status; uint32_t reserved; };   /* then the reply struct, if OK */
+
+struct wmh_reply_rect  { struct wmh_rect rect; };           /* window_get_frame */
+struct wmh_reply_point { double x, y; };                    /* cursor_get */
+
+#define WMH_DISPLAYS_MAX 8u
+struct wmh_display {
+    struct wmh_rect frame, work_area;
+    uint32_t        pixels_wide, pixels_high;
+};
+struct wmh_reply_displays {             /* the first is the primary */
+    uint32_t           count;
+    uint32_t           reserved;
+    struct wmh_display displays[WMH_DISPLAYS_MAX];
 };
 
-struct wmh_quit_reply { uint32_t quit; uint32_t pad; };  /* 1: the program agreed to quit */
+struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
 
-/* Input (host -> driver). Positions in the protocol's space, in points,
- * rounded to integers as the plain driver does. time_ms: milliseconds
- * since boot (as -[NSEvent timestamp] * 1000). */
-
-struct wmh_key {
-    uint32_t window;
-    uint16_t keycode;       /* Mac virtual key code */
-    uint16_t pad;
-    uint64_t modifiers;     /* CGEventFlags */
-    uint64_t time_ms;
-};
-
-struct wmh_mouse_button {
-    uint32_t window;
-    int32_t  button;        /* 0 left, 1 right, 2 middle, 3.. others */
-    int32_t  pressed;       /* 0 or 1 */
-    int32_t  x, y;
-    uint32_t pad;
-    uint64_t time_ms;
-};
-
-struct wmh_mouse_moved {
-    uint32_t window;
-    int32_t  x, y;
-    int32_t  drag;          /* 0 or 1: a button is down */
-    uint64_t time_ms;
-};
-
-struct wmh_mouse_scroll {
-    uint32_t window;
-    int32_t  x_scroll, y_scroll;   /* in WHEEL_DELTA units, as the plain driver sends */
-    int32_t  x, y;
-    uint32_t pad;
-    uint64_t time_ms;
-};
-
-/* got_focus, lost_focus, close_requested: struct wmh_window */
-
-struct wmh_window_frame_changed {
-    uint32_t window;
-    uint32_t flags;         /* WMH_FRAME_* */
-    struct wmh_rect frame;
-};
+/* ---- events, host -> driver: the macdrv_event types they become ---- */
 
 enum {
-    WMH_FRAME_FULLSCREEN          = 1 << 0,
-    WMH_FRAME_IN_RESIZE           = 1 << 1,
-    WMH_FRAME_SKIP_SIZE_MOVE_LOOP = 1 << 2,
+    WMH_EV_KEY_PRESS = 1, WMH_EV_KEY_RELEASE, WMH_EV_KEYBOARD_CHANGED,
+    WMH_EV_MOUSE_BUTTON = 10, WMH_EV_MOUSE_MOVED_ABSOLUTE, WMH_EV_MOUSE_MOVED_RELATIVE, WMH_EV_MOUSE_SCROLL,
+    WMH_EV_WINDOW_GOT_FOCUS = 20, WMH_EV_WINDOW_LOST_FOCUS, WMH_EV_APP_DEACTIVATED,
+    WMH_EV_WINDOW_BROUGHT_FORWARD, WMH_EV_RELEASE_CAPTURE,
+    WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
+    WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
+    WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
 };
 
-enum {
-    WMH_QUIT_REASON_NONE,
-    WMH_QUIT_REASON_LOGOUT,
-    WMH_QUIT_REASON_RESTART,
-    WMH_QUIT_REASON_SHUTDOWN,
-};
+/* WINDOW_FRAME_CHANGED flags */
+#define WMH_FRAME_FULLSCREEN           (1u << 0)
+#define WMH_FRAME_IN_RESIZE            (1u << 1)
+#define WMH_FRAME_SKIP_SIZE_MOVE_LOOP  (1u << 2)
 
-struct wmh_app_quit_requested { uint32_t reason; uint32_t pad; };
+/* APP_QUIT_REQUESTED reasons (macdrv's QUIT_REASON_*) */
+#define WMH_QUIT_REASON_NONE      0u
+#define WMH_QUIT_REASON_LOGOUT    1u
+#define WMH_QUIT_REASON_RESTART   2u
+#define WMH_QUIT_REASON_SHUTDOWN  3u
+
+/* One struct for every event: the fields its type uses, the rest zero. */
+struct wmh_event {
+    uint32_t        type;               /* WMH_EV_* */
+    wmh_window_id   window;             /* 0 for app events */
+    double          time;               /* seconds, the clock of -[NSEvent timestamp] */
+    /* keys */
+    uint32_t        keycode;            /* Mac virtual key code */
+    uint32_t        modifiers;          /* CGEventFlags, low 32 bits */
+    /* mouse: the protocol's space, the host's scaling undone */
+    double          x, y;
+    int32_t         button;             /* 0 left, 1 right, 2 middle, 3.. others */
+    uint32_t        pressed;            /* MOUSE_BUTTON: nonzero pressed; MOUSE_MOVED_*: nonzero dragging */
+    double          scroll_x, scroll_y; /* in WHEEL_DELTA units, as the plain driver sends */
+    /* frame changed, restore, quit */
+    struct wmh_rect frame;
+    uint32_t        flags;              /* FRAME_CHANGED: WMH_FRAME_*; RESTORE_REQUESTED: 1 keep frame */
+    uint32_t        reason;             /* APP_QUIT_REQUESTED: WMH_QUIT_REASON_* */
+};
 
 #define WMH_ASSERT_SIZE(t, n) _Static_assert(sizeof(struct t) == (n), #t " size")
 WMH_ASSERT_SIZE(wmh_header, 8);
 WMH_ASSERT_SIZE(wmh_rect, 32);
-WMH_ASSERT_SIZE(wmh_hello, 16);
-WMH_ASSERT_SIZE(wmh_hello_reply, 8);
-WMH_ASSERT_SIZE(wmh_surface_add, 16);
+WMH_ASSERT_SIZE(wmh_hello, 272);
+WMH_ASSERT_SIZE(wmh_hello_reply, 16);
 WMH_ASSERT_SIZE(wmh_window_create, 56);
+WMH_ASSERT_SIZE(wmh_window_title, 520);
 WMH_ASSERT_SIZE(wmh_window_order, 16);
 WMH_ASSERT_SIZE(wmh_window_frame, 40);
+WMH_ASSERT_SIZE(wmh_surface_add, 16);
 WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
-WMH_ASSERT_SIZE(wmh_key, 24);
-WMH_ASSERT_SIZE(wmh_mouse_button, 32);
-WMH_ASSERT_SIZE(wmh_mouse_moved, 24);
-WMH_ASSERT_SIZE(wmh_mouse_scroll, 32);
-WMH_ASSERT_SIZE(wmh_window_frame_changed, 40);
+WMH_ASSERT_SIZE(wmh_reply, 8);
+WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
+WMH_ASSERT_SIZE(wmh_event, 104);
 #undef WMH_ASSERT_SIZE
 
 #endif /* WMH_PROTOCOL_H */
