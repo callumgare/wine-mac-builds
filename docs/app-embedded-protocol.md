@@ -51,6 +51,12 @@ struct wmh_header {
 };
 ```
 
+The bytes of each message (kinds, structs, which messages carry a port) are
+in [app-embedded-protocol.h](app-embedded-protocol.h), which the driver and
+hosts share. It covers the first part to be built: the handshake, windows,
+GDI surfaces, keys, mouse and focus. The other messages below get their
+structs when they're implemented.
+
 Messages on one channel arrive in order, so a surface is always registered
 before a frame names it and a window exists before it's shown.
 
