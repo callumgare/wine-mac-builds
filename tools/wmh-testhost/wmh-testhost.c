@@ -105,7 +105,10 @@ int main(int argc, char **argv)
 {
     mach_port_t service, set;
     double close_after = argc > 2 ? atof(argv[2]) : 5, start = 0, deadline = now() + 120;
-    int closed = 0;
+    int closed = 0, step = 0;
+    /* WMH_TESTHOST_STATES=1: before closing, ask the last connection's first
+     * window to minimize, report it unminimized, then ask it to maximize. */
+    int states = getenv("WMH_TESTHOST_STATES") != NULL;
     struct { mach_msg_header_t h; char d[8192]; } m;
 
     outdir = argc > 3 ? argv[3] : ".";
@@ -141,6 +144,23 @@ int main(int argc, char **argv)
                     }
             closed = 1;
             deadline = now() + 15;
+        }
+        if (states && start && !closed && step < 3 && now() - start > 1.5 * (step + 1) && nconns)
+        {
+            static const uint32_t types[] = { WMH_EV_WINDOW_MINIMIZE_REQUESTED, WMH_EV_WINDOW_DID_UNMINIMIZE,
+                                              WMH_EV_WINDOW_MAXIMIZE_REQUESTED };
+            static const char *names[] = { "minimize_requested", "did_unminimize", "maximize_requested" };
+            struct conn *sc = &conns[nconns - 1];
+            for (uint32_t i = 1; i < MAXW; i++)
+                if (sc->visible[i] && sc->frames[i])
+                {
+                    struct wmh_event ev = { .type = types[step], .window = i };
+                    printf("host: sending %s to %s window %u\n", names[step], sc->exe, i);
+                    send_to(sc->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+                    break;
+                }
+            step++;
+            fflush(stdout);
         }
         if (kr == MACH_RCV_TIMED_OUT) continue;
         if (kr) { printf("host: receive failed %x\n", kr); break; }
@@ -273,6 +293,11 @@ int main(int argc, char **argv)
                 if (port) mach_port_deallocate(mach_task_self(), port);
             }
             else printf("host: %s cursor_set hidden\n", c->exe);
+            break; }
+        case WMH_KIND_WINDOW_STATE: {
+            struct wmh_window_flags *st = pl;
+            printf("host: %s window_state %u %#x%s%s\n", c->exe, st->window, st->flags,
+                   (st->flags & WMH_WS_MINIMIZED) ? " minimized" : "", (st->flags & WMH_WS_MAXIMIZED) ? " maximized" : "");
             break; }
         case WMH_KIND_WINDOW_MIN_MAX: {
             struct wmh_window_min_max *mm = pl;

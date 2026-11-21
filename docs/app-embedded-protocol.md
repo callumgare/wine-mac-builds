@@ -214,7 +214,12 @@ Win32 side through its pipe, so no main thread is involved).
 - Windows: `WINDOW_CLOSE_REQUESTED`, `WINDOW_FRAME_CHANGED`,
   `WINDOW_RESIZE_ENDED`, `WINDOW_DRAG_BEGIN`, `WINDOW_DRAG_END`,
   `WINDOW_DID_UNMINIMIZE`, `WINDOW_RESTORE_REQUESTED`,
-  `REASSERT_WINDOW_POSITION`.
+  `REASSERT_WINDOW_POSITION`, `WINDOW_MINIMIZE_REQUESTED`,
+  `WINDOW_MAXIMIZE_REQUESTED`. The plain driver handles the user's
+  minimize and zoom inside its NSWindow and asks the program by calling
+  into win32u; a host sends the two requests instead, and shows the
+  program's answer when `window_state` and frames arrive (the header
+  gives the sequence, and fullscreen in a Space).
 - App: `APP_QUIT_REQUESTED` (reason), `DISPLAYS_CHANGED` (the answer to
   `displays_get` has changed).
 

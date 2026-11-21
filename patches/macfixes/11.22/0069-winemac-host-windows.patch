@@ -52,7 +52,21 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (size limits, real host): through Second Chance's host,
+Status: 2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
+ WINDOW_MAXIMIZE_REQUESTED, run on the main thread as the plain driver
+ does (the receive thread can't call win32u: the first try hung it in
+ NtUserGetWindowLongW). Shown with tools/wmh-testhost and Notepad on
+ meeka (WMH_TESTHOST_STATES=1, 1 run): minimize gave window_state
+ MINIMIZED|MINIMIZED_VALID, DID_UNMINIMIZE gave state 0 and focus,
+ maximize gave MAXIMIZED and a 2560x1295 frame. Not yet through Second
+ Chance's host. White Wolf (D3D, EmulateModeset) through Second Chance's
+ host (host4): works; its pointer offset was the host's (AppKit
+ constrained the window and the host reported that frame), not the
+ driver's: the test host put the game's cursor on the pointer. Its GDI
+ surface shows a white strip at x 2240-2496 in host mode where the plain
+ driver shows black; not yet explained. Old Clock (cnc-ddraw, windowed):
+ works through Second Chance's host, no driver change.
+ 2026-11-21 (size limits, real host): through Second Chance's host,
  Notepad's limits (asked for after window_create) were applied as the
  window's content min/max; a live resize (QUERY_RESIZE_START, then
  FRAME_CHANGED and RESIZE_ENDED) stopped at 111 wide, Notepad redrew at
@@ -259,7 +273,7 @@ diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -0,0 +1,1134 @@
+@@ -0,0 +1,1152 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -516,6 +530,24 @@ new file mode 100644
 +        [window->queue postEvent:event];
 +        macdrv_release_event(event);
 +        macdrv_release_query(query);
++        return;
++    }
++
++    /* The user asked to minimize or zoom: the program decides, and its answer
++     * comes back as window_state and frames. The plain driver calls these on
++     * the main thread, from NSWindow's miniaturize: and
++     * windowShouldZoom:toFrame:. They call win32u, which this thread can't. */
++    if (ev->type == WMH_EV_WINDOW_MINIMIZE_REQUESTED || ev->type == WMH_EV_WINDOW_MAXIMIZE_REQUESTED)
++    {
++        void *hwnd;
++        BOOL minimize = ev->type == WMH_EV_WINDOW_MINIMIZE_REQUESTED;
++
++        if (!(window = window_for_id(ev->window))) return;
++        hwnd = window->hwnd;
++        dispatch_async(dispatch_get_main_queue(), ^{
++            if (minimize) macdrv_window_minimize_requested(hwnd);
++            else macdrv_window_maximize_requested(hwnd);
++        });
 +        return;
 +    }
 +
@@ -2169,7 +2201,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,371 @@
+@@ -0,0 +1,398 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2304,7 +2336,31 @@ new file mode 100644
 +#define WMH_WF_SHADOW                   (1u << 6)
 +#define WMH_WF_PREVENTS_APP_ACTIVATION  (1u << 7)
 +
-+/* macdrv_window_state, bit for bit. */
++/* macdrv_window_state, bit for bit.
++ *
++ * Minimizing, maximizing and fullscreen. The program decides; the host
++ * shows what it decided:
++ * - The user's minimize (button, Dock, Cmd-M): the host sends
++ *   WINDOW_MINIMIZE_REQUESTED and doesn't miniaturize yet. If the program
++ *   agrees, window_state comes with MINIMIZED (and MINIMIZED_VALID), and
++ *   the host miniaturizes then. A program can minimize itself the same
++ *   way, unasked.
++ * - window_state without MINIMIZED (MINIMIZED_VALID set) while the window
++ *   is miniaturized: the host deminiaturizes it, and sends nothing back.
++ * - The user's deminiaturize (Dock, clicking the window's tile): the host
++ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE.
++ * - The user's zoom (green button or double-click on the title bar, when
++ *   the window has WMH_WF_MAXIMIZE_BUTTON): the host sends
++ *   WINDOW_MAXIMIZE_REQUESTED and doesn't resize; a frame follows. When
++ *   the window is MAXIMIZED, zoom or a live resize sends
++ *   WINDOW_RESTORE_REQUESTED instead (flags 1 and the current frame for a
++ *   resize: keep that frame).
++ * - Fullscreen in its own Space (the host's toggleFullScreen:, offered for
++ *   a resizable window that isn't MAXIMIZED or DISABLED): the host sends
++ *   WINDOW_FRAME_CHANGED with WMH_FRAME_FULLSCREEN and the screen's
++ *   frame on entering, and the frame it had before, without the flag, on
++ *   leaving. A program that makes itself fullscreen (a borderless window
++ *   covering the screen) isn't put in a Space: it just gets that frame. */
 +#define WMH_WS_DISABLED                 (1u << 0)
 +#define WMH_WS_NO_FOREGROUND            (1u << 1)
 +#define WMH_WS_FLOATING                 (1u << 2)
@@ -2423,8 +2479,10 @@ new file mode 100644
 + * say where the pointer is.
 + *
 + * cursor_clip: the program confined the pointer (ClipCursor) to a rect, or
-+ * released it. A host that can't confine the real pointer can keep its
-+ * reported positions inside the rect. */
++ * released it. The host confines the real pointer, as the plain driver
++ * does, so the user can't take it out of the rect (say, to drag a window
++ * by its title bar). Keeping only the reported positions inside the rect
++ * lets the two part. */
 +
 +#define WMH_CURSOR_HIDDEN 0u
 +#define WMH_CURSOR_SYSTEM 1u
@@ -2481,6 +2539,7 @@ new file mode 100644
 +    WMH_EV_WINDOW_BROUGHT_FORWARD, WMH_EV_RELEASE_CAPTURE,
 +    WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
 +    WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
++    WMH_EV_WINDOW_MINIMIZE_REQUESTED, WMH_EV_WINDOW_MAXIMIZE_REQUESTED,
 +    WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
 +    /* Questions the driver answers with messages, not a reply:
 +     * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);

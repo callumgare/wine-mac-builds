@@ -132,7 +132,31 @@ struct wmh_hello_reply {
 #define WMH_WF_SHADOW                   (1u << 6)
 #define WMH_WF_PREVENTS_APP_ACTIVATION  (1u << 7)
 
-/* macdrv_window_state, bit for bit. */
+/* macdrv_window_state, bit for bit.
+ *
+ * Minimizing, maximizing and fullscreen. The program decides; the host
+ * shows what it decided:
+ * - The user's minimize (button, Dock, Cmd-M): the host sends
+ *   WINDOW_MINIMIZE_REQUESTED and doesn't miniaturize yet. If the program
+ *   agrees, window_state comes with MINIMIZED (and MINIMIZED_VALID), and
+ *   the host miniaturizes then. A program can minimize itself the same
+ *   way, unasked.
+ * - window_state without MINIMIZED (MINIMIZED_VALID set) while the window
+ *   is miniaturized: the host deminiaturizes it, and sends nothing back.
+ * - The user's deminiaturize (Dock, clicking the window's tile): the host
+ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE.
+ * - The user's zoom (green button or double-click on the title bar, when
+ *   the window has WMH_WF_MAXIMIZE_BUTTON): the host sends
+ *   WINDOW_MAXIMIZE_REQUESTED and doesn't resize; a frame follows. When
+ *   the window is MAXIMIZED, zoom or a live resize sends
+ *   WINDOW_RESTORE_REQUESTED instead (flags 1 and the current frame for a
+ *   resize: keep that frame).
+ * - Fullscreen in its own Space (the host's toggleFullScreen:, offered for
+ *   a resizable window that isn't MAXIMIZED or DISABLED): the host sends
+ *   WINDOW_FRAME_CHANGED with WMH_FRAME_FULLSCREEN and the screen's
+ *   frame on entering, and the frame it had before, without the flag, on
+ *   leaving. A program that makes itself fullscreen (a borderless window
+ *   covering the screen) isn't put in a Space: it just gets that frame. */
 #define WMH_WS_DISABLED                 (1u << 0)
 #define WMH_WS_NO_FOREGROUND            (1u << 1)
 #define WMH_WS_FLOATING                 (1u << 2)
@@ -251,8 +275,10 @@ struct wmh_view_frame_ready {
  * say where the pointer is.
  *
  * cursor_clip: the program confined the pointer (ClipCursor) to a rect, or
- * released it. A host that can't confine the real pointer can keep its
- * reported positions inside the rect. */
+ * released it. The host confines the real pointer, as the plain driver
+ * does, so the user can't take it out of the rect (say, to drag a window
+ * by its title bar). Keeping only the reported positions inside the rect
+ * lets the two part. */
 
 #define WMH_CURSOR_HIDDEN 0u
 #define WMH_CURSOR_SYSTEM 1u
@@ -309,6 +335,7 @@ enum {
     WMH_EV_WINDOW_BROUGHT_FORWARD, WMH_EV_RELEASE_CAPTURE,
     WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
     WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
+    WMH_EV_WINDOW_MINIMIZE_REQUESTED, WMH_EV_WINDOW_MAXIMIZE_REQUESTED,
     WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
     /* Questions the driver answers with messages, not a reply:
      * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);
