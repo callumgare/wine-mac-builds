@@ -31,7 +31,12 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  whose wineserver had gone spun at 96% CPU for about six hours with its
  services and explorer, slowing the other tests on that Mac.
 Applies to: wine 11.22 (macfixes, after 0070)
-Status: 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
+Status: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
+ hosted integration run on meeka passed every source: disc 36/36, download
+ 6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
+ Can Kill Remastered's trial needed reruns (its DRM ended without starting
+ the game, no Wine errors), as on host8 and host10 before these patches.
+ 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
  built with it into the host10 tree on meeka (macOS 26.7.2): the
  regression test server-gone passes; on host10 it fails (still running
  10 s after the kill). The test compiles with llvm-mingw (i686, x86_64);
