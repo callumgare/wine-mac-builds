@@ -52,7 +52,12 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-22 (padding under emulated modes): a fullscreen window
+Status: 2026-11-22 (focus activation): window_focus carries
+ WMH_FOCUS_ACTIVATE when the plain driver would activate the app (within
+ 2 s of a global hotkey or a tray icon click), so a host needn't activate
+ on every focus. Test host, Notepad (1 run): focus came without the flag,
+ as expected; the flagged case not exercised.
+ 2026-11-22 (padding under emulated modes): a fullscreen window
  under EmulateModeset has a surface padded beyond its window rect (to a
  multiple of 128 px); the plain driver hides the padding with its black
  mask (macdrv_set_window_mask), which host mode skips. The surface flush
@@ -1349,7 +1354,7 @@ new file mode 100644
 +
 +void host_give_window_focus(WineWindow *window, bool activate)
 +{
-+    struct wmh_window_ref msg = { window_id(window), 0 };
++    struct wmh_window_ref msg = { window_id(window), activate ? WMH_FOCUS_ACTIVATE : 0 };
 +    host_send(WMH_KIND_WINDOW_FOCUS, &msg, sizeof(msg));
 +}
 +
@@ -2621,7 +2626,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,507 @@
+@@ -0,0 +1,512 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2810,6 +2815,11 @@ new file mode 100644
 +};
 +
 +struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destroy, hide, focus, focus_rejected */
++/* window_focus: make the window the key window. reserved carries
++ * WMH_FOCUS_ACTIVATE when the plain driver would also bring the app to the
++ * front (activate ignoring other apps); without it, the host makes the
++ * window key without activating the app. */
++#define WMH_FOCUS_ACTIVATE 0x1u
 +struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
 +struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
 +struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };

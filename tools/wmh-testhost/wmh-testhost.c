@@ -295,8 +295,9 @@ int main(int argc, char **argv)
         case WMH_KIND_WINDOW_DESTROY:
         case WMH_KIND_WINDOW_FOCUS: {
             struct wmh_window_ref *r = pl;
-            printf("host: %s %s %u\n", c->exe, w->kind == WMH_KIND_WINDOW_HIDE ? "window_hide" :
-                   w->kind == WMH_KIND_WINDOW_DESTROY ? "window_destroy" : "window_focus", r->window);
+            printf("host: %s %s %u%s\n", c->exe, w->kind == WMH_KIND_WINDOW_HIDE ? "window_hide" :
+                   w->kind == WMH_KIND_WINDOW_DESTROY ? "window_destroy" : "window_focus", r->window,
+                   w->kind == WMH_KIND_WINDOW_FOCUS && (r->reserved & WMH_FOCUS_ACTIVATE) ? " activate" : "");
             if (w->kind != WMH_KIND_WINDOW_FOCUS && r->window < MAXW) c->visible[r->window] = 0;
             if (w->kind == WMH_KIND_WINDOW_FOCUS)
             {

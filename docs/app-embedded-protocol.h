@@ -186,6 +186,11 @@ struct wmh_window_create {
 };
 
 struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destroy, hide, focus, focus_rejected */
+/* window_focus: make the window the key window. reserved carries
+ * WMH_FOCUS_ACTIVATE when the plain driver would also bring the app to the
+ * front (activate ignoring other apps); without it, the host makes the
+ * window key without activating the app. */
+#define WMH_FOCUS_ACTIVATE 0x1u
 struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
 struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
 struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };

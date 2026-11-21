@@ -172,7 +172,7 @@ One-way unless marked *call*. Each corresponds to a function in
 | `window_parent` | `set_cocoa_parent_window` | owned windows in the same process; owners in another process aren't supported in v1 |
 | `window_frame_ready` | `window_set_io_surface` | surface id, its width and height, rect, dirty rect |
 | `window_shape`, `window_alpha`, `window_color_key` | `set_window_shape`, `window_shape_changed`, `set_window_alpha`, `window_use_per_pixel_alpha`, `set_window_mask` | |
-| `window_focus` | `give_cocoa_window_focus` | |
+| `window_focus` | `give_cocoa_window_focus` | `WMH_FOCUS_ACTIVATE`: also bring the app to the front |
 | `window_min_max` | `set_window_min_max_sizes` | |
 | `window_background` | `window_background_color` | |
 | `focus_rejected` | `window_rejected_focus` | |
