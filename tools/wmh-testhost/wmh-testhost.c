@@ -12,6 +12,7 @@
  *
  * Build (native): clang -O1 -o wmh-testhost wmh-testhost.c -framework IOSurface
  *   -framework CoreGraphics -framework ImageIO -framework CoreFoundation
+ *   -framework ApplicationServices
  */
 #include <mach/mach.h>
 #include <servers/bootstrap.h>
@@ -19,6 +20,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <ImageIO/ImageIO.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,8 +45,10 @@ static const char *outdir;
 
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }
 
-static void send_to(mach_port_t port, uint32_t kind, const void *payload, size_t size, mach_port_t give, int give_disp)
+static uint32_t send_to(mach_port_t port, uint32_t kind, const void *payload, size_t size, mach_port_t give, int give_disp)
 {
+    static uint32_t next_serial = 1;
+    uint32_t serial = next_serial++;
     struct { mach_msg_header_t h; mach_msg_body_t b; mach_msg_port_descriptor_t d; struct wmh_header w; char p[256]; } m;
     struct { mach_msg_header_t h; struct wmh_header w; char p[256]; } *pm = (void *)&m;
     kern_return_t kr;
@@ -55,19 +59,38 @@ static void send_to(mach_port_t port, uint32_t kind, const void *payload, size_t
         m.h.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0) | MACH_MSGH_BITS_COMPLEX;
         m.b.msgh_descriptor_count = 1;
         m.d.name = give; m.d.disposition = give_disp; m.d.type = MACH_MSG_PORT_DESCRIPTOR;
-        m.w.kind = kind; memcpy(m.p, payload, size);
+        m.w.kind = kind; m.w.serial = serial; memcpy(m.p, payload, size);
         m.h.msgh_size = offsetof(typeof(m), p) + ((size + 3) & ~3);
     }
     else
     {
         pm->h.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0);
-        pm->w.kind = kind; memcpy(pm->p, payload, size);
+        pm->w.kind = kind; pm->w.serial = serial; memcpy(pm->p, payload, size);
         pm->h.msgh_size = sizeof(pm->h) + sizeof(pm->w) + ((size + 3) & ~3);
     }
     m.h.msgh_remote_port = port;
     m.h.msgh_id = WMH_MSG_ID;
     kr = mach_msg(&m.h, MACH_SEND_MSG | MACH_SEND_TIMEOUT, m.h.msgh_size, 0, 0, 1000, 0);
     if (kr) printf("host: send %u failed %x\n", kind, kr);
+    return serial;
+}
+
+/* WMH_TESTHOST_DROP=<path>: put the file on a pasteboard of our own, the
+ * way a drag would, and return its name. */
+static const char *drop_pasteboard(const char *path)
+{
+    static const char *name = "org.wine-mac-builds.testhost.drop";
+    PasteboardRef pb;
+    CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, (const UInt8 *)path, strlen(path), false);
+    CFDataRef data = CFURLCreateData(NULL, url, kCFStringEncodingUTF8, true);
+    CFStringRef cfname = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
+
+    if (PasteboardCreate(cfname, &pb) || PasteboardClear(pb) ||
+        PasteboardPutItemFlavor(pb, (PasteboardItemID)1, CFSTR("public.file-url"), data, 0))
+        printf("host: can't put %s on a pasteboard\n", path);
+    PasteboardSynchronize(pb);
+    CFRelease(cfname); CFRelease(data); CFRelease(url);
+    return name;
 }
 
 static void save_png(struct conn *c, const char *what, uint32_t wid, IOSurfaceRef s, int bottom_up)
@@ -109,6 +132,9 @@ int main(int argc, char **argv)
     /* WMH_TESTHOST_STATES=1: before closing, ask the last connection's first
      * window to minimize, report it unminimized, then ask it to maximize. */
     int states = getenv("WMH_TESTHOST_STATES") != NULL;
+    /* WMH_TESTHOST_DROP=<path>: drag that file onto the last connection's
+     * first window (enter, update at its centre, drop). */
+    const char *drop = getenv("WMH_TESTHOST_DROP");
     struct { mach_msg_header_t h; char d[8192]; } m;
 
     outdir = argc > 3 ? argv[3] : ".";
@@ -157,6 +183,24 @@ int main(int argc, char **argv)
                     struct wmh_event ev = { .type = types[step], .window = i };
                     printf("host: sending %s to %s window %u\n", names[step], sc->exe, i);
                     send_to(sc->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+                    break;
+                }
+            step++;
+            fflush(stdout);
+        }
+        if (drop && start && !closed && step < 3 && now() - start > 1.5 * (step + 1) && nconns)
+        {
+            struct conn *sc = &conns[nconns - 1];
+            for (uint32_t i = 1; i < MAXW; i++)
+                if (sc->visible[i] && sc->frames[i])
+                {
+                    struct wmh_drag d = { .window = i, .x = sc->wframe[i].width / 2, .y = sc->wframe[i].height / 2,
+                                          .ops = 1 /* NSDragOperationCopy */ };
+                    uint32_t serial;
+                    d.type = step == 0 ? WMH_DRAG_ENTER : step == 1 ? WMH_DRAG_UPDATE : WMH_DRAG_DROP;
+                    if (d.type == WMH_DRAG_ENTER) snprintf(d.pasteboard, sizeof(d.pasteboard), "%s", drop_pasteboard(drop));
+                    serial = send_to(sc->driver, WMH_KIND_DRAG, &d, sizeof(d), 0, 0);
+                    printf("host: drag %u (serial %u) to %s window %u at %.0f,%.0f\n", d.type, serial, sc->exe, i, d.x, d.y);
                     break;
                 }
             step++;
@@ -293,6 +337,10 @@ int main(int argc, char **argv)
                 if (port) mach_port_deallocate(mach_task_self(), port);
             }
             else printf("host: %s cursor_set hidden\n", c->exe);
+            break; }
+        case WMH_KIND_DRAG_DONE: {
+            struct wmh_drag_done *dd = pl;
+            printf("host: %s drag_done serial %u accepted %u ops %#x\n", c->exe, dd->serial, dd->accepted, dd->ops);
             break; }
         case WMH_KIND_WINDOW_STATE: {
             struct wmh_window_flags *st = pl;

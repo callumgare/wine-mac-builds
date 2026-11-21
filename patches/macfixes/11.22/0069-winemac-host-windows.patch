@@ -52,7 +52,14 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
+Status: 2026-11-21 (drag and drop): files dragged onto a window: the host's
+ drag messages become the plain driver's drag-drop queries, answered with
+ drag_done; the driver opens the drag pasteboard by name. Shown with
+ tools/wmh-testhost (WMH_TESTHOST_DROP, a file URL on a named pasteboard)
+ and Notepad on meeka, 1 run: enter, update (ops copy) and drop were
+ accepted and Notepad opened the file. Not yet through Second Chance's
+ host or a real Finder drag.
+ 2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
  WINDOW_MAXIMIZE_REQUESTED, run on the main thread as the plain driver
  does (the receive thread can't call win32u: the first try hung it in
  NtUserGetWindowLongW). Shown with tools/wmh-testhost and Notepad on
@@ -214,11 +221,36 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      [window.queue discardEventsMatchingMask:event_mask_for_type(RELEASE_CAPTURE) forWindow:window];
  
      OnMainThread(^{
+diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
+--- a/dlls/winemac.drv/cocoa_event.m
++++ b/dlls/winemac.drv/cocoa_event.m
+@@ -28,6 +28,7 @@
+ #import "cocoa_event.h"
+ #import "cocoa_app.h"
+ #import "cocoa_window.h"
++#import "cocoa_host.h"
+ 
+ #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+ 
+@@ -736,6 +737,13 @@
+  */
+ void macdrv_set_query_done(macdrv_query *query)
+ {
++    /* Nobody here waits for a query the host asked: send it the answer. */
++    if (host_mode && query->host_serial)
++    {
++        host_drag_done(query);
++        return;
++    }
++
+     macdrv_retain_query(query);
+ 
+     OnMainThreadAsync(^{
 diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,51 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -265,6 +297,7 @@ new file mode 100644
 +extern void host_give_window_focus(WineWindow *window, bool activate);
 +extern void host_set_window_min_max(WineWindow *window, CGSize min_size, CGSize max_size);
 +extern void host_window_rejected_focus(WineWindow *window);
++extern void host_drag_done(macdrv_query *query);
 +extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
 +extern int host_get_cursor_position(CGPoint *pos);
 +extern int host_set_cursor_position(CGPoint pos);
@@ -273,7 +306,7 @@ diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -0,0 +1,1152 @@
+@@ -0,0 +1,1215 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -669,6 +702,66 @@ new file mode 100644
 +    macdrv_release_event(event);
 +}
 +
++/* A drag step from the host becomes the query the plain driver's
++ * NSDraggingDestination methods make, posted to the window's queue in
++ * order with its events; host_drag_done answers it. */
++static void post_drag(const struct wmh_drag *drag, uint32_t serial)
++{
++    static const int types[] = {
++        [WMH_DRAG_ENTER] = QUERY_DRAG_DROP_ENTER, [WMH_DRAG_UPDATE] = QUERY_DRAG_DROP_DRAG,
++        [WMH_DRAG_LEAVE] = QUERY_DRAG_DROP_LEAVE, [WMH_DRAG_DROP] = QUERY_DRAG_DROP_DROP,
++    };
++    struct wmh_drag_done done = { serial, 0, 0, 0 };
++    WineHostWindow *window;
++    macdrv_query *query;
++    macdrv_event *event;
++
++    if (!serial || drag->type < WMH_DRAG_ENTER || drag->type > WMH_DRAG_DROP || !(window = window_for_id(drag->window)))
++    {
++        TRACE("host: refusing drag type %u for window %u\n", drag->type, drag->window);
++        host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++        return;
++    }
++
++    query = macdrv_create_query();
++    query->type = types[drag->type];
++    query->window = (WineWindow *)[window retain];
++    query->host_serial = serial;
++    query->drag_drop.x = floor(drag->x);
++    query->drag_drop.y = floor(drag->y);
++    query->drag_drop.ops = drag->ops;
++    if (drag->type == WMH_DRAG_ENTER)
++    {
++        char name[WMH_PASTEBOARD_NAME_MAX + 1];
++        NSString *str;
++
++        memcpy(name, drag->pasteboard, WMH_PASTEBOARD_NAME_MAX);
++        name[WMH_PASTEBOARD_NAME_MAX] = 0;
++        if (name[0] && (str = [NSString stringWithUTF8String:name]))
++            query->drag_drop.pasteboard = (CFTypeRef)[[NSPasteboard pasteboardWithName:str] retain];
++        if (!query->drag_drop.pasteboard)
++        {
++            macdrv_release_query(query);
++            host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++            return;
++        }
++    }
++
++    event = macdrv_create_event(QUERY_EVENT, (WineWindow *)window);
++    event->query_event.query = macdrv_retain_query(query);
++    [window->queue postEvent:event];
++    macdrv_release_event(event);
++    macdrv_release_query(query);
++}
++
++void host_drag_done(macdrv_query *query)
++{
++    struct wmh_drag_done done = { query->host_serial, query->status ? 1 : 0, 0, 0 };
++
++    if (query->type == QUERY_DRAG_DROP_DRAG && query->status) done.ops = query->drag_drop.ops;
++    host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++}
++
 +static void *receive_thread(void *arg)
 +{
 +    struct received_message *msg = malloc(sizeof(*msg) + MAX_TRAILER_SIZE);
@@ -710,6 +803,9 @@ new file mode 100644
 +            {
 +            case WMH_KIND_EVENT:
 +                if (size >= sizeof(struct wmh_event)) post_event((const struct wmh_event *)(wmh + 1));
++                break;
++            case WMH_KIND_DRAG:
++                if (size >= sizeof(struct wmh_drag)) post_drag((const struct wmh_drag *)(wmh + 1), wmh->serial);
 +                break;
 +            case WMH_KIND_SURFACE_RELEASE:
 +                if (size >= sizeof(struct wmh_surface_ref))
@@ -1644,7 +1740,15 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  extern int cocoa_start_timeout;
  
  static inline CGRect cgrect_mac_from_win(CGRect rect)
-@@ -437,6 +438,7 @@
+@@ -405,6 +406,7 @@
+     WineWindow         *window;
+     bool                status;
+     bool                done;
++    uint32_t            host_serial;    /* host mode: answer the host's drag with this serial */
+     union {
+         struct {
+             int                 x;
+@@ -437,6 +439,7 @@
  extern int macdrv_copy_event_from_queue(WineEventQueue *queue,
          macdrv_event_mask mask, macdrv_event **event);
  extern void macdrv_release_event(macdrv_event *event);
@@ -1652,7 +1756,7 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  
  extern macdrv_query* macdrv_create_query(void);
  extern macdrv_query* macdrv_retain_query(macdrv_query *query);
-@@ -489,6 +491,14 @@
+@@ -489,6 +492,14 @@
  extern void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame);
  extern void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent);
  extern void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rect, CGRect dirty);
@@ -2201,7 +2305,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,398 @@
+@@ -0,0 +1,443 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2292,12 +2396,14 @@ new file mode 100644
 +    WMH_KIND_CURSOR_GET,                /* call: struct wmh_reply_point */
 +    WMH_KIND_DISPLAYS_GET,              /* call: struct wmh_reply_displays */
 +    WMH_KIND_QUIT_REPLY = 80,
++    WMH_KIND_DRAG_DONE,                 /* struct wmh_drag_done: the answer to a drag */
 +
 +    /* ---- host -> driver ---- */
 +    WMH_KIND_HELLO_REPLY = 1001,        /* PORTS: [0] send right to the host's port for this connection */
 +    WMH_KIND_REPLY,                     /* struct wmh_reply, then the call's reply struct */
 +    WMH_KIND_SURFACE_RELEASE = 1010,
 +    WMH_KIND_EVENT = 1020,              /* struct wmh_event */
++    WMH_KIND_DRAG = 1030,               /* struct wmh_drag; answered with drag_done */
 +};
 +
 +/* ---- handshake ---- */
@@ -2530,6 +2636,47 @@ new file mode 100644
 +
 +struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
 +
++/* ---- drag and drop onto a window ----
++ *
++ * The host is the drag destination for its windows and passes each step
++ * on as a drag message, as the plain driver's NSDraggingDestination
++ * methods do. The driver reads the dragged data itself from the drag
++ * pasteboard, which it opens by name (pasteboards are system-wide), and
++ * answers every drag with drag_done carrying the drag's header serial.
++ * The steps go through the window's event queue, in order with its other
++ * events, so the host waits for each answer before returning from the
++ * AppKit method, as the plain driver does, for as long as it does:
++ * - draggingEntered: ENTER (pasteboard set), wait 0.1 s, then as for
++ *   draggingUpdated;
++ * - draggingUpdated: UPDATE, wait 3 s; the operation to return is
++ *   drag_done's ops if accepted, else NSDragOperationNone;
++ * - draggingExited: LEAVE, wait 0.1 s;
++ * - performDragOperation: DROP, wait up to 180 s; return accepted.
++ * A host that times out goes on as if refused. Dragging out of a Wine
++ * window isn't supported, as with the plain driver. */
++
++#define WMH_DRAG_ENTER  1u
++#define WMH_DRAG_UPDATE 2u
++#define WMH_DRAG_LEAVE  3u
++#define WMH_DRAG_DROP   4u
++#define WMH_PASTEBOARD_NAME_MAX 128u
++
++struct wmh_drag {
++    uint32_t      type;                 /* WMH_DRAG_* */
++    wmh_window_id window;
++    double        x, y;                 /* UPDATE, DROP: in the window's content area, protocol space */
++    uint32_t      ops;                  /* UPDATE, DROP: the source's NSDragOperation mask */
++    uint32_t      reserved;
++    char          pasteboard[WMH_PASTEBOARD_NAME_MAX];  /* ENTER: the drag pasteboard's name, NUL-terminated */
++};
++
++struct wmh_drag_done {
++    uint32_t serial;                    /* the drag's header serial */
++    uint32_t accepted;                  /* nonzero: the program took it */
++    uint32_t ops;                       /* UPDATE: the NSDragOperation to show */
++    uint32_t reserved;
++};
++
 +/* ---- events, host -> driver: the macdrv_event types they become ---- */
 +
 +enum {
@@ -2597,6 +2744,8 @@ new file mode 100644
 +WMH_ASSERT_SIZE(wmh_reply, 8);
 +WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 +WMH_ASSERT_SIZE(wmh_event, 104);
++WMH_ASSERT_SIZE(wmh_drag, 160);
++WMH_ASSERT_SIZE(wmh_drag_done, 16);
 +#undef WMH_ASSERT_SIZE
 +
 +#endif /* WMH_PROTOCOL_H */

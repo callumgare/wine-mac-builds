@@ -88,12 +88,14 @@ enum {
     WMH_KIND_CURSOR_GET,                /* call: struct wmh_reply_point */
     WMH_KIND_DISPLAYS_GET,              /* call: struct wmh_reply_displays */
     WMH_KIND_QUIT_REPLY = 80,
+    WMH_KIND_DRAG_DONE,                 /* struct wmh_drag_done: the answer to a drag */
 
     /* ---- host -> driver ---- */
     WMH_KIND_HELLO_REPLY = 1001,        /* PORTS: [0] send right to the host's port for this connection */
     WMH_KIND_REPLY,                     /* struct wmh_reply, then the call's reply struct */
     WMH_KIND_SURFACE_RELEASE = 1010,
     WMH_KIND_EVENT = 1020,              /* struct wmh_event */
+    WMH_KIND_DRAG = 1030,               /* struct wmh_drag; answered with drag_done */
 };
 
 /* ---- handshake ---- */
@@ -326,6 +328,47 @@ struct wmh_reply_displays {             /* the first is the primary */
 
 struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
 
+/* ---- drag and drop onto a window ----
+ *
+ * The host is the drag destination for its windows and passes each step
+ * on as a drag message, as the plain driver's NSDraggingDestination
+ * methods do. The driver reads the dragged data itself from the drag
+ * pasteboard, which it opens by name (pasteboards are system-wide), and
+ * answers every drag with drag_done carrying the drag's header serial.
+ * The steps go through the window's event queue, in order with its other
+ * events, so the host waits for each answer before returning from the
+ * AppKit method, as the plain driver does, for as long as it does:
+ * - draggingEntered: ENTER (pasteboard set), wait 0.1 s, then as for
+ *   draggingUpdated;
+ * - draggingUpdated: UPDATE, wait 3 s; the operation to return is
+ *   drag_done's ops if accepted, else NSDragOperationNone;
+ * - draggingExited: LEAVE, wait 0.1 s;
+ * - performDragOperation: DROP, wait up to 180 s; return accepted.
+ * A host that times out goes on as if refused. Dragging out of a Wine
+ * window isn't supported, as with the plain driver. */
+
+#define WMH_DRAG_ENTER  1u
+#define WMH_DRAG_UPDATE 2u
+#define WMH_DRAG_LEAVE  3u
+#define WMH_DRAG_DROP   4u
+#define WMH_PASTEBOARD_NAME_MAX 128u
+
+struct wmh_drag {
+    uint32_t      type;                 /* WMH_DRAG_* */
+    wmh_window_id window;
+    double        x, y;                 /* UPDATE, DROP: in the window's content area, protocol space */
+    uint32_t      ops;                  /* UPDATE, DROP: the source's NSDragOperation mask */
+    uint32_t      reserved;
+    char          pasteboard[WMH_PASTEBOARD_NAME_MAX];  /* ENTER: the drag pasteboard's name, NUL-terminated */
+};
+
+struct wmh_drag_done {
+    uint32_t serial;                    /* the drag's header serial */
+    uint32_t accepted;                  /* nonzero: the program took it */
+    uint32_t ops;                       /* UPDATE: the NSDragOperation to show */
+    uint32_t reserved;
+};
+
 /* ---- events, host -> driver: the macdrv_event types they become ---- */
 
 enum {
@@ -393,6 +436,8 @@ WMH_ASSERT_SIZE(wmh_cursor_clip, 40);
 WMH_ASSERT_SIZE(wmh_reply, 8);
 WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 WMH_ASSERT_SIZE(wmh_event, 104);
+WMH_ASSERT_SIZE(wmh_drag, 160);
+WMH_ASSERT_SIZE(wmh_drag_done, 16);
 #undef WMH_ASSERT_SIZE
 
 #endif /* WMH_PROTOCOL_H */

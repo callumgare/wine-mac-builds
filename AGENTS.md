@@ -189,7 +189,12 @@ projects.
   job's own process (a child of the job's script can't check the service
   in); it starts the Wine side itself. Set HostWindows=y in the prefix
   first. If the host doesn't answer, Wine falls back to the plain driver
-  and its windows do appear.
+  and its windows do appear. `WMH_TESTHOST_STATES=1` makes it ask the
+  program's window to minimize, restore and maximize; `WMH_TESTHOST_DROP=
+  <file>` drags that file onto it (Notepad opens it, and its title shows
+  it). The driver's receive thread isn't a Wine thread: anything it does
+  that calls win32u has to go to the main thread or a window's event
+  queue, or the thread hangs.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,

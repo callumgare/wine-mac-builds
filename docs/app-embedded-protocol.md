@@ -223,10 +223,16 @@ Win32 side through its pipe, so no main thread is involved).
 - App: `APP_QUIT_REQUESTED` (reason), `DISPLAYS_CHANGED` (the answer to
   `displays_get` has changed).
 
-**Queries.** `RESIZE_SIZE`, `RESIZE_START`, `MIN_MAX_INFO` and the four
-drag-and-drop queries carry a serial. The driver posts them with a
-completion that sends `query_done` (serial, status, and for a resize the
-adjusted rect); the receive thread doesn't wait for the answer.
+**Queries.** `QUERY_MIN_MAX_INFO` and `QUERY_RESIZE_START` are events
+the driver answers with ordinary messages (`window_min_max`). Drag and
+drop onto a window is a `drag` message per step (enter, update, leave,
+drop), each answered with `drag_done` (the drag's serial, accepted, the
+operation to show). The host waits for those answers, as the plain
+driver's dragging methods do; the driver reads the dragged data from the
+drag pasteboard by name. The driver posts all of these to the window's
+event queue; its receive thread doesn't wait for the answer.
+`RESIZE_SIZE` (adjusting a size during a live resize) isn't in the
+protocol yet.
 
 **Replies** to the driver's calls, and `surface_release`.
 
