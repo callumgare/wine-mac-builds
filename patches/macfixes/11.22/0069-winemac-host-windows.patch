@@ -52,7 +52,22 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (integration): Second Chance's integration test of
+Status: 2026-11-22 (padding under emulated modes): a fullscreen window
+ under EmulateModeset has a surface padded beyond its window rect (to a
+ multiple of 128 px); the plain driver hides the padding with its black
+ mask (macdrv_set_window_mask), which host mode skips. The surface flush
+ now paints the padding black in host mode. Test host on meeka, 1 run
+ each: fullscreen-gdi-centred (2160x1440 window, 2176x1536 surface) had
+ grey padding on host8 and black with this; White Wolf's padding (columns
+ 1920-2175, x 2240-2496 on screen: the white strip Second Chance saw) is
+ black with it.
+ 2026-11-22 (integration, host8): Second Chance's integration tests of
+ every bundle (disc, download, Her download, Big Fish trial and owned,
+ Steam) passed with games' windows hosted; the fixes needed were all in
+ its host. Japanese conversion through its host is open: after the first
+ conversion, Space no longer converts (Kotoeri leaves the kana marked);
+ plain mode converts. Not yet known whether the driver is involved.
+ 2026-11-21 (integration): Second Chance's integration test of
  SkiFree passed on host6 with the game's window shown by its app bundle's
  host (captured, clicked and quit through it; 1 run). HostWindows set per
  game exe (AppDefaults), so explorer, Steam and the Game Manager stay on
@@ -2442,7 +2457,7 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
  /***********************************************************************
   *              macdrv_surface_flush
   */
-@@ -123,7 +136,7 @@
+@@ -123,10 +136,11 @@
                                   const BITMAPINFO *shape_info, const void *shape_bits)
  {
      struct macdrv_window_surface *surface = get_mac_surface(window_surface);
@@ -2450,22 +2465,95 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
 +    IOSurfaceRef io_surface = surface_to_draw(surface);
      bool use_alpha = !!window_surface->alpha_mask;
      struct macdrv_win_data *data;
-     RECT surface_rect = *rect, dirty_rect = *dirty;
-@@ -168,8 +181,11 @@
+-    RECT surface_rect = *rect, dirty_rect = *dirty;
++    RECT surface_rect = *rect, dirty_rect = *dirty, masked;
++    BOOL mask_padding = FALSE;
+     vImage_Buffer src = {
+         .data = (void *)color_bits,
+         .height = IOSurfaceGetHeight(io_surface),
+@@ -142,6 +156,29 @@
+ 
+     if (shape_changed && shape_bits) update_shape(&surface->shape_mask, shape_info, shape_bits);
+ 
++    if ((data = get_win_data(window_surface->hwnd)))
++    {
++        /* When a program changes the display mode under EmulateModeset, win32u stretches a
++         * fullscreen window's visible rect over the whole monitor and keeps its window rect
++         * where the scaled picture belongs (centred, with the rest masked black). The window
++         * surface is relative to the window rect then, so move it there. */
++        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
++
++        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
++            window->right <= visible->right && window->bottom <= visible->bottom)
++        {
++            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
++            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
++            /* The surface is padded beyond the window rect. The plain driver hides that
++             * with its black mask (macdrv_set_window_mask); a host has no mask, so the
++             * padding itself is made black. */
++            if ((mask_padding = host_mode && !EqualRect(window, visible)))
++                SetRect(&masked, window->right - window->left - rect->left,
++                        window->bottom - window->top - rect->top, src.width, src.height);
++        }
++        release_win_data(data);
++    }
++
+     IOSurfaceLock(io_surface, 0, NULL);
+     if (use_alpha)
+     {
+@@ -165,28 +202,34 @@
+     {
+         vImageSelectChannels_ARGB8888(&surface->shape_mask, &src, &dst, 0x1, kvImageNoFlags);
+         vImageClipToAlpha_BGRA8888(&dst, &dst, kvImageNoFlags);
++    }
++    if (mask_padding)
++    {
++        static const Pixel_8888 black = {0, 0, 0, 255};  /* BGRA */
++        vImage_Buffer part = dst;
++
++        if (masked.left >= 0 && masked.left < (LONG)dst.width)
++        {
++            part.data = (BYTE *)dst.data + masked.left * 4;
++            part.width = dst.width - masked.left;
++            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
++        }
++        if (masked.top >= 0 && masked.top < (LONG)dst.height)
++        {
++            part = dst;
++            part.data = (BYTE *)dst.data + masked.top * dst.rowBytes;
++            part.height = dst.height - masked.top;
++            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
++        }
      }
      IOSurfaceUnlock(io_surface, 0, NULL);
  
 -    surface->back_buffer = surface->front_buffer;
 -    surface->front_buffer = io_surface;
+-
+-    if ((data = get_win_data(window_surface->hwnd)))
 +    if (io_surface == surface->back_buffer)
-+    {
+     {
+-        /* When a program changes the display mode under EmulateModeset, win32u stretches a
+-         * fullscreen window's visible rect over the whole monitor and keeps its window rect
+-         * where the scaled picture belongs (centred, with the rest masked black). The window
+-         * surface is relative to the window rect then, so move it there. */
+-        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
+-
+-        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
+-            window->right <= visible->right && window->bottom <= visible->bottom)
+-        {
+-            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
+-            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
+-        }
+-        release_win_data(data);
 +        surface->back_buffer = surface->front_buffer;
 +        surface->front_buffer = io_surface;
-+    }
+     }
++
+     macdrv_window_set_io_surface(surface->window, io_surface, cgrect_from_rect(surface_rect),
+                                  cgrect_from_rect(dirty_rect));
  
-     if ((data = get_win_data(window_surface->hwnd)))
-     {
-@@ -202,6 +218,11 @@
+@@ -202,6 +245,11 @@
              macdrv_set_view_hidden(data->client_view, TRUE);
              data->client_view = NULL;
          }

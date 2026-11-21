@@ -189,7 +189,9 @@ projects.
   job's own process (a child of the job's script can't check the service
   in); it starts the Wine side itself. Set HostWindows=y in the prefix
   first. If the host doesn't answer, Wine falls back to the plain driver
-  and its windows do appear. `WMH_TESTHOST_STATES=1` makes it ask the
+  and its windows do appear. A finished job stays loaded and keeps its
+  `MachServices` name, so a second job declaring the same service fails to
+  check in ("check-in of … failed"): `launchctl bootout` the old one first. `WMH_TESTHOST_STATES=1` makes it ask the
   program's window to minimize, restore and maximize; `WMH_TESTHOST_DROP=
   <file>` drags that file onto it (Notepad opens it, and its title shows
   it). The driver's receive thread isn't a Wine thread: anything it does
