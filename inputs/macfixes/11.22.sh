@@ -97,4 +97,5 @@ PATCHES=(
     patches/macfixes/11.22/0068-ntdll-suspend-context-syscall-return.patch
     patches/macfixes/11.22/0069-winemac-host-windows.patch
     patches/macfixes/11.22/0070-imm32-composition-rect-at-current-pos.patch
+    patches/macfixes/11.22/0071-ntdll-exit-with-server.patch
 )

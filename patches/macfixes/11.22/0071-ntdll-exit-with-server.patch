@@ -1,0 +1,123 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Exit a process when its wineserver is gone
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/ntdll/unix/server.c; written for wine-mac-builds.
+Source: none published
+Upstream: no
+Why: A Wine thread only finds out that the wineserver has gone when its
+ next request fails (abort_thread), and the process ends with its last
+ Wine thread. A thread that only sleeps (a non-alertable Sleep is local),
+ renders, or waits in a macOS run loop makes no request, so after the
+ server died (killed, or crashed) such a process ran on with its windows
+ and open files, and an app embedding Wine couldn't tell its program had
+ gone. Now each process watches its socket to the server (fd_socket) with
+ a kqueue in a thread of its own, with every signal blocked, and exits
+ (status 1, "wine: the server is gone; exiting") when the server's end
+ closes. The server closes that socket only when it exits or has killed
+ the process, so nothing that should go on running is stopped.
+Programs: Second Chance (an app that embeds Wine): games went on running
+ after their wineserver was killed
+Uncertain: macOS only (kqueue); other systems keep the old behaviour.
+Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
+ threads only sleep was still running after wineserver -k9 (1 run, and
+ the regression test after 10 s). With this change it exited at once in 3
+ of 3 runs.
+Applies to: wine 11.22 (macfixes, after 0070)
+Status: 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
+ built with it into the host10 tree on meeka (macOS 26.7.2): the
+ regression test server-gone passes; on host10 it fails (still running
+ 10 s after the kill). The test compiles with llvm-mingw (i686, x86_64);
+ Homebrew's mingw isn't installed on meeka, so not checked with it.
+ The full suite on that tree: 53 passed, 0 failed, 2 skipped (the
+ screen-taking tests, WMB_REGRESS_NO_SCREEN).
+
+diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
+--- a/dlls/ntdll/unix/server.c
++++ b/dlls/ntdll/unix/server.c
+@@ -66,6 +66,7 @@
+ #ifdef __APPLE__
+ #include <crt_externs.h>
+ #include <spawn.h>
++#include <sys/event.h>
+ #ifndef _POSIX_SPAWN_DISABLE_ASLR
+ #define _POSIX_SPAWN_DISABLE_ASLR 0x0100
+ #endif
+@@ -1636,7 +1637,65 @@
+ }
+ 
+ 
++#ifdef __APPLE__
+ /***********************************************************************
++ *           server_watch_thread
++ *
++ * A thread only notices that the server is gone on its next request, and a
++ * thread that only sleeps, renders or waits in a macOS run loop makes none,
++ * so the process could outlive its server forever. Wait for the server's end
++ * of the socket to close, and exit then.
++ */
++static void *server_watch_thread( void *arg )
++{
++    int kq = (int)(INT_PTR)arg;
++    struct kevent ev;
++
++    for (;;)
++    {
++        int ret = kevent( kq, NULL, 0, &ev, 1, NULL );
++        if (ret == -1 && errno == EINTR) continue;
++        if (ret == -1) return NULL;
++        if (ret == 1 && (ev.flags & EV_EOF))
++        {
++            MESSAGE( "wine: the server is gone; exiting\n" );
++            abort_process( 1 );
++        }
++    }
++}
++
++static void start_server_watch( void )
++{
++    struct kevent ev;
++    pthread_attr_t attr;
++    pthread_t thread;
++    sigset_t all, old;
++    int kq;
++
++    if ((kq = kqueue()) == -1) return;
++    fcntl( kq, F_SETFD, FD_CLOEXEC );
++    /* EV_CLEAR: wake once per change, not for as long as fds wait to be received */
++    EV_SET( &ev, fd_socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL );
++    if (kevent( kq, &ev, 1, NULL, 0, NULL ) == -1)
++    {
++        close( kq );
++        return;
++    }
++
++    /* no Wine signal may be delivered to this thread */
++    sigfillset( &all );
++    pthread_sigmask( SIG_SETMASK, &all, &old );
++    pthread_attr_init( &attr );
++    pthread_attr_setstacksize( &attr, 64 * 1024 );
++    pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
++    if (pthread_create( &thread, &attr, server_watch_thread, (void *)(INT_PTR)kq )) close( kq );
++    pthread_attr_destroy( &attr );
++    pthread_sigmask( SIG_SETMASK, &old, NULL );
++}
++#endif
++
++
++/***********************************************************************
+  *           server_init_process
+  *
+  * Start the server and create the initial socket pair.
+@@ -1714,6 +1773,10 @@
+     reply_pipe = init_thread_pipe( data );
+     close( reply_pipe );
+ 
++#ifdef __APPLE__
++    start_server_watch();
++#endif
++
+     SERVER_START_REQ( init_first_thread )
+     {
+         req->unix_pid    = getpid();

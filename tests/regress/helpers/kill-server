@@ -1,0 +1,39 @@
+#!/bin/bash
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# kill-server <name> <wine> <exe>: run "<wine> <exe>", and once it prints
+# "<name>: ready", kill its wineserver with SIGKILL. Passes when the
+# program then exits within 10 s, and prints "<name>: ok" or "<name>: FAILED".
+name="$1"; shift
+wineserver="$(dirname "$1")/wineserver"
+out="$(mktemp -t kill-server)"
+"$@" > "$out" 2>&1 &
+pid=$!
+for ((i = 0; i < 60; i++)); do
+    grep -a -q "^$name: ready" "$out" && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.5
+done
+if ! grep -a -q "^$name: ready" "$out"; then
+    cat "$out"; rm -f "$out"
+    echo "$name: the program didn't get ready"
+    echo "$name: FAILED"
+    kill -9 "$pid" 2>/dev/null
+    exit 1
+fi
+"$wineserver" -k9
+gone=
+for ((i = 0; i < 20; i++)); do
+    kill -0 "$pid" 2>/dev/null || { gone=1; break; }
+    sleep 0.5
+done
+cat "$out"; rm -f "$out"
+if [[ -n $gone ]]; then
+    echo "$name: the program exited after its wineserver was killed"
+    echo "$name: ok"
+    exit 0
+fi
+kill -9 "$pid" 2>/dev/null
+echo "$name: the program was still running 10 s after its wineserver was killed"
+echo "$name: FAILED"
+exit 1

@@ -58,6 +58,7 @@ All guard macfixes patches; the number is the patch's in
 | `nvngx-redirect` | 0038 | DLSS games read system32's nvngx.dll instead of D3DMetal's |
 | `renderer-dll-paths` | 0034, 0035 | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
 | `replace-launchers` | 0032 | ELDEN RING's EasyAntiCheat launcher runs instead of the game |
+| `server-gone` | 0071 | a program whose threads make no server request (sleeping, rendering, waiting in a macOS run loop) goes on running after its wineserver is killed |
 | `simulate-writecopy` | 0012 | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
 | `suspend-context-syscall-return` | 0068 | `GetThreadContext` on a thread suspended on its way out of a syscall gives the dispatcher's registers, with rsp on Wine's kernel stack (Steam's client: Chromium's stack sampler faults copying from there) |
 | `winemac-activation-policy` | 0063 | a helper process of an app that embeds Wine gets a Dock icon and the Wine menu and takes focus; the `ActivationPolicy` value set to `accessory` stops that. Needs a window server |
@@ -122,6 +123,7 @@ Programs in `helpers/` that a test names with `Wrapper:`:
 - `mac-cpus` passes the Mac's real processor count.
 - `prefix-env` sets variables to paths inside the prefix.
 - `occupy-exe-base` loads a small library (compiled with `xcrun clang` on first use) into every Wine process of the run. It takes an address range that the test names, before Wine maps anything there.
+- `kill-server <name>` kills the wineserver with SIGKILL once the program prints `<name>: ready`, and passes when the program then exits within 10 s.
 - `unserviced-exception-port` starts wine with task exception ports that nobody answers. It is compiled with `xcrun clang` on first use, and the test skips if there's no compiler.
 
 ## Writing one
