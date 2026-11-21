@@ -98,4 +98,5 @@ PATCHES=(
     patches/macfixes/11.22/0069-winemac-host-windows.patch
     patches/macfixes/11.22/0070-imm32-composition-rect-at-current-pos.patch
     patches/macfixes/11.22/0071-ntdll-exit-with-server.patch
+    patches/macfixes/11.22/0072-win32u-desktop-wait.patch
 )

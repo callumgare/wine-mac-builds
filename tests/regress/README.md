@@ -45,6 +45,7 @@ All guard macfixes patches; the number is the patch's in
 | `cef-append-flags` | 0033 | Steam's CEF helper starts without the flags it needs to render in Wine |
 | `commandline-append` | 0037 | the registry's `CommandLineAppend` for an exe isn't added to its command line |
 | `composited-paint` | 0044 | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
+| `desktop-wait` | 0072 | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
 | `d3dmetal-dlls` | 0045, 0021, 0050 | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
 | `exe-base-taken` | 0059 | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
 | `gl-context-dealloc` | 0066 | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |

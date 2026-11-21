@@ -82,7 +82,11 @@ projects.
    tree and swap it into a copy of the last release (`cp -c` makes an APFS
    clone). Then refresh the directories you touch from the release's
    `-sources` asset first. A stale tree gives results that belong to
-   neither build.
+   neither build. A `.so` built in the tree lacks the
+   `@loader_path/../../` rpath packaging adds to every
+   `lib/wine/x86_64-unix/*.so`, through which Wine finds the bundled
+   libraries by leaf name: add it with `install_name_tool -add_rpath
+   @loader_path/../../ <file>`, or a swapped win32u.so can't find FreeType.
 4. Write a regression test that fails without the fix. Run it with
    `WMB_REGRESS_ALL=1` on the plain build of the same version. Check it
    compiles with llvm-mingw as well as Homebrew's mingw, since their headers
