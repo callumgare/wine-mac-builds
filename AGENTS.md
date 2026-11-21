@@ -194,7 +194,14 @@ projects.
   <file>` drags that file onto it (Notepad opens it, and its title shows
   it). The driver's receive thread isn't a Wine thread: anything it does
   that calls win32u has to go to the main thread or a window's event
-  queue, or the thread hangs.
+  queue, or the thread hangs. `WMH_TESTHOST_IME=1` types "a" and Return
+  and answers the driver's ime_key calls like an input method; Wine only
+  asks when an input method is the current input source, so run it in a
+  Screen Slots slot (another user) with one selected, not in a session
+  someone types in. Select one with TISSelectInputSource: enable and select
+  the input method itself (com.apple.inputmethod.Kotoeri.RomajiTyping)
+  before its mode (…RomajiTyping.Japanese), or selecting the mode fails
+  with -50.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,

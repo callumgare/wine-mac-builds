@@ -193,7 +193,9 @@ One-way unless marked *call*. Each corresponds to a function in
 | `cursor_get` (*call*) | `get_cursor_position` | fallback: the last position the host reported |
 | `view_backing_size` (*call*) | `get_view_backing_size` | fallback: the view's frame in pixels |
 | `displays_get` (*call*) | `get_gpus`, `get_adapters`, `get_monitors` | the host's displays: the window's screen, or what it emulates. Fallback: the real displays |
-| `ime_active`, `ime_status` (*call*) | `using_input_method`, `get_ime_open_status` | fallback: false |
+| `ime_key` (*call*) | `send_keydown_to_input_source` | the host's input context handles the key and returns the marked and committed text. Fallback: not handled |
+| `ime_clear` | `clear_ime_text` | discard the marked text |
+| `ime_rect` | `SetIMECompositionRect` | for the candidate window |
 
 ## Host → driver messages
 
@@ -208,6 +210,9 @@ Win32 side through its pipe, so no main thread is involved).
   protocol's space (see Coordinates): the host undoes any scaling it
   applies. `KEYBOARD_CHANGED` is only a nudge: the driver reads the new
   layout itself through Text Input Sources, which work in any process.
+  A host sends it whenever the input source changes: in host mode macOS's
+  own notice doesn't reach the driver (it ignores it without a text input
+  context of its own).
 - Focus: `WINDOW_GOT_FOCUS`, `WINDOW_LOST_FOCUS`, `APP_DEACTIVATED`,
   `WINDOW_BROUGHT_FORWARD`, `RELEASE_CAPTURE`. There's no `APP_ACTIVATED`:
   activation shows as a window getting focus.
@@ -254,8 +259,6 @@ protocol yet.
 - Metal and Vulkan (`create_metal_device`, the Metal view, swapchain and
   remote layer functions). A process set to use Vulkan stays on the plain
   driver.
-- Text input through an input method (`send_keydown_to_input_source`,
-  `clear_ime_text`), which needs a text view in the host.
 - Windows whose owner is in another process.
 
 ## Behaviour hosts need to get right

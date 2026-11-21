@@ -45,12 +45,14 @@ static const char *outdir;
 
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }
 
+static uint32_t reply_serial;   /* send_to: answer this call instead of numbering a new message */
+
 static uint32_t send_to(mach_port_t port, uint32_t kind, const void *payload, size_t size, mach_port_t give, int give_disp)
 {
     static uint32_t next_serial = 1;
-    uint32_t serial = next_serial++;
-    struct { mach_msg_header_t h; mach_msg_body_t b; mach_msg_port_descriptor_t d; struct wmh_header w; char p[256]; } m;
-    struct { mach_msg_header_t h; struct wmh_header w; char p[256]; } *pm = (void *)&m;
+    uint32_t serial = reply_serial ? reply_serial : next_serial++;
+    struct { mach_msg_header_t h; mach_msg_body_t b; mach_msg_port_descriptor_t d; struct wmh_header w; char p[4096]; } m;
+    struct { mach_msg_header_t h; struct wmh_header w; char p[4096]; } *pm = (void *)&m;
     kern_return_t kr;
 
     memset(&m, 0, sizeof(m));
@@ -135,6 +137,10 @@ int main(int argc, char **argv)
     /* WMH_TESTHOST_DROP=<path>: drag that file onto the last connection's
      * first window (enter, update at its centre, drop). */
     const char *drop = getenv("WMH_TESTHOST_DROP");
+    /* WMH_TESTHOST_IME=1: type "a" then Return into the last connection's
+     * first window, and act as an input method when the driver asks:
+     * "a" gives the marked text U+3042, Return commits U+4E9C. */
+    int ime = getenv("WMH_TESTHOST_IME") != NULL;
     struct { mach_msg_header_t h; char d[8192]; } m;
 
     outdir = argc > 3 ? argv[3] : ".";
@@ -210,6 +216,22 @@ int main(int argc, char **argv)
                     if (d.type == WMH_DRAG_ENTER) snprintf(d.pasteboard, sizeof(d.pasteboard), "%s", drop_pasteboard(drop));
                     serial = send_to(sc->driver, WMH_KIND_DRAG, &d, sizeof(d), 0, 0);
                     printf("host: drag %u (serial %u) to %s window %u at %.0f,%.0f\n", d.type, serial, sc->exe, i, d.x, d.y);
+                    break;
+                }
+            step++;
+            fflush(stdout);
+        }
+        if (ime && start && !closed && step < 2 && now() - start > 1.5 * (step + 1) && nconns)
+        {
+            struct conn *sc = &conns[nconns - 1];
+            for (uint32_t i = 1; i < MAXW; i++)
+                if (sc->visible[i] && sc->frames[i])
+                {
+                    struct wmh_event k = { .type = WMH_EV_KEY_PRESS, .window = i, .keycode = step == 0 ? 0 : 36 };
+                    printf("host: key %u to %s window %u\n", k.keycode, sc->exe, i);
+                    send_to(sc->driver, WMH_KIND_EVENT, &k, sizeof(k), 0, 0);
+                    k.type = WMH_EV_KEY_RELEASE;
+                    send_to(sc->driver, WMH_KIND_EVENT, &k, sizeof(k), 0, 0);
                     break;
                 }
             step++;
@@ -346,6 +368,37 @@ int main(int argc, char **argv)
                 if (port) mach_port_deallocate(mach_task_self(), port);
             }
             else printf("host: %s cursor_set hidden\n", c->exe);
+            break; }
+        case WMH_KIND_IME_KEY: {
+            struct wmh_ime_key *k = pl;
+            struct { struct wmh_reply r; struct wmh_reply_ime_key k; } rep;
+            memset(&rep, 0, sizeof(rep));
+            rep.r.status = WMH_STATUS_OK;
+            for (uint32_t i = 1; i < MAXW; i++) if (c->visible[i] && c->frames[i]) { rep.k.window = i; break; }
+            if (k->keycode == 0)
+            {
+                rep.k.handled = 1; rep.k.count = 1;
+                rep.k.texts[0] = (struct wmh_ime_text){ .complete = 0, .cursor_begin = 1, .cursor_end = 1, .length = 1 };
+                rep.k.texts[0].text[0] = 0x3042;
+            }
+            else if (k->keycode == 36)
+            {
+                rep.k.handled = 1; rep.k.count = 1;
+                rep.k.texts[0] = (struct wmh_ime_text){ .complete = 1, .length = 1 };
+                rep.k.texts[0].text[0] = 0x4e9c;
+            }
+            printf("host: %s ime_key %u flags %#x repeat %u (serial %u) -> handled %u\n", c->exe, k->keycode, k->modifiers,
+                   k->repeat, w->serial, rep.k.handled);
+            reply_serial = w->serial;
+            send_to(c->driver, WMH_KIND_REPLY, &rep, sizeof(rep), 0, 0);
+            reply_serial = 0;
+            break; }
+        case WMH_KIND_IME_CLEAR:
+            printf("host: %s ime_clear\n", c->exe);
+            break;
+        case WMH_KIND_IME_RECT: {
+            struct wmh_ime_rect *r = pl;
+            printf("host: %s ime_rect %.0f,%.0f %.0fx%.0f\n", c->exe, r->rect.x, r->rect.y, r->rect.width, r->rect.height);
             break; }
         case WMH_KIND_DRAG_DONE: {
             struct wmh_drag_done *dd = pl;

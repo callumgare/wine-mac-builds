@@ -87,6 +87,9 @@ enum {
     WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
     WMH_KIND_CURSOR_GET,                /* call: struct wmh_reply_point */
     WMH_KIND_DISPLAYS_GET,              /* call: struct wmh_reply_displays */
+    WMH_KIND_IME_KEY,                   /* call: struct wmh_ime_key; reply struct wmh_reply_ime_key */
+    WMH_KIND_IME_CLEAR = 70,            /* no payload struct beyond the header */
+    WMH_KIND_IME_RECT,                  /* struct wmh_ime_rect */
     WMH_KIND_QUIT_REPLY = 80,
     WMH_KIND_DRAG_DONE,                 /* struct wmh_drag_done: the answer to a drag */
 
@@ -333,6 +336,58 @@ struct wmh_reply_displays {             /* the first is the primary */
 
 struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
 
+/* ---- text input through an input method ----
+ *
+ * The host's text input context does the input method's work, driven by the
+ * driver, the way the plain driver drives its own:
+ * - The host sends key presses as KEY_PRESS events and doesn't give them to
+ *   an input context itself.
+ * - When a program has an IME open and the current input source is an
+ *   input method, the driver calls ime_key with each key press. The host
+ *   makes a key-down NSEvent from it (from a CGEvent, which input methods
+ *   accept, with the keycode, flags and autorepeat), gives it to the
+ *   input context of its key window's text input client
+ *   ([inputContext handleEvent:]), and records what the input method
+ *   calls back, in order: setMarkedText:selectedRange: as a text with
+ *   complete 0 and the selection as cursor_begin..cursor_end (UTF-16
+ *   units); insertText: and unmarkText as complete 1 (unmarkText with an
+ *   empty text). handled is what handleEvent: returned, and 0 if the
+ *   input method called doCommandBySelector:, as with the plain driver.
+ * - ime_rect: where the program shows its composition, in the protocol's
+ *   space, for firstRectForCharacterRange: (candidate windows go below it).
+ * - ime_clear: the program closed its IME: discard the marked text
+ *   ([inputContext discardMarkedText]) without sending anything.
+ * The host's text input client keeps the marked text, its selection, and
+ * the attributed substrings the input method asks for; it doesn't edit
+ * anything else. */
+
+#define WMH_IME_TEXTS_MAX 4u
+#define WMH_IME_TEXT_MAX  255u              /* UTF-16 units; longer is cut */
+
+struct wmh_ime_key {
+    uint32_t keycode;                   /* Mac virtual key code */
+    uint32_t modifiers;                 /* CGEventFlags, low 32 bits */
+    uint32_t repeat;                    /* nonzero: autorepeat */
+    uint32_t reserved;
+};
+
+struct wmh_ime_text {
+    uint32_t complete;                  /* nonzero: insertText (committed); 0: setMarkedText */
+    uint32_t cursor_begin, cursor_end;  /* marked text: the selection, UTF-16 units */
+    uint32_t length;                    /* UTF-16 units in text */
+    uint16_t text[WMH_IME_TEXT_MAX + 1];
+};
+
+struct wmh_reply_ime_key {
+    uint32_t           handled;         /* nonzero: the input method took the key */
+    wmh_window_id      window;          /* the window whose text input client it was */
+    uint32_t           count;           /* texts used */
+    uint32_t           reserved;
+    struct wmh_ime_text texts[WMH_IME_TEXTS_MAX];
+};
+
+struct wmh_ime_rect { struct wmh_rect rect; };
+
 /* ---- drag and drop onto a window ----
  *
  * The host is the drag destination for its windows and passes each step
@@ -439,6 +494,10 @@ WMH_ASSERT_SIZE(wmh_view_frame_ready, 24);
 WMH_ASSERT_SIZE(wmh_cursor_set, 96);
 WMH_ASSERT_SIZE(wmh_cursor_clip, 40);
 WMH_ASSERT_SIZE(wmh_reply, 8);
+WMH_ASSERT_SIZE(wmh_ime_key, 16);
+WMH_ASSERT_SIZE(wmh_ime_text, 528);
+WMH_ASSERT_SIZE(wmh_reply_ime_key, 16 + 4 * 528);
+WMH_ASSERT_SIZE(wmh_ime_rect, 32);
 WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 WMH_ASSERT_SIZE(wmh_event, 104);
 WMH_ASSERT_SIZE(wmh_drag, 160);
