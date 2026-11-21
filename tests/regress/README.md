@@ -107,6 +107,8 @@ that Wine 11's own fix still holds.
   - 0015/0016: Finder's free-space figure isn't visible to a program.
   - 0041: needs a fully loaded Mac.
   - 0047 and 0049: need real Cocoa focus and input-method events.
+  - 0073: needs a fullscreen Space and a live cursor to look at (a
+    background login has none).
 - **Timing only.** 0058 (an OpenGL context updated from the main thread
   deadlocks it; White Wolf Queen on macOS 26): it takes a context that's
   pending on a view with no latent view, which so far has only happened
