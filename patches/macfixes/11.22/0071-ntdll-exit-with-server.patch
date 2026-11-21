@@ -25,7 +25,11 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  the regression test after 10 s). With this change it exited at once in 3
  of 3 runs. In that same unfixed run, the prefix's explorer.exe (its
  desktop thread waits in a message loop) was still running half an hour
- after its wineserver was killed.
+ after its wineserver was killed, and 12 service processes of two such
+ test prefixes (services.exe, plugplay, svchost, winedevice) were still
+ running nearly two hours later. On Second Chance's slot-1, a steam.exe
+ whose wineserver had gone spun at 96% CPU for about six hours with its
+ services and explorer, slowing the other tests on that Mac.
 Applies to: wine 11.22 (macfixes, after 0070)
 Status: 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
  built with it into the host10 tree on meeka (macOS 26.7.2): the
