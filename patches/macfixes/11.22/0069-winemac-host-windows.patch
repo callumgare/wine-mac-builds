@@ -64,9 +64,12 @@ Status: 2026-11-22 (padding under emulated modes): a fullscreen window
  2026-11-22 (integration, host8): Second Chance's integration tests of
  every bundle (disc, download, Her download, Big Fish trial and owned,
  Steam) passed with games' windows hosted; the fixes needed were all in
- its host. Japanese conversion through its host is open: after the first
- conversion, Space no longer converts (Kotoeri leaves the kana marked);
- plain mode converts. Not yet known whether the driver is involved.
+ its host. Japanese conversion is open, and not a host-mode bug: with
+ Kotoeri's prediction popup or candidate list showing, Space doesn't
+ convert (the kana stay marked) and Return commits nothing (no callback
+ from the input method). Plain mode does the same (traced in a Screen
+ Slots slot, 2 runs; passing key-ups to the input context too didn't
+ change it).
  2026-11-21 (integration): Second Chance's integration test of
  SkiFree passed on host6 with the game's window shown by its app bundle's
  host (captured, clicked and quit through it; 1 run). HostWindows set per
