@@ -52,7 +52,12 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
 Applies to: wine 11.22 (macfixes, after 0068)
-Status: 2026-11-21 (input methods): the driver calls the host (ime_key) for
+Status: 2026-11-21 (integration): Second Chance's integration test of
+ SkiFree passed on host6 with the game's window shown by its app bundle's
+ host (captured, clicked and quit through it; 1 run). HostWindows set per
+ game exe (AppDefaults), so explorer, Steam and the Game Manager stay on
+ the plain driver.
+ 2026-11-21 (input methods): the driver calls the host (ime_key) for
  each key Wine gives an open IME, and replays the marked and committed
  text the host's input context produced through macdrv_ime_set_text;
  ime_rect and ime_clear stand in for the composition rect and
