@@ -23,7 +23,9 @@ Uncertain: macOS only (kqueue); other systems keep the old behaviour.
 Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  threads only sleep was still running after wineserver -k9 (1 run, and
  the regression test after 10 s). With this change it exited at once in 3
- of 3 runs.
+ of 3 runs. In that same unfixed run, the prefix's explorer.exe (its
+ desktop thread waits in a message loop) was still running half an hour
+ after its wineserver was killed.
 Applies to: wine 11.22 (macfixes, after 0070)
 Status: 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
  built with it into the host10 tree on meeka (macOS 26.7.2): the
