@@ -1,0 +1,56 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: imm32: report the composition position, not the whole CFS_RECT area, to the driver
+Category: input
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/imm32/imm.c (ImmSetCompositionWindow); written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: ImmSetCompositionWindow tells the display driver where the program
+ shows its composition (SetIMECompositionRect), which the Mac driver gives
+ macOS input methods for their candidate window
+ (firstRectForCharacterRange:). With CFS_RECT it passed rcArea, the whole
+ area the composition may use, though the composition starts at
+ ptCurrentPos with every style (rcArea only bounds it, as on Windows). An
+ edit control sets CFS_RECT with its whole formatting rect, and caret
+ moves set the caret rect, so the driver's rect alternated between the
+ two and the candidate window opened below the edit area, at the bottom
+ of the screen, whenever the edit control's call came last. Now the rect
+ is at ptCurrentPos, one line of the composition font tall when the
+ program set one (edit controls do), else 1 high as CFS_POINT was.
+Programs: Notepad (and any edit control) with a macOS input method
+ (Japanese Romaji): the candidate window opened at the bottom left of the
+ screen, far from the text being composed
+Uncertain: Programs that set CFS_RECT without a meaningful ptCurrentPos
+ would now get their candidates at that point rather than below their
+ area; none known.
+Applies to: wine 11.22 (macfixes, after 0069)
+Status: 2026-11-21: not yet in a build. In a Screen Slots slot (macOS
+ 26.7), 11.22-build0 in plain mode, Notepad, Japanese Romaji, "nihon"
+ and two spaces: the candidate window opened at the bottom left of the
+ screen (1 run); with imm32.dll built with this patch swapped in, it
+ opened directly below the composition at Notepad's caret (1 run). No
+ regression test: the rect only reaches the driver, and no Win32 call
+ reads it back.
+
+diff --git a/dlls/imm32/imm.c b/dlls/imm32/imm.c
+--- a/dlls/imm32/imm.c
++++ b/dlls/imm32/imm.c
+@@ -2661,9 +2661,13 @@
+ 
+     if (composition->dwStyle & (CFS_RECT | CFS_POINT | CFS_FORCE_POSITION))
+     {
+-        if (composition->dwStyle & CFS_RECT) rect = composition->rcArea;
+-        else SetRect( &rect, composition->ptCurrentPos.x, composition->ptCurrentPos.y,
+-                      composition->ptCurrentPos.x + 1, composition->ptCurrentPos.y + 1 );
++        /* The composition starts at ptCurrentPos with every style; CFS_RECT's
++         * rcArea only bounds it. Report that position, one line of the
++         * composition font tall when it's known, so that a candidate window
++         * opens below the text being composed. */
++        LONG height = (ctx->fdwInit & INIT_LOGFONT) ? abs( ctx->lfFont.W.lfHeight ) : 0;
++        SetRect( &rect, composition->ptCurrentPos.x, composition->ptCurrentPos.y,
++                 composition->ptCurrentPos.x + 1, composition->ptCurrentPos.y + max( height, 1 ) );
+         NtUserCallTwoParam( (ULONG_PTR)ctx->hWnd, (ULONG_PTR)&rect, NtUserCallTwoParam_SetIMECompositionRect );
+     }
+ 
