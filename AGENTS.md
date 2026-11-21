@@ -201,7 +201,12 @@ projects.
   someone types in. Select one with TISSelectInputSource: enable and select
   the input method itself (com.apple.inputmethod.Kotoeri.RomajiTyping)
   before its mode (…RomajiTyping.Japanese), or selecting the mode fails
-  with -50.
+  with -50. A real host's input context only works when the host was
+  started by LaunchServices as an app bundle: exec'd from a shell (even
+  inside a .app) the input method logs "error messaging the mach port for
+  IMKCFRunLoopWakeUpReliable" and swallows every key. Wine's composition
+  window is an ordinary popup (window_order/frame_ready like any other);
+  without a CJK font in the prefix it's only a few points wide.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
