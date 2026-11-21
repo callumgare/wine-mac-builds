@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     int closed = 0, step = 0;
     /* WMH_TESTHOST_STATES=1: before closing, ask the last connection's first
      * window to minimize, report it unminimized, then ask it to maximize. */
-    int states = getenv("WMH_TESTHOST_STATES") != NULL;
+    int states = getenv("WMH_TESTHOST_STATES") ? atoi(getenv("WMH_TESTHOST_STATES")) : 0;  /* 2: no maximize */
     /* WMH_TESTHOST_DROP=<path>: drag that file onto the last connection's
      * first window (enter, update at its centre, drop). */
     const char *drop = getenv("WMH_TESTHOST_DROP");
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
             closed = 1;
             deadline = now() + 15;
         }
-        if (states && start && !closed && step < 3 && now() - start > 1.5 * (step + 1) && nconns)
+        if (states && start && !closed && step < (states == 2 ? 2 : 3) && now() - start > 1.5 * (step + 1) && nconns)
         {
             static const uint32_t types[] = { WMH_EV_WINDOW_MINIMIZE_REQUESTED, WMH_EV_WINDOW_DID_UNMINIMIZE,
                                               WMH_EV_WINDOW_MAXIMIZE_REQUESTED };
@@ -183,6 +183,15 @@ int main(int argc, char **argv)
                     struct wmh_event ev = { .type = types[step], .window = i };
                     printf("host: sending %s to %s window %u\n", names[step], sc->exe, i);
                     send_to(sc->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+                    if (types[step] == WMH_EV_WINDOW_DID_UNMINIMIZE)
+                    {
+                        /* As the plain driver's windowDidDeminiaturize: does (through
+                           windowDidResize:), say where the window is now. */
+                        struct wmh_event fc = { .type = WMH_EV_WINDOW_FRAME_CHANGED, .window = i, .frame = sc->wframe[i] };
+                        printf("host: sending frame_changed %.0f,%.0f %.0fx%.0f\n", fc.frame.x, fc.frame.y,
+                               fc.frame.width, fc.frame.height);
+                        send_to(sc->driver, WMH_KIND_EVENT, &fc, sizeof(fc), 0, 0);
+                    }
                     break;
                 }
             step++;

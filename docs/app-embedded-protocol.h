@@ -146,7 +146,12 @@ struct wmh_hello_reply {
  * - window_state without MINIMIZED (MINIMIZED_VALID set) while the window
  *   is miniaturized: the host deminiaturizes it, and sends nothing back.
  * - The user's deminiaturize (Dock, clicking the window's tile): the host
- *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE.
+ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE, then WINDOW_FRAME_CHANGED
+ *   with the window's frame, even though it hasn't changed, as the plain
+ *   driver does (windowDidDeminiaturize: calls windowDidResize:). Wine
+ *   restores the window to a rect worked out from that frame using the
+ *   minimized window's rects, which have no title bar or borders, so the
+ *   restored window is a little smaller; the frame change corrects it.
  * - The user's zoom (green button or double-click on the title bar, when
  *   the window has WMH_WF_MAXIMIZE_BUTTON): the host sends
  *   WINDOW_MAXIMIZE_REQUESTED and doesn't resize; a frame follows. When

@@ -59,6 +59,14 @@ Status: 2026-11-21 (drag and drop): files dragged onto a window: the host's
  and Notepad on meeka, 1 run: enter, update (ops copy) and drop were
  accepted and Notepad opened the file. Not yet through Second Chance's
  host or a real Finder drag.
+ 2026-11-21 (minimize, maximize, real host): Second Chance's host on host6,
+ Notepad: Zoom, Cmd-M and the Dock, and fullscreen in a Space work. After
+ a Dock restore Notepad came back about 4 pt narrower and 24 pt shorter
+ than its window: Wine works out the restored rect from the frame using
+ the minimized window's rects (no non-client area). The plain driver
+ corrects it with the frame change that follows every deminiaturize; the
+ host didn't send one. With the test host sending it, the rects came back
+ right (1 run). The protocol now says to send it.
  2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
  WINDOW_MAXIMIZE_REQUESTED, run on the main thread as the plain driver
  does (the receive thread can't call win32u: the first try hung it in
@@ -2305,7 +2313,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,443 @@
+@@ -0,0 +1,448 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2454,7 +2462,12 @@ new file mode 100644
 + * - window_state without MINIMIZED (MINIMIZED_VALID set) while the window
 + *   is miniaturized: the host deminiaturizes it, and sends nothing back.
 + * - The user's deminiaturize (Dock, clicking the window's tile): the host
-+ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE.
++ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE, then WINDOW_FRAME_CHANGED
++ *   with the window's frame, even though it hasn't changed, as the plain
++ *   driver does (windowDidDeminiaturize: calls windowDidResize:). Wine
++ *   restores the window to a rect worked out from that frame using the
++ *   minimized window's rects, which have no title bar or borders, so the
++ *   restored window is a little smaller; the frame change corrects it.
 + * - The user's zoom (green button or double-click on the title bar, when
 + *   the window has WMH_WF_MAXIMIZE_BUTTON): the host sends
 + *   WINDOW_MAXIMIZE_REQUESTED and doesn't resize; a frame follows. When
