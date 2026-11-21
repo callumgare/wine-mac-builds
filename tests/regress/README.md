@@ -109,6 +109,9 @@ that Wine 11's own fix still holds.
   - 0047 and 0049: need real Cocoa focus and input-method events.
   - 0073: needs a fullscreen Space and a live cursor to look at (a
     background login has none).
+  - 0074: the confinement rect isn't visible to a Windows program, and
+    the pointer can only be checked with relative mouse movement (a
+    synthetic absolute move isn't confined).
 - **Timing only.** 0058 (an OpenGL context updated from the main thread
   deadlocks it; White Wolf Queen on macOS 26): it takes a context that's
   pending on a view with no latent view, which so far has only happened

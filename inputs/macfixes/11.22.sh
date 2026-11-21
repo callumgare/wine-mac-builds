@@ -100,4 +100,5 @@ PATCHES=(
     patches/macfixes/11.22/0071-ntdll-exit-with-server.patch
     patches/macfixes/11.22/0072-win32u-desktop-wait.patch
     patches/macfixes/11.22/0073-winemac-fullscreen-space-click.patch
+    patches/macfixes/11.22/0074-winemac-clip-follows-window.patch
 )

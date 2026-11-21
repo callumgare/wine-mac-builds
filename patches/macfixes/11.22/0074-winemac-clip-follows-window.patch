@@ -1,0 +1,115 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Keep the cursor clip in step when the clipping window moves or resizes
+Category: input
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/winemac.drv/cocoa_cursorclipping.m, cocoa_app.m, cocoa_window.m;
+ written for wine-mac-builds after Second Chance's workaround (it re-clips
+ on NSWindowDidResize and NSWindowDidMove).
+Source: none published
+Upstream: no
+Why: The Mac driver clips the cursor with -[NSWindow
+ setMouseConfinementRect:] on the front Wine window. That rect is in the
+ window's own coordinates and is cut to the window's frame when clipping
+ starts, so once the window moves or grows it still holds the old area. A
+ program asking for the same screen rect again changes nothing: the
+ controller returns early when the rect is equal. Now a WineWindow tells
+ the controller whenever its frame changes, including when Wine set the
+ frame itself, and the confinement handler works the rect out again for
+ the clipping window.
+Programs: Warnings at Waverly Academy, plain Wine with EmulateModeset on a
+ loaded MacBook (Second Chance, 2026-11-13): the game sized its window to
+ the mode (800x600 at the top left), switched mode, and win32u clipped to
+ the window before the driver scaled the window up to the display, so the
+ pointer stayed in the top-left 800x600 for good. On an idle Mac the window
+ grew first.
+Uncertain: Only the confinement handler (the default) does this; the event
+ tap handler (UseConfinementCursorClipping=n) clips to the screen rect and
+ doesn't depend on the window.
+Evidence: In a Screen Slots slot on meeka (macOS 26.7.2), with a debug
+ build: a program clips to (10,10)-(2550,1430) over its 400x300 window
+ (confinement {0,0,400,300}), then grows the window to 1920x1080. The
+ confinement stayed {0,0,400,300} with the update turned off (1 run) and
+ became {10,0,1910,1080} with it (1 run). The pointer itself can't be
+ tested there: Screen Slots moves it to absolute positions, which
+ confinement doesn't limit.
+Applies to: wine 11.22 (macfixes, after 0073)
+Status: 2026-11-22: not yet in a build (in Second Chance's host14 test
+ tarball). Tested only as in Evidence, and winemac-activation-policy and
+ winemac-plugins pass on that tree; not yet with Waverly Academy.
+
+diff --git a/dlls/winemac.drv/cocoa_cursorclipping.h b/dlls/winemac.drv/cocoa_cursorclipping.h
+--- a/dlls/winemac.drv/cocoa_cursorclipping.h
++++ b/dlls/winemac.drv/cocoa_cursorclipping.h
+@@ -41,6 +41,10 @@
+      */
+     - (BOOL) setCursorPosition:(CGPoint)pos;
+ 
++    /* If provided, called when a window's frame has changed, in case the
++     * clipping depends on it. */
++    - (void) windowFrameDidChange:(NSWindow*)window;
++
+ @end
+ 
+ 
+diff --git a/dlls/winemac.drv/cocoa_cursorclipping.m b/dlls/winemac.drv/cocoa_cursorclipping.m
+--- a/dlls/winemac.drv/cocoa_cursorclipping.m
++++ b/dlls/winemac.drv/cocoa_cursorclipping.m
+@@ -485,6 +485,17 @@
+         return TRUE;
+     }
+ 
++    /* The confinement rect is in the window's coordinates and was cut to its
++     * frame, so it's out of date once the window moves or changes size. */
++    - (void) windowFrameDidChange:(NSWindow*)window
++    {
++        if (!clippingCursor || window.windowNumber != clippingWindowNumber)
++            return;
++
++        [window setMouseConfinementRect:[WineConfinementClipCursorHandler rectForScreenRect:cursorClipRect
++                                                                                  inWindow:window]];
++    }
++
+     - (BOOL) stopClippingCursor
+     {
+         NSWindow *ownerWindow = [NSApp windowWithWindowNumber:clippingWindowNumber];
+diff --git a/dlls/winemac.drv/cocoa_app.h b/dlls/winemac.drv/cocoa_app.h
+--- a/dlls/winemac.drv/cocoa_app.h
++++ b/dlls/winemac.drv/cocoa_app.h
+@@ -129,6 +129,7 @@
+ 
+     - (WineWindow*) frontWineWindow;
+     - (BOOL) isAnyWineWindowVisible;
++    - (void) windowFrameDidChange:(NSWindow*)window;
+     - (void) adjustWindowLevels;
+     - (void) updateFullscreenWindows;
+ 
+diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -1287,6 +1287,12 @@
+     - (BOOL) clippingCursor
+     {
+         return clipCursorHandler.clippingCursor;
++    }
++
++    - (void) windowFrameDidChange:(NSWindow*)window
++    {
++        if (self.clippingCursor && [clipCursorHandler respondsToSelector:@selector(windowFrameDidChange:)])
++            [clipCursorHandler windowFrameDidChange:window];
+     }
+ 
+     - (BOOL) isKeyPressed:(uint16_t)keyCode
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -2826,6 +2826,9 @@
+                 resizingFromTop = TRUE;
+         }
+ 
++        /* Also when Wine moved or sized the window itself. */
++        [[WineApplicationController sharedController] windowFrameDidChange:self];
++
+         if (ignore_windowResize || exitingFullScreen) return;
+ 
+         if ([self preventResizing])
