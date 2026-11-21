@@ -191,7 +191,12 @@ struct wmh_surface_ref { wmh_surface_id surface; uint32_t reserved; };  /* remov
 /* The surface belongs to the host from here until it sends surface_release.
  * rect: where the surface goes in the window's content area; dirty: the
  * part that changed, a hint (the host shows the whole surface). Both in
- * the protocol's space, relative to the content area. A host drops (and
+ * the protocol's space, relative to the content area. The surface is
+ * drawn at rect's origin at its own size, not scaled into the window, and
+ * clipped to the content area. It needn't cover it: under an emulated
+ * display mode a fullscreen window's picture is centred (rect at 320,0
+ * in a wider window, say) and can reach past the window's edges. What it
+ * doesn't cover is black, as with the plain driver. A host drops (and
  * releases) a frame whose width and height don't match the surface as
  * registered. */
 struct wmh_window_frame_ready {
