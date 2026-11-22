@@ -55,6 +55,7 @@ All guard macfixes patches; the number is the patch's in
 | `macdrv-functions` | 0020 | winemac.so doesn't export `macdrv_functions`, so D3DMetal and DXMT can't present |
 | `map-exec-file-view` | 0039 | with DEP off, shared views fail on 10.0 ("failed to set PROT_EXEC"); old installers and Big Fish games exit |
 | `mouse-in-pointer` | 0051 | `EnableMouseInPointer` is a stub that fails on 10.0 |
+| `msi-unix-path` | 0075 | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
 | `msync` | 0002 | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
 | `nvngx-redirect` | 0038 | DLSS games read system32's nvngx.dll instead of D3DMetal's |
 | `renderer-dll-paths` | 0034, 0035 | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
