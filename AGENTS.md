@@ -56,7 +56,15 @@ projects.
    compile the changed files before queueing the build. For PE files,
    `<arch>-w64-mingw32-clang -fsyntax-only -D__WINESRC__ -I<module dir>
    -Iinclude -Iinclude/msvcrt` in the patched source catches that without
-   configuring. Then build the ports together. Each
+   configuring. It fails for modules that include headers generated from
+   `.idl` files (`wtypes.h`, or a module's own, such as msi's
+   `msiserver.h`): an unbuilt tree doesn't have them, and another
+   version's generated headers clash. For those, check that what the
+   patch calls already exists in that version, and leave compiling it to
+   the build. Unix-side files (`dlls/ntdll/unix`) can be checked with
+   `clang -arch x86_64 -fsyntax-only` and the flags `make -n` shows in a
+   configured tree, borrowing that tree's `config.h`. Then build the ports
+   together. Each
    full build takes over an hour, and a fix whose premise turns out wrong
    costs one build instead of several.
 3. Test it with a quick build before queueing a full build:
