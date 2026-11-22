@@ -254,6 +254,9 @@ projects.
 
 - Site and README copy informs technical readers. Don't sell, instruct or
   be cute.
+- Use the terms in [docs/glossary.md](docs/glossary.md) (build, build ID,
+  release, flavour, patch set and so on) with the meanings given there, in
+  code, docs, JSON and the site. Add new terms to it.
 - Patch origins follow `patches/README.md`: our own rewrites of someone
   else's patch say "(ported here)". `Category` and `Kind` are required.
 - Never commit build outputs, prefixes or anything from `.local/`.
