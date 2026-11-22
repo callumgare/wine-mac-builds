@@ -89,4 +89,7 @@ PATCHES=(
     patches/macfixes/11.21/0065-krnl386-attach-without-16bit.patch
     patches/macfixes/11.21/0066-winemac-gl-context-dealloc-off-main-thread.patch
     patches/macfixes/11.21/0067-ntdll-async-iosb-unwritable.patch
+    patches/macfixes/11.21/0068-ntdll-suspend-context-syscall-return.patch
+    patches/macfixes/11.21/0071-ntdll-exit-with-server.patch
+    patches/macfixes/11.21/0075-msi-database-path-length.patch
 )

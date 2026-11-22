@@ -2,7 +2,7 @@
  *
  * Arch: x86_64
  * Flavours: macfixes
- * Versions: 11.22
+ * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Guards: 0068 ntdll-suspend-context-syscall-return
  *

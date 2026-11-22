@@ -1,0 +1,72 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't overrun the stack opening a database by a path without a backslash
+Category: apps
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/msi/database.c (MSI_OpenDatabaseW); written for wine-mac-builds.
+Source: none published
+Upstream: no
+Why: MSI_OpenDatabaseW takes a path with no backslash as relative to the
+ current directory and built "<current directory>\<path>" with lstrcatW in
+ a MAX_PATH buffer on the stack, with no length check. A Unix path, which
+ Wine accepts anywhere a file name goes, has no backslash, so a long one
+ opened from a deep current directory ran past the buffer and overwrote
+ the caller's locals or return address with path text. db->path is now
+ allocated at the length it needs; what it holds is unchanged.
+Programs: Second Chance (an app that embeds Wine) ran msiexec /i with the
+ package's Mac path (203 characters, /var/folders/.../Setup.msi): Waverly
+ Academy's disc install crashed within half a second, 3 of 3 times, under
+ the console account and not in Screen Slots slots (whose processes start
+ in a shorter directory). The fault varied with the stack layout: CopyFileW
+ handed path text as its source, or a jump to path text. Second Chance
+ now passes the package's Windows path instead.
+Uncertain: The path held for a Unix name stays "<current directory>\<Unix
+ path>", as before; nothing found uses it to open the file again.
+Evidence: On an APFS clone of Second Chance's build and prefix (host14
+ tree, macOS 26.7.2), with Setup.msi also 203 characters away: from a
+ 117-character current directory msiexec crashed on host14 (1 run), and
+ from / it opened the package (1 run). With this change, from the same
+ 117-character directory, the install ran to InstallFinalize and exited 0
+ (1 run).
+Applies to: wine 11.21 (macfixes, after 0071)
+Status: 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
+ msi-unix-path crashes on macfixes-11.21-build9 (i686 and
+ x86_64, exit code 5; 1 run each), as on 11.22 before this patch.
+
+diff --git a/dlls/msi/database.c b/dlls/msi/database.c
+--- a/dlls/msi/database.c
++++ b/dlls/msi/database.c
+@@ -148,7 +148,6 @@
+     UINT mode;
+     STATSTG stat;
+     BOOL created = FALSE, patch = FALSE;
+-    WCHAR path[MAX_PATH];
+ 
+     TRACE("%s %s\n",debugstr_w(szDBPath),debugstr_w(szPersist) );
+ 
+@@ -256,14 +255,19 @@
+ 
+     if (!wcschr( save_path, '\\' ))
+     {
+-        GetCurrentDirectoryW( MAX_PATH, path );
+-        lstrcatW( path, L"\\" );
+-        lstrcatW( path, save_path );
++        /* Taken as relative to the current directory. A Unix path has no
++         * backslash either, so the result can be longer than MAX_PATH. */
++        DWORD len = GetCurrentDirectoryW( 0, NULL ) + 1 + lstrlenW( save_path );
++
++        if ((db->path = malloc( len * sizeof(WCHAR) )))
++        {
++            GetCurrentDirectoryW( len, db->path );
++            lstrcatW( db->path, L"\\" );
++            lstrcatW( db->path, save_path );
++        }
+     }
+     else
+-        lstrcpyW( path, save_path );
+-
+-    db->path = wcsdup( path );
++        db->path = wcsdup( save_path );
+     db->media_transform_offset = MSI_INITIAL_MEDIA_TRANSFORM_OFFSET;
+     db->media_transform_disk_id = MSI_INITIAL_MEDIA_TRANSFORM_DISKID;
+ 
