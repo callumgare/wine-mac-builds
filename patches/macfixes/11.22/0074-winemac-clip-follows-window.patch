@@ -34,7 +34,13 @@ Evidence: In a Screen Slots slot on meeka (macOS 26.7.2), with a debug
  tested there: Screen Slots moves it to absolute positions, which
  confinement doesn't limit.
 Applies to: wine 11.22 (macfixes, after 0073)
-Status: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
+Status: 2026-11-22 (evening): on meeka's console with host14 (Second Chance,
+ watched by the user): Waverly Academy, plain driver, Second Chance's
+ re-clip off: the pointer reached the bottom right of the display after
+ the mode switch (1 session). The Mac was mostly idle, when the bug didn't
+ show before either, so this backs the slot evidence but doesn't prove
+ the fix on its own.
+ 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
  hosted integration run on meeka passed every source: disc 36/36, download
  6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
  Can Kill Remastered's trial needed reruns (its DRM ended without starting

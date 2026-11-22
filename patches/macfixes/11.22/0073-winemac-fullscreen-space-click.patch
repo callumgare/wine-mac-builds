@@ -32,7 +32,11 @@ Evidence: In a slot on meeka (macOS 26.7.2), with a debug build: in a
  passed on). With this change the program still gets the press, 10 moves
  and the release of a drag (1 run), as without it.
 Applies to: wine 11.22 (macfixes, after 0072)
-Status: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
+Status: 2026-11-22 (evening): confirmed on meeka's console with host14 by
+ Second Chance, watched by the user: Webmaster in a fullscreen Space,
+ plain driver (not hosted), Second Chance's mouseDown workaround off: the
+ glove cursor stayed through clicks (1 session).
+ 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
  hosted integration run on meeka passed every source: disc 36/36, download
  6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
  Can Kill Remastered's trial needed reruns (its DRM ended without starting
