@@ -360,6 +360,11 @@ struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
  *   input method called doCommandBySelector:, as with the plain driver.
  * - ime_rect: where the program shows its composition, in the protocol's
  *   space, for firstRectForCharacterRange: (candidate windows go below it).
+ *   Like a window's frame, it is in the virtual screen, not relative to a
+ *   window: the host maps it through the window it falls in to Cocoa
+ *   screen coordinates before returning it, or the candidate window opens
+ *   wherever the window sits in the protocol's space (the top left of the
+ *   screen for a window at the origin).
  * - ime_clear: the program closed its IME: discard the marked text
  *   ([inputContext discardMarkedText]) without sending anything.
  * The host's text input client keeps the marked text, its selection, and
