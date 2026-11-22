@@ -46,7 +46,13 @@ Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
  unsupported: the real display (2560x1440, work (0,30)-(2560,1351)), and
  each process asked once.
 Applies to: wine 11.22 (macfixes, after 0075)
-Status: 2026-11-22 (later): confirmed by Second Chance on kiya (14" MacBook
+Status: 2026-11-22 (evening): host16 passed Second Chance's full hosted
+ integration run on meeka (2560x1440, no notch), one run each: disc 36/36,
+ download 6/6, Her downloads 3/3 (one on a rerun; the failure was in
+ Second Chance's launcher), Steam 11/11, Big Fish trials 30/30, Big Fish
+ owned 1/1. Its host has answered displays_get since main 62dcc9a2; which
+ games asked for a display mode wasn't checked.
+ 2026-11-22 (later): confirmed by Second Chance on kiya (14" MacBook
  Pro, macOS 15.6.1; built-in screen 1512x982 points made main, notch strip
  37; a 2560x1440 display beside it), host16 (host15 + this patch) through
  its host (main 62dcc9a2) with no Wine helpers loaded, one run of a test

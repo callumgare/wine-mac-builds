@@ -312,8 +312,11 @@ With the driver implemented (0069), a GL test program drew 279 frames in
 18.3 s through Second Chance's host, against 19.9 s with the plain driver
 (one run each). Second Chance's full hosted integration runs passed on the
 local test builds: on host14, disc 36/36, download 6/6, Her downloads 3/3,
-Steam 11/11 and Big Fish; on host15, disc 36/36. 0076 was checked on a
-notched MacBook Pro with a second display, one run.
+Steam 11/11 and Big Fish; on host15, disc 36/36; on host16 (host15 with
+0076), disc 36/36, download 6/6, Her downloads 3/3, Steam 11/11, Big Fish
+trials 30/30 and the one owned Big Fish game (one run each; one Her game
+passed on a rerun after a failure in Second Chance's own launcher). 0076
+was checked on a notched MacBook Pro with a second display, one run.
 
 ## Testing without a real host
 
