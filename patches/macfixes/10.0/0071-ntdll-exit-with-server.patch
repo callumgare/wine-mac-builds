@@ -31,7 +31,11 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  whose wineserver had gone spun at 96% CPU for about six hours with its
  services and explorer, slowing the other tests on that Mac.
 Applies to: wine 10.0 (macfixes, after 0068)
-Status: 2026-11-22 (evening): this revision writes the message with
+Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
+ published): server-gone
+ passes (the program exited after its wineserver was killed; 1 run).
+ The build's full suite: 51 passed, 0 failed, 0 skipped.
+ 2026-11-22 (evening): this revision writes the message with
  write() instead of MESSAGE(): in a local test build of the first revision
  (macfixes-10.0-build0, not published) server-gone failed 4 of 4, and the
  watcher thread was found stuck in wine_dbg_printf (10.0's debug output
