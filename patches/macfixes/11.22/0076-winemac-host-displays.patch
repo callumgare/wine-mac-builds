@@ -42,7 +42,18 @@ Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
  unsupported: the real display (2560x1440, work (0,30)-(2560,1351)), and
  each process asked once.
 Applies to: wine 11.22 (macfixes, after 0075)
-Status: 2026-11-22: not yet in a build. Tested by swapping a winemac.so
+Status: 2026-11-22 (later): confirmed by Second Chance on kiya (14" MacBook
+ Pro, macOS 15.6.1; built-in screen 1512x982 points made main, notch strip
+ 37; a 2560x1440 display beside it), host16 (host15 + this patch) through
+ its host (main 62dcc9a2) with no Wine helpers loaded, one run of a test
+ program that opens a popup over the primary monitor: Wine saw monitor
+ 0,0-1512,945, work area 0,1-1512,877, current mode and SM_CX/CYSCREEN
+ 1512x945 at 120 Hz, and the second display at 1512,-37-4072,1403; the
+ popup got 0,0-1512,945 and the host's window for it sat at Cocoa 0,0
+ 1512x945, filling the screen up to the notch strip. Without the helper,
+ the 945 could only have come from displays_get. Not tested: a real
+ display rearrangement (DISPLAYS_CHANGED) or clicks.
+ 2026-11-22: not yet in a build. Tested by swapping a winemac.so
  built with it into the host15 tree (see Evidence). The full suite on
  that tree: 56 passed, 0 failed, 2 skipped (the screen-taking tests).
 
