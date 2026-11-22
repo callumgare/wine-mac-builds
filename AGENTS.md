@@ -213,6 +213,17 @@ projects.
   IMKCFRunLoopWakeUpReliable" and swallows every key. Wine's composition
   window is an ordinary popup (window_order/frame_ready like any other);
   without a CJK font in the prefix it's only a few points wide.
+- Before blaming Wine for an input method problem, type the same keys into
+  a minimal native view that implements `NSTextInputClient` and logs every
+  call (a few dozen lines of Swift, launched as an app bundle in a slot),
+  and into TextEdit. In a Screen Slots slot on macOS 26.7, Kotoeri (Romaji)
+  shows its prediction list while you type: Space highlights the list's
+  first entry (the kana, not a conversion), the first Return only closes
+  the list and leaves the text marked, and the second Return commits it.
+  Native views, TextEdit and Wine's Mac driver all behave this way, so a
+  trace that stops after one Return looks like a failed commit. To read
+  what was committed when the prefix has no CJK font, select it in the
+  program, copy, and `pbpaste` in the slot.
 - To click inside a Wine program without macOS Accessibility permissions,
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
