@@ -29,7 +29,13 @@ Evidence: On an APFS clone of Second Chance's build and prefix (host14
  117-character directory, the install ran to InstallFinalize and exited 0
  (1 run).
 Applies to: wine 11.22 (macfixes, after 0074)
-Status: 2026-11-22: not yet in a build. Tested by swapping msi.dll (i386
+Status: 2026-11-22 (later): in host15 (host14 + this patch), Second
+ Chance's disc set on meeka passed 36 of 36, MSI installs included. That
+ run used Second Chance's own fix (Windows paths to msiexec), so it shows
+ this patch breaks no disc install, not that it fixes the crash alone;
+ the regression test shows that. Other sources weren't rerun (only
+ msi.dll changed; host14 passed them all).
+ 2026-11-22: not yet in a build. Tested by swapping msi.dll (i386
  and x86_64) built with it into the host14 tree on meeka: the regression
  test msi-unix-path passes for i686 and x86_64; on host14 both fail
  (execute access to path text). The full suite on that tree: 56
