@@ -29,9 +29,13 @@ Programs: Second Chance (an app that embeds Wine): every program shown
  below the notch of a 14" MacBook Pro (1512x945 points there, not
  1512x982).
 Uncertain: Host displays are matched to real screens: the first to the
- primary, the others by overlap with the real screen's rect. Only one
- display has been tested. Without EmulateModeset, the real modes are still
- listed and can be set, including ones taller than the host's display.
+ primary, the others by overlap with the real screen's rect. Without
+ EmulateModeset, the real modes are still listed and can be set, including
+ ones taller than the host's display. Also without EmulateModeset: after
+ the host's display changed (1512x945 to 1440x900 in the test host), Wine
+ logged "No matching mode found 1512x945x32 @60" once, most likely
+ restoring the test program's temporary (CDS_FULLSCREEN) mode at exit, a
+ size the display no longer had; nothing visible came of it.
 Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
  host mode, a test program printing its monitors and current mode (1 run
  each). Answering one display 0,0 1512x945 with work area 1512x920: the

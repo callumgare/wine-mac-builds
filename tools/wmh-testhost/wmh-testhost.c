@@ -459,6 +459,22 @@ int main(int argc, char **argv)
             struct wmh_drag_done *dd = pl;
             printf("host: %s drag_done serial %u accepted %u ops %#x\n", c->exe, dd->serial, dd->accepted, dd->ops);
             break; }
+        case WMH_KIND_WINDOW_FEATURES: {
+            struct wmh_window_flags *f = pl;
+            printf("host: %s window_features %u %#x\n", c->exe, f->window, f->flags);
+            break; }
+        case WMH_KIND_WINDOW_PARENT: {
+            struct wmh_window_parent *wp = pl;
+            printf("host: %s window_parent %u parent %u\n", c->exe, wp->window, wp->parent);
+            break; }
+        case WMH_KIND_FOCUS_REJECTED: {
+            struct wmh_window_ref *r = pl;
+            printf("host: %s focus_rejected %u\n", c->exe, r->window);
+            break; }
+        case WMH_KIND_QUIT_REPLY: {
+            struct wmh_quit_reply *q = pl;
+            printf("host: %s quit_reply quitting %u\n", c->exe, q->quitting);
+            break; }
         case WMH_KIND_WINDOW_STATE: {
             struct wmh_window_flags *st = pl;
             printf("host: %s window_state %u %#x%s%s\n", c->exe, st->window, st->flags,

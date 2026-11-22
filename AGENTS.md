@@ -210,9 +210,11 @@ projects.
   displays_get with that display (frame, then optionally work area; `;`
   separates displays), and `WMH_TESTHOST_DISPLAYS2` switches to another
   answer 3 s after the first question and sends DISPLAYS_CHANGED; without
-  them it answers unsupported. A program that prints `GetMonitorInfo` and
-  `EnumDisplaySettings(ENUM_CURRENT_SETTINGS)` before and after shows what
-  Wine made of it. The driver's receive thread isn't a Wine thread: anything it does
+  them it answers unsupported. `tools/displays-popup` prints what Wine
+  made of it (monitors, work areas, current mode, SM_CX/CYSCREEN) and
+  opens a popup over the primary monitor, as a fullscreen game does; in
+  plain mode or through a real host, compare that with where the window
+  is on screen. The driver's receive thread isn't a Wine thread: anything it does
   that calls win32u has to go to the main thread or a window's event
   queue, or the thread hangs. `WMH_TESTHOST_IME=1` types "a" and Return
   and answers the driver's ime_key calls like an input method; Wine only
