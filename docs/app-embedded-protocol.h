@@ -328,6 +328,12 @@ struct wmh_reply { uint32_t status; uint32_t reserved; };   /* then the reply st
 struct wmh_reply_rect  { struct wmh_rect rect; };           /* window_get_frame */
 struct wmh_reply_point { double x, y; };                    /* cursor_get */
 
+/* displays_get: the displays the host shows windows on, in the protocol's
+ * space. The first is the primary and must be at the origin; the driver
+ * gives Wine these as its monitors (frame, work area) and the frame's size
+ * as each one's current mode, and uses the real displays if the first
+ * isn't at the origin. A real screen with no display here is left out.
+ * The pixel sizes aren't used by the driver yet. */
 #define WMH_DISPLAYS_MAX 8u
 struct wmh_display {
     struct wmh_rect frame, work_area;

@@ -198,7 +198,13 @@ projects.
   check in ("check-in of … failed"): `launchctl bootout` the old one first. `WMH_TESTHOST_STATES=1` makes it ask the
   program's window to minimize, restore and maximize; `WMH_TESTHOST_DROP=
   <file>` drags that file onto it (Notepad opens it, and its title shows
-  it). The driver's receive thread isn't a Wine thread: anything it does
+  it). `WMH_TESTHOST_DISPLAYS="0,0,1512,945,0,0,1512,920"` answers
+  displays_get with that display (frame, then optionally work area; `;`
+  separates displays), and `WMH_TESTHOST_DISPLAYS2` switches to another
+  answer 3 s after the first question and sends DISPLAYS_CHANGED; without
+  them it answers unsupported. A program that prints `GetMonitorInfo` and
+  `EnumDisplaySettings(ENUM_CURRENT_SETTINGS)` before and after shows what
+  Wine made of it. The driver's receive thread isn't a Wine thread: anything it does
   that calls win32u has to go to the main thread or a window's event
   queue, or the thread hangs. `WMH_TESTHOST_IME=1` types "a" and Return
   and answers the driver's ime_key calls like an input method; Wine only

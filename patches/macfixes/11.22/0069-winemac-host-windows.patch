@@ -2626,7 +2626,7 @@ diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,517 @@
+@@ -0,0 +1,523 @@
 +/* SPDX-License-Identifier: LGPL-2.1-or-later
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
@@ -2957,6 +2957,12 @@ new file mode 100644
 +struct wmh_reply_rect  { struct wmh_rect rect; };           /* window_get_frame */
 +struct wmh_reply_point { double x, y; };                    /* cursor_get */
 +
++/* displays_get: the displays the host shows windows on, in the protocol's
++ * space. The first is the primary and must be at the origin; the driver
++ * gives Wine these as its monitors (frame, work area) and the frame's size
++ * as each one's current mode, and uses the real displays if the first
++ * isn't at the origin. A real screen with no display here is left out.
++ * The pixel sizes aren't used by the driver yet. */
 +#define WMH_DISPLAYS_MAX 8u
 +struct wmh_display {
 +    struct wmh_rect frame, work_area;

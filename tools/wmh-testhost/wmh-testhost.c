@@ -43,6 +43,29 @@ static struct conn conns[32];
 static int nconns;
 static const char *outdir;
 
+/* WMH_TESTHOST_DISPLAYS: "x,y,w,h[,wx,wy,ww,wh];..." in the protocol's
+ * space, answered to displays_get (pixel sizes twice the points); without
+ * it, displays_get is answered unsupported. WMH_TESTHOST_DISPLAYS2: the
+ * same, answered from 3 s after the first displays_get, announced to every
+ * connection with DISPLAYS_CHANGED. */
+static int parse_displays(const char *spec, struct wmh_reply_displays *r)
+{
+    memset(r, 0, sizeof(*r));
+    while (spec && *spec && r->count < WMH_DISPLAYS_MAX)
+    {
+        double v[8];
+        int n = sscanf(spec, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf", v, v + 1, v + 2, v + 3, v + 4, v + 5, v + 6, v + 7);
+        struct wmh_display *d = &r->displays[r->count++];
+        if (n < 4) return 0;
+        d->frame = (struct wmh_rect){ v[0], v[1], v[2], v[3] };
+        d->work_area = n >= 8 ? (struct wmh_rect){ v[4], v[5], v[6], v[7] } : d->frame;
+        d->pixels_wide = v[2] * 2; d->pixels_high = v[3] * 2;
+        spec = strchr(spec, ';');
+        if (spec) spec++;
+    }
+    return r->count;
+}
+
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }
 
 static uint32_t reply_serial;   /* send_to: answer this call instead of numbering a new message */
@@ -141,6 +164,10 @@ int main(int argc, char **argv)
      * first window, and act as an input method when the driver asks:
      * "a" gives the marked text U+3042, Return commits U+4E9C. */
     int ime = getenv("WMH_TESTHOST_IME") != NULL;
+    struct wmh_reply_displays displays, displays2;
+    int have_displays = parse_displays(getenv("WMH_TESTHOST_DISPLAYS"), &displays);
+    int have_displays2 = parse_displays(getenv("WMH_TESTHOST_DISPLAYS2"), &displays2);
+    double displays_asked = 0;
     struct { mach_msg_header_t h; char d[8192]; } m;
 
     outdir = argc > 3 ? argv[3] : ".";
@@ -164,6 +191,18 @@ int main(int argc, char **argv)
     while (now() < deadline)
     {
         kern_return_t kr = mach_msg(&m.h, MACH_RCV_MSG | MACH_RCV_TIMEOUT, 0, sizeof(m), set, 200, 0);
+        if (have_displays2 && displays_asked && now() - displays_asked > 3)
+        {
+            struct wmh_event ev = { .type = WMH_EV_DISPLAYS_CHANGED };
+            displays = displays2;
+            have_displays2 = 0;
+            for (int ci = 0; ci < nconns; ci++)
+            {
+                printf("host: displays changed; telling %s\n", conns[ci].exe);
+                send_to(conns[ci].driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+            }
+            fflush(stdout);
+        }
         if (start && !closed && now() - start > close_after)
         {
             for (int ci = 0; ci < nconns; ci++)
@@ -390,6 +429,21 @@ int main(int argc, char **argv)
             }
             printf("host: %s ime_key %u flags %#x repeat %u (serial %u) -> handled %u\n", c->exe, k->keycode, k->modifiers,
                    k->repeat, w->serial, rep.k.handled);
+            reply_serial = w->serial;
+            send_to(c->driver, WMH_KIND_REPLY, &rep, sizeof(rep), 0, 0);
+            reply_serial = 0;
+            break; }
+        case WMH_KIND_DISPLAYS_GET: {
+            struct { struct wmh_reply r; struct wmh_reply_displays d; } rep;
+            memset(&rep, 0, sizeof(rep));
+            rep.r.status = have_displays ? WMH_STATUS_OK : WMH_STATUS_UNSUPPORTED;
+            rep.d = displays;
+            if (!displays_asked) displays_asked = now();
+            printf("host: %s displays_get (serial %u) -> %s", c->exe, w->serial, have_displays ? "" : "unsupported");
+            for (uint32_t i = 0; have_displays && i < displays.count; i++)
+                printf("%s%.0f,%.0f %.0fx%.0f", i ? "; " : "", displays.displays[i].frame.x, displays.displays[i].frame.y,
+                       displays.displays[i].frame.width, displays.displays[i].frame.height);
+            printf("\n");
             reply_serial = w->serial;
             send_to(c->driver, WMH_KIND_REPLY, &rep, sizeof(rep), 0, 0);
             reply_serial = 0;

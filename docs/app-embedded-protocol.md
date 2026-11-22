@@ -192,7 +192,7 @@ One-way unless marked *call*. Each corresponds to a function in
 | `window_get_frame` (*call*) | `get_cocoa_window_frame` | fallback: the last frame sent |
 | `cursor_get` (*call*) | `get_cursor_position` | fallback: the last position the host reported |
 | `view_backing_size` (*call*) | `get_view_backing_size` | fallback: the view's frame in pixels |
-| `displays_get` (*call*) | `get_gpus`, `get_adapters`, `get_monitors` | the host's displays: the window's screen, or what it emulates. Fallback: the real displays |
+| `displays_get` (*call*) | `get_monitors`, the current mode | the host's displays: the window's screen, or what it emulates. The first is the primary, at the origin. Each becomes a monitor (frame, work area), and its frame's size the current mode, which is also listed and setting it changes nothing. Fallback (no answer, unsupported, or the first not at the origin): the real displays, and a host that didn't answer isn't asked again |
 | `ime_key` (*call*) | `send_keydown_to_input_source` | the host's input context handles the key and returns the marked and committed text. Fallback: not handled |
 | `ime_clear` | `clear_ime_text` | discard the marked text |
 | `ime_rect` | `SetIMECompositionRect` | for the candidate window |
