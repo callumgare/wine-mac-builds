@@ -39,7 +39,12 @@ Evidence: Two minidumps (both 11.22-build0): the faulting loop is
  253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
  234757.
 Applies to: wine 10.0 (macfixes, after 0067)
-Status: 2026-11-22: ported from 11.22, rewritten for 10.0, whose syscall
+Status: 2026-11-22 (evening): in a local test build (macfixes-10.0-build0,
+ not published): suspend-context-syscall-return passes 5 of 6 (25817 to
+ 43160 contexts, all within the stack); the other run crashed in the test
+ itself (it read the thread's TEB before the thread had started, on a
+ heavily loaded Mac; the test now waits for it).
+ 2026-11-22: ported from 11.22, rewritten for 10.0, whose syscall
  dispatcher doesn't switch the gs base on macOS (no leave_handler call);
  not yet in a build.
  suspend-context-syscall-return fails on macfixes-10.0-build7 (3

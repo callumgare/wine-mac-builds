@@ -29,7 +29,9 @@ Evidence: On an APFS clone of Second Chance's build and prefix (host14
  117-character directory, the install ran to InstallFinalize and exited 0
  (1 run).
 Applies to: wine 10.0 (macfixes, after 0071)
-Status: 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
+Status: 2026-11-22 (evening): in a local test build (macfixes-10.0-build0,
+ not published): msi-unix-path passes (i686 and x86_64, 1 run each).
+ 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
  msi-unix-path crashes on macfixes-10.0-build7 (i686 and x86_64,
  exit code 5; 1 run each), as on 11.22 before this patch.
 

@@ -63,13 +63,21 @@ int main(void)
     HANDLE thread;
     DWORD end;
 
+    /* The thread's TEB is known only once the thread has started running
+     * (it reads as NULL before that on a loaded Mac), so ask until it is. */
     thread = CreateThread(NULL, 0, worker, NULL, 0, NULL);
-    if (!thread || query(thread, 0 /* ThreadBasicInformation */, &info, sizeof(info), NULL))
+    end = GetTickCount() + 10000;
+    do
+    {
+        Sleep(100);
+        if (!thread || query(thread, 0 /* ThreadBasicInformation */, &info, sizeof(info), NULL))
+            info.TebBaseAddress = NULL;
+    } while (!info.TebBaseAddress && (LONG)(GetTickCount() - end) < 0);
+    if (!info.TebBaseAddress)
     {
         printf(NAME ": FAIL: can't start the thread or find its TEB\n");
         return 1;
     }
-    Sleep(100);
     stack_high = (ULONG_PTR)((NT_TIB *)info.TebBaseAddress)->StackBase;
     stack_low = *(ULONG_PTR *)((char *)info.TebBaseAddress + 0x1478);  /* DeallocationStack */
 

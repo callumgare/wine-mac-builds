@@ -153,6 +153,11 @@ projects.
   framework loads (e.g. `NSZombieEnabled`) can be set at the top of `main()`
   in `tools/wine/wine.c`, the installed `bin/wine` launcher. Note that
   `loader/main.c` is the build-tree loader, not the one that ships.
+- A thread ntdll starts itself with `pthread_create` (a watcher, not a Wine
+  thread) has no TEB. On 10.0, `MESSAGE`/`TRACE` from it
+  (`wine_dbg_printf`) hang; 11.x copes. Use `write(2, ...)` there. Found
+  with `sample <pid>` on a process that should have exited: the thread
+  sat in `wine_dbg_printf` (0071's 10.0 port).
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS
