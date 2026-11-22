@@ -39,7 +39,12 @@ Evidence: Two minidumps (both 11.22-build0): the faulting loop is
  253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
  234757.
 Applies to: wine 11.21 (macfixes, after 0067)
-Status: 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
+Status: 2026-11-22 (evening): in a local test build (macfixes-11.21-build0,
+ not published): suspend-context-syscall-return passes (94304 contexts,
+ all within the stack; 1 run).
+ The build's full suite (screen-taking tests skipped): 51 passed,
+ 0 failed, 3 skipped.
+ 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
  suspend-context-syscall-return fails on macfixes-11.21-build9
  (48624 of 159119 contexts had rsp outside the stack; 1 run), as on 11.22
  before this patch.
