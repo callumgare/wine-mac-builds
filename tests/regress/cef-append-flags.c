@@ -12,8 +12,11 @@
  * --disable-gpu", except for its crash reporter (--type=crashpad-handler).
  *
  * Passes when a copy of this program named steamwebhelper.exe, started
- * with "--type=renderer", gets those flags appended, and started with
- * "--type=crashpad-handler" doesn't. The copy is removed afterwards.
+ * with "--type=renderer", gets those flags appended, also when started as
+ * STEAMWEBHELPER.EXE, and started with "--type=crashpad-handler" doesn't;
+ * and a copy named x.exe in a folder named steamwebhelper.exe.d doesn't
+ * either (the file name is matched, not the path). The copies are removed
+ * afterwards.
  */
 
 #include <windows.h>
@@ -46,7 +49,7 @@ static int start(const WCHAR *exe, const WCHAR *args, const WCHAR *out, const WC
     swprintf(cmd, ARRAYSIZE(cmd), L"\"%ls\" %ls", exe, args);
     if (!CreateProcessW(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
     {
-        printf("cef-append-flags: starting steamwebhelper.exe failed (%lu)\n", GetLastError());
+        printf("cef-append-flags: starting %ls failed (%lu)\n", exe, GetLastError());
         return 0;
     }
     WaitForSingleObject(pi.hProcess, INFINITE);
@@ -55,14 +58,14 @@ static int start(const WCHAR *exe, const WCHAR *args, const WCHAR *out, const WC
     file = CreateFileW(out, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, NULL);
     ReadFile(file, got, sizeof(got) - sizeof(WCHAR), &read, NULL);
     CloseHandle(file);
-    printf("cef-append-flags: started with %ls, its command line ends \"%ls\"\n", args, wcsstr(got, L"\" ") ? wcsstr(got, L"\" ") + 2 : got);
+    printf("cef-append-flags: %ls started with %ls, its command line ends \"%ls\"\n", exe, args, wcsstr(got, L"\" ") ? wcsstr(got, L"\" ") + 2 : got);
     swprintf(want, ARRAYSIZE(want), L"%ls%ls", cmd, expect);
     return !lstrcmpW(got, want);
 }
 
 int main(void)
 {
-    WCHAR self[MAX_PATH], dir[MAX_PATH], exe[MAX_PATH], out[MAX_PATH];
+    WCHAR self[MAX_PATH], dir[MAX_PATH], exe[MAX_PATH], upper[MAX_PATH], sub[MAX_PATH], other[MAX_PATH], out[MAX_PATH];
     int ok;
 
     if (GetEnvironmentVariableW(L"REGRESS_OUT", out, MAX_PATH)) return child(out);
@@ -72,8 +75,12 @@ int main(void)
     lstrcatW(dir, L"regress-cef");
     CreateDirectoryW(dir, NULL);
     swprintf(exe, MAX_PATH, L"%ls\\steamwebhelper.exe", dir);
+    swprintf(upper, MAX_PATH, L"%ls\\STEAMWEBHELPER.EXE", dir);
+    swprintf(sub, MAX_PATH, L"%ls\\steamwebhelper.exe.d", dir);
+    swprintf(other, MAX_PATH, L"%ls\\x.exe", sub);
     swprintf(out, MAX_PATH, L"%ls\\cmdline.txt", dir);
-    if (!CopyFileW(self, exe, FALSE))
+    CreateDirectoryW(sub, NULL);
+    if (!CopyFileW(self, exe, FALSE) || !CopyFileW(self, other, FALSE))
     {
         printf("cef-append-flags: copying the program failed (%lu)\n", GetLastError());
         return 1;
@@ -82,8 +89,12 @@ int main(void)
 
     ok = start(exe, L"--type=renderer", out, FLAGS);
     ok = start(exe, L"--type=crashpad-handler", out, L"") && ok;
+    ok = start(upper, L"--type=renderer", out, FLAGS) && ok;
+    ok = start(other, L"--type=renderer", out, L"") && ok;
 
     DeleteFileW(exe);
+    DeleteFileW(other);
+    RemoveDirectoryW(sub);
     RemoveDirectoryW(dir);
     printf("cef-append-flags: %s\n", ok ? "ok" : "FAILED");
     return ok ? 0 : 1;
