@@ -38,7 +38,8 @@ mode="$1"; shift
 H="${WMB_HOST_DIR:-$HOME/Library/Caches/wmb-host}"
 [[ "$H" != *" "* ]] || die "host: WMB_HOST_DIR ($H) has a space in it, which Wine's build can't take"
 REPO="${WMB_HOST_REPO:-$WMB_ROOT}"
-[[ -d "$REPO/.git" ]] || die "host: $REPO has no .git (the manifest records the commit)"
+# A worktree's .git is a file; git in the staged copy still finds the commit.
+[[ -e "$REPO/.git" ]] || die "host: $REPO has no .git (the manifest records the commit)"
 [[ $mode == build ]] || WMB_QUICK="${WMB_QUICK:-$(date -u +%Y%m%dT%H%M%S)}"
 export WMB_QUICK
 load_build_inputs "$1" "$2"
