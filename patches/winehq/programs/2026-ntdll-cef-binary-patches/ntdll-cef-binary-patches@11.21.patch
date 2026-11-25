@@ -21,10 +21,9 @@ Port: unchanged from 10.0 (applies with offsets). CX 26.3.0 carries the same hac
  with identical code and the same set of CEF/Qt/cohtml patch entries.
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
-index ea2c05c..299c992 100644
 --- a/dlls/ntdll/loader.c
 +++ b/dlls/ntdll/loader.c
-@@ -2258,6 +2258,12 @@ done:
+@@ -2258,6 +2258,12 @@
      return status;
  }
  
@@ -37,9 +36,9 @@ index ea2c05c..299c992 100644
  
  /*************************************************************************
   *		build_module
-@@ -2340,6 +2346,19 @@ static NTSTATUS build_module( LPCWSTR load_path, const UNICODE_STRING *nt_name,
-     TRACE_(loaddll)( "Loaded %s at %p: %s\n", debugstr_w(wm->ldr.FullDllName.Buffer), *module,
-                      is_builtin ? "builtin" : "native" );
+@@ -2349,6 +2355,19 @@
+     }
+ #endif
  
 +#if defined(__i386__) || defined(__x86_64__)
 +    if (!wcscmp( wm->ldr.BaseDllName.Buffer, L"libcef.dll" ) ||
@@ -57,10 +56,14 @@ index ea2c05c..299c992 100644
      wm->ldr.LoadCount = 1;
      *pwm = wm;
      *module = NULL;
-@@ -2812,6 +2831,554 @@ static WINE_MODREF *find_existing_module( HMODULE module )
-     return NULL;
- }
- 
+@@ -2817,11 +2836,559 @@
+         if (wm->CheckSum != nt->OptionalHeader.CheckSum) continue;
+         if (NtAreMappedFilesTheSame( mod->DllBase, module ) != STATUS_SUCCESS) continue;
+         return CONTAINING_RECORD( mod, WINE_MODREF, ldr );
++    }
++    return NULL;
++}
++
 +#ifdef __x86_64__
 +
 +static BOOL byte_pattern_matches( const char *addr, char wildcard_byte,
@@ -85,11 +88,11 @@ index ea2c05c..299c992 100644
 +        char *addr = (char *)dllbase + offset;
 +        if (byte_pattern_matches( addr, wildcard_byte, pattern, pattern_size ))
 +            return addr;
-+    }
+     }
 +
-+    return NULL;
-+}
-+
+     return NULL;
+ }
+ 
 +static void apply_byte_pattern_patch( void *addr, char wildcard_byte, const char *after, size_t after_size )
 +{
 +    size_t i;
@@ -99,7 +102,7 @@ index ea2c05c..299c992 100644
 +            ((char *)addr)[i] = after[i];
 +    }
 +}
-+
+ 
 +static void apply_fuzzy_binary_patches( WINE_MODREF *wm )
 +{
 +    static const char before_cohtml_v1[] =
@@ -609,6 +612,7 @@ index ea2c05c..299c992 100644
 +    }
 +}
 +#endif
- 
++
  /******************************************************************************
   *	load_native_dll  (internal)
+  */

@@ -20,7 +20,6 @@ Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
  earlier, in macdrv_init, so SSH runs fail as fast as before.
 Programs: none known
 Port: to 11.21: same code; only the declarations' neighbours changed (11.x's macdrv_cocoa.h and macdrv_main.c use bool).
-Expects before it: winemac-force-opengl-backing-store; context only
 Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
 
 diff --git a/dlls/winemac.drv/cocoa_main.m b/dlls/winemac.drv/cocoa_main.m
@@ -141,17 +140,14 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 index 38e2c08..5dcd7ec 100644
 --- a/dlls/winemac.drv/macdrv_main.c
 +++ b/dlls/winemac.drv/macdrv_main.c
-@@ -54,6 +54,7 @@ int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
+@@ -54,5 +54,6 @@ int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
  bool retina_enabled = false;
  bool enable_app_nap = false;
-  bool force_backing_store = FALSE;
 +int cocoa_start_timeout = 60;
  
  pthread_key_t macdrv_thread_data_key = 0;
  UINT64 app_icon_callback = 0;
-@@ -368,6 +369,16 @@ static void setup_options(void)
-     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
-         force_backing_store = IS_OPTION_TRUE(buffer[0]);
+@@ -368,4 +369,14 @@ static void setup_options(void)
  
 +    /* Seconds to wait for the main thread to start Cocoa.  Upstream waits 5,
 +       which a Mac with every core busy, under Rosetta, can miss. */

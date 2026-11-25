@@ -34,8 +34,10 @@
         changed, or when the checker reports a copy that needs fuzz. Only
         the diff changes, not the header, and the patched tree stays the
         same. With no names, every copy the flavour applies at <version>
-        that needs it. Needs WineHQ's tarball for <version> in the
-        download cache (WMB_CACHE_DIR, default .cache).
+        that needs it. A copy covering several versions is refused: split
+        it first. --fuzz N lets patch place hunks whose context changed
+        more (check where they landed). Needs WineHQ's tarball for
+        <version> in the download cache (WMB_CACHE_DIR, default .cache).
 """
 
 import pathlib
@@ -223,6 +225,7 @@ def cmd_rename(argv):
 def cmd_refresh(argv):
     import os
     import tempfile
+    fuzz = opt(argv, "--fuzz", None)
     flavour, version, *names = argv
     fl = P.flavour(flavour)
     copies = P.resolve(fl["base"], fl["sets"], version)
@@ -243,8 +246,20 @@ def cmd_refresh(argv):
                 apply(c, src, dry=False)
                 continue
             if not wanted:
-                sys.exit(f"{c.file} doesn't apply at fuzz 0 at {version}; refresh it too "
-                         f"(or name no patches to refresh all)")
+                # Not ours to refresh: apply it as a build does (default fuzz).
+                with open(c.path, "rb") as f:
+                    r = subprocess.run(["patch", "-d", str(src), "-p1", "--forward", "--batch", "-s"],
+                                       stdin=f, capture_output=True)
+                if r.returncode:
+                    sys.exit(f"{c.file} doesn't apply at {version}; refresh or port it first")
+                for junk in list(src.rglob("*.orig")):
+                    junk.unlink()
+                continue
+            if len(c.versions) > 1:
+                sys.exit(f"{c.file} covers {', '.join(c.versions)}: refreshing it against "
+                         f"{version} alone could break the others. Split it first "
+                         f"(tools/patch split {c.patch.name} {version}), refresh, and merge "
+                         f"copies that come out the same.")
             text = c.path.read_text()
             head, _, body = text.partition("\n\n")
             files = sorted({l.split(" b/", 1)[1] for l in body.splitlines() if l.startswith("diff --git ")})
@@ -254,7 +269,8 @@ def cmd_refresh(argv):
                 (before / f).parent.mkdir(parents=True, exist_ok=True)
                 if (src / f).exists():
                     shutil.copy2(src / f, before / f)
-            r = subprocess.run(["patch", "-d", str(src), "-p1", "--forward", "--batch", "-s"],
+            r = subprocess.run(["patch", "-d", str(src), "-p1", "--forward", "--batch", "-s"]
+                               + ([f"--fuzz={fuzz}"] if fuzz else []),
                                input=body, text=True, capture_output=True)
             if r.returncode:
                 sys.exit(f"{c.file} doesn't apply at {version} even with fuzz:\n{r.stdout}{r.stderr}"

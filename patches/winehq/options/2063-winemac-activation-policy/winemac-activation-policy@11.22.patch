@@ -38,7 +38,7 @@ Uncertain: macOS can still activate an accessory process when its window is
  an accessory process's windows can't use macOS's own fullscreen (a Space
  of their own); Wine's usual fullscreen (a window covering the display)
  isn't affected, but this hasn't been tested with a game run as accessory.
-Expects before it: winemac-cocoa-start-wait, winemac-force-opengl-backing-store;
+Expects before it: winemac-cocoa-start-wait;
  context only
 Status: 2026-11-20: in 11.22-build0 (a local host build of this commit
  on meeka; suite 51 passed, 2 skipped, 0 failed). Second Chance's
@@ -79,7 +79,6 @@ Status: 2026-11-20: in 11.22-build0 (a local host build of this commit
  VM). On meeka, a Big Fish trial (White Wolf) ran with the value set for
  bfgclient.exe alongside an embedding app's own hidden-windows helper: no
  harm shown, but that doesn't show the value hides the Dock icon by itself.
-
 
 diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
 --- a/dlls/winemac.drv/cocoa_app.m
@@ -166,10 +165,10 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
  bool retina_enabled = false;
  bool enable_app_nap = false;
 +bool accessory_activation_policy = false;
-  bool force_backing_store = FALSE;
  int cocoa_start_timeout = 60;
  
-@@ -368,7 +369,30 @@
+ pthread_key_t macdrv_thread_data_key = 0;
+@@ -367,7 +368,30 @@
  
      if (!get_config_key(hkey, appkey, "EnableAppNap", buffer, sizeof(buffer)))
          enable_app_nap = IS_OPTION_TRUE(buffer[0]);
@@ -197,6 +196,6 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 +    if (accessory_activation_policy)
 +        topmost_float_inactive = TOPMOST_FLOAT_INACTIVE_NONE;
 +
-     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
-         force_backing_store = IS_OPTION_TRUE(buffer[0]);
- 
+     /* Seconds to wait for the main thread to start Cocoa.  Upstream waits 5,
+        which a Mac with every core busy, under Rosetta, can miss. */
+     if (!get_config_key(hkey, appkey, "CocoaStartTimeout", buffer, sizeof(buffer)))

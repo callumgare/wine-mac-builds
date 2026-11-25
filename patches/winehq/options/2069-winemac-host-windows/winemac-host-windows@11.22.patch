@@ -2023,13 +2023,12 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 --- a/dlls/winemac.drv/macdrv_main.c
 +++ b/dlls/winemac.drv/macdrv_main.c
-@@ -55,6 +55,8 @@
+@@ -55,5 +55,7 @@
  bool retina_enabled = false;
  bool enable_app_nap = false;
  bool accessory_activation_policy = false;
 +static bool host_windows = false;           /* HostWindows: give windows to a host app */
 +static char host_exe_name[256];
-  bool force_backing_store = FALSE;
  int cocoa_start_timeout = 60;
  
 @@ -290,6 +292,8 @@
@@ -2041,7 +2040,7 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
  
      if (len && len < MAX_PATH)
      {
-@@ -392,6 +396,11 @@
+@@ -392,4 +396,9 @@
         normal level, so they don't go over the app that is active. */
      if (accessory_activation_policy)
          topmost_float_inactive = TOPMOST_FLOAT_INACTIVE_NONE;
@@ -2051,8 +2050,6 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 +    if (!get_config_key(hkey, appkey, "HostWindows", buffer, sizeof(buffer)))
 +        host_windows = IS_OPTION_TRUE(buffer[0]);
  
-     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
-         force_backing_store = IS_OPTION_TRUE(buffer[0]);
 @@ -544,6 +553,15 @@
      load_plugins();
      load_strings(params->strings);
