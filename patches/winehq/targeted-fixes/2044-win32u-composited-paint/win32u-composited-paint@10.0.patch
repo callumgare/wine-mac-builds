@@ -1,0 +1,41 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Deliver WM_PAINT for composited windows straight away in one PeekMessage case
+Category: input
+Kind: workaround
+Origin: crossover
+From: CrossOver 26.3.0 CXHACK 19488 (dlls/win32u/message.c, peek_message)
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/win32u/message.c)
+CW-Hack: 19488
+Upstream: no
+Why: When a program peeks with exactly PM_REMOVE | PM_QS_INPUT |
+ PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE and gets WM_PAINT for
+ a WS_EX_COMPOSITED window, send the paint to the window straight away and
+ keep looking without PM_QS_PAINT, instead of returning it. Without it,
+ such a loop can keep getting WM_PAINT and never see its other messages.
+Programs: none known
+Evidence: Sikarugir 10.0_8: win32u.so's peek_message tests that flag combination,
+ WM_PAINT and WS_EX_COMPOSITED, and calls get_window_long and
+ send_message_timeout (found by comparing functions, 2026-11-15; it adds no
+ strings, so the inventory missed it).
+Status: not yet built (2026-11-15).
+
+diff --git a/dlls/win32u/message.c b/dlls/win32u/message.c
+index 2f1e14c..72a802e 100644
+--- a/dlls/win32u/message.c
++++ b/dlls/win32u/message.c
+@@ -2999,6 +2999,15 @@ int peek_message( MSG *msg, const struct peek_message_filter *filter )
+                     info.msg.lParam = result->lparam;
+                 }
+             }
++            /* CXHACK 19488 */
++            if (info.msg.message == WM_PAINT &&
++                    flags == (PM_REMOVE | PM_QS_INPUT | PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE) &&
++                    (get_window_long( info.msg.hwnd, GWL_EXSTYLE ) & WS_EX_COMPOSITED ))
++            {
++                send_message( info.msg.hwnd, info.msg.message, info.msg.wParam, info.msg.lParam );
++                flags &= ~PM_QS_PAINT;
++                continue;
++            }
+             *msg = info.msg;
+             msg->pt = point_phys_to_win_dpi( info.msg.hwnd, info.msg.pt );
+             thread_info->client_info.message_pos   = MAKELONG( msg->pt.x, msg->pt.y );

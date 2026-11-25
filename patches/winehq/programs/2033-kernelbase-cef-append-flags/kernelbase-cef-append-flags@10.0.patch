@@ -1,0 +1,92 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Add command-line flags so CEF-based launchers (Steam, Battle.net, EA app and others) render
+Category: apps
+Kind: workaround
+Origin: crossover
+From: CrossOver 24.0.7 (hack_append_command_line; CW HACKs 13322, 17315, 21883, 18582, 19610); table entries reproduced from 10.0_8's table
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz (sources/wine/dlls/kernelbase/process.c)
+CW-Hack: 13322, 17315, 21883, 18582, 19610
+Upstream: no
+Why: CEF-based launchers (Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club) render blank or crash in Wine unless their GPU process runs in-process with a software/ANGLE GL. Allocation uses lstrlenW(tidy_cmdline) and checks for failure; CX sizes it from cmd_line, which overflows when cmd_line is NULL or shorter. 10.0_8 logs nothing when it appends from the table, so neither does this. The registry part (Sikarugir's CommandLineAppend) is not included.
+Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their
+ CEF UIs render blank or crash
+Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64 file offset 0x9c1a0) with exactly these strings and NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
+
+diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
+index af44f50..f1cfe72 100644
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -502,6 +502,43 @@ done:
+     return ret;
+ }
+ 
++/* CROSSOVER HACK: append flags that CEF-based launchers and helpers need to
++ * render in Wine. Modelled on CrossOver 24.0.7's table (CW HACKs 13322,
++ * 17315, 21883 for steamwebhelper; 18582 for SocialClubHelper; 19610 for
++ * Battle.net); the entries and flags are those of Sikarugir 10.0_8. */
++static const WCHAR *hack_append_command_line( const WCHAR *cmd, const WCHAR *cmd_line )
++{
++    static const struct
++    {
++        const WCHAR *exe_name;
++        const WCHAR *append;
++        const WCHAR *required_args;
++        const WCHAR *forbidden_args;
++    }
++    options[] =
++    {
++        {L"Battle.net.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, NULL},
++        {L"EADesktop.exe", L" --in-process-gpu --use-gl=angle", NULL, NULL},
++        {L"GalaxyClient.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"GalaxyClient Helper.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"GOG Galaxy Notifications Renderer.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"steamwebhelper.exe", L" --no-sandbox --in-process-gpu --disable-gpu", NULL, L"--type=crashpad-handler"},
++        {L"SocialClubHelper.exe", L" --in-process-gpu --use-gl=angle --use-angle=swiftshader", NULL, NULL},
++    };
++    unsigned int i;
++
++    if (!cmd) return NULL;
++
++    for (i = 0; i < ARRAY_SIZE(options); ++i)
++    {
++        if (wcsstr( cmd, options[i].exe_name )
++            && (!options[i].required_args || wcsstr( cmd_line, options[i].required_args ))
++            && (!options[i].forbidden_args || !wcsstr( cmd_line, options[i].forbidden_args )))
++            return options[i].append;
++    }
++    return NULL;
++}
++
+ /* CROSSOVER HACK: start the game itself instead of a launcher that doesn't
+  * work in Wine; see the table for the bugs. */
+ static WCHAR *hack_replace_command_line( const WCHAR *cmd )
+@@ -580,6 +617,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     HANDLE parent = 0, debug = 0;
+     ULONG nt_flags = 0;
+     USHORT machine = 0;
++    const WCHAR *append;
+     NTSTATUS status;
+ 
+     /* Process the AppName and/or CmdLine to get module name and path */
+@@ -603,6 +641,21 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+         app_name = name;
+     }
+ 
++    /* CROSSOVER HACK: see hack_append_command_line */
++    if ((append = hack_append_command_line( app_name, tidy_cmdline )))
++    {
++        WCHAR *new_cmdline = RtlAllocateHeap( GetProcessHeap(), 0,
++                                              sizeof(WCHAR) * (lstrlenW(tidy_cmdline) + lstrlenW(append) + 1) );
++        if (new_cmdline)
++        {
++            lstrcpyW( new_cmdline, tidy_cmdline );
++            lstrcatW( new_cmdline, append );
++            if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++            tidy_cmdline = new_cmdline;
++        }
++    }
++    /* end CROSSOVER HACK */
++
+     /* CROSSOVER HACK: various; see hack_replace_command_line */
+     {
+         WCHAR *new_cmd;

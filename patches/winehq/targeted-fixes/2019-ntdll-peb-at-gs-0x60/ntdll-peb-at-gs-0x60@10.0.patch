@@ -1,0 +1,118 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Store the PEB at %gs:0x60, where Windows code expects it
+Category: cpu
+Kind: workaround
+Origin: crossover
+From: CrossOver 25.1.1 (unmarked hunks in dlls/ntdll/unix/signal_x86_64.c, thread.c,
+ loader.c that go with the D3DMetal support)
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+Upstream: no
+Why: Windows code (D3DMetal among it) reads the PEB from %gs:0x60. On macOS %gs is the
+ pthread TSD, where slot 0x60 belongs to localtime(), so CrossOver stores the PEB there,
+ hooks localtime() to a thread-local localtime_r(), and clears the slot before pthread_exit
+ so libSystem won't free() it.
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so writes %gs:0x60 in call_init_thunk (movq %rax,%gs:0x60 right
+ after the %gs:0x30 and %gs:0x58 writes) and zeroes it before pthread_exit; the localtime
+ hook's movabsq $0xcccc0000000225ff (jmp *2(%rip); int3; int3) is present
+
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+index 2c4e1f4..9442a15 100644
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -1941,6 +1941,48 @@ static ULONG_PTR get_image_address(void)
+     return 0;
+ }
+ 
++#if defined(__APPLE__) && defined(__x86_64__)
++static __thread struct tm localtime_tls;
++struct tm *my_localtime(const time_t *timep)
++{
++    return localtime_r(timep, &localtime_tls);
++}
++
++static void hook(void *to_hook, const void *replace)
++{
++    size_t offset;
++
++    struct hooked_function
++    {
++        char jmp[8];
++        const void *dst;
++    } *hooked_function = to_hook;
++    ULONG_PTR intval = (UINT_PTR)to_hook;
++
++    intval -= (intval % 4096);
++    mprotect((void *)intval, 0x2000, PROT_EXEC | PROT_READ | PROT_WRITE);
++
++    /* The offset is from the end of the jmp instruction (6 bytes) to the start of the destination. */
++    offset = offsetof(struct hooked_function, dst) - offsetof(struct hooked_function, jmp) - 0x6;
++
++    /* jmp *(rip + offset) */
++    hooked_function->jmp[0] = 0xff;
++    hooked_function->jmp[1] = 0x25;
++    hooked_function->jmp[2] = offset;
++    hooked_function->jmp[3] = 0x00;
++    hooked_function->jmp[4] = 0x00;
++    hooked_function->jmp[5] = 0x00;
++    /* Filler */
++    hooked_function->jmp[6] = 0xcc;
++    hooked_function->jmp[7] = 0xcc;
++    /* Dest address absolute */
++    hooked_function->dst = replace;
++
++    //size = sizeof(*hooked_function);
++    //NtProtectVirtualMemory(proc, (void **)hooked_function, &size, old_protect, &old_protect);
++}
++#endif
++
+ /***********************************************************************
+  *           start_main_thread
+  */
+@@ -1966,6 +2008,13 @@ static void start_main_thread(void)
+     load_ntdll();
+     load_wow64_ntdll( main_image_info.Machine );
+     load_apiset_dll();
++
++#if defined(__APPLE__) && defined(__x86_64__)
++    /* This is necessary because we poke PEB into pthread TLS at offset 0x60. It is normally in use by
++     * localtime(), which is called a lot by system libraries. Make localtime() go away. */
++    hook(localtime, my_localtime);
++#endif
++
+     server_init_process_done();
+ }
+ 
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 7a39cdb..770bef5 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2933,6 +2933,7 @@ void call_init_thunk( LPTHREAD_START_ROUTINE entry, void *arg, BOOL suspend, TEB
+ #elif defined (__APPLE__)
+     __asm__ volatile ("movq %0,%%gs:%c1" :: "r" (teb->Tib.Self), "n" (FIELD_OFFSET(TEB, Tib.Self)));
+     __asm__ volatile ("movq %0,%%gs:%c1" :: "r" (teb->ThreadLocalStoragePointer), "n" (FIELD_OFFSET(TEB, ThreadLocalStoragePointer)));
++    __asm__ volatile ("movq %0,%%gs:%c1" :: "r" (teb->Peb), "n" (FIELD_OFFSET(TEB, Peb)));
+     thread_data->pthread_teb = mac_thread_gsbase();
+     /* alloc_tls_slot() needs to poke a value to an address relative to each
+        thread's gsbase.  Have each thread record its gsbase pointer into its
+diff --git a/dlls/ntdll/unix/thread.c b/dlls/ntdll/unix/thread.c
+index 0d893ea..019d8fc 100644
+--- a/dlls/ntdll/unix/thread.c
++++ b/dlls/ntdll/unix/thread.c
+@@ -1099,6 +1099,16 @@ static DECLSPEC_NORETURN void pthread_exit_wrapper( int status )
+     close( ntdll_get_thread_data()->wait_fd[1] );
+     close( ntdll_get_thread_data()->reply_fd );
+     close( ntdll_get_thread_data()->request_fd );
++
++#if defined(__APPLE__) && defined(__x86_64__)
++    /* Remove the PEB from the localtime field in %gs, or MacOS might try
++     * to free() the pointer and crash. That happens for processes that are
++     * using the alt loader for dock integration. */
++    __asm__ volatile (".byte 0x65\n\tmovq %q0,%c1"
++                      :
++                      : "r" (NULL), "n" (FIELD_OFFSET(TEB, Peb)));
++#endif
++
+     pthread_exit( UIntToPtr(status) );
+ }
+ 

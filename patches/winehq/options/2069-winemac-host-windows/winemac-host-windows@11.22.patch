@@ -1,0 +1,3151 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: winemac: HostWindows option; a native host application shows the windows
+Category: graphics
+Kind: feature
+Origin: wine-mac-builds
+From: dlls/winemac.drv (new cocoa_host.m; hooks in cocoa_window.m,
+ cocoa_app.m, macdrv_main.c, surface.c, window.c, opengl.c); the OpenGL
+ part grew out of the IOSurface probe of 2026-11-17. Written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: An app that embeds Wine wants a program's windows inside its own
+ windows, scaled or letterboxed as it likes, and the input back, without
+ the program putting windows of its own on screen. The protocol is
+ docs/app-embedded-protocol.md, its wire format
+ docs/app-embedded-protocol.h (copied here as wmh_protocol.h). With
+ HostWindows ("y"; HKCU\Software\Wine\Mac Driver, or per program under
+ AppDefaults\<exe>\Mac Driver) and WINEMAC_HOST_SERVICE naming a host's
+ Mach service, the driver does the handshake before Cocoa starts. If it
+ succeeds, each window's Cocoa functions send messages to the host instead
+ of making an NSWindow, window surfaces are drawn into IOSurfaces the host
+ is sent (up to three per window, each handed back by surface_release),
+ and a receive thread turns the host's input, focus, close and quit
+ events into the usual macdrv events. Without the variable, or if the host
+ doesn't answer in 10 seconds, the plain driver is used and an err: line
+ says why. NSApplication still runs (for the main-thread dispatch, event
+ queues, displays, the pasteboard and keyboard layouts), but the process
+ shows no window, Dock icon or menu bar of its own. The design doc said
+ no NSApplication; keeping it changed much less of the driver.
+ OpenGL (and Direct3D through wined3d, and DirectDraw wrappers that use
+ OpenGL) goes to the host as views: each client surface is a view of its
+ window, and framebuffer 0 of its drawable is remapped, in the GL functions
+ the driver hands out, to an FBO on an IOSurface from the view's pool;
+ each present finishes, sends the surface (bottom-up) and points the FBO
+ at a free one. Win32u, opengl32 and wined3d are unchanged. The context
+ is kept current with no view attached. The cursor goes to the host too:
+ a system cursor by its NSCursor name, an image as an IOSurface (the
+ first frame of an animated one), hidden; SetCursorPos and ClipCursor are
+ passed on, and the cursor position is the last one the host reported.
+ The host can ask for a window's size limits (WM_GETMINMAXINFO) and say
+ a resize is starting; the driver posts those as queries without waiting
+ and answers with window_min_max. Repeated identical messages aren't
+ resent.
+ Covered: the handshake, windows, GDI surfaces, OpenGL views, cursor,
+ size limits, keys, mouse, focus, close and quit. Not yet: animated
+ cursors, window shape and alpha, Metal and Vulkan, displays_get, the
+ resize-size query, and
+ window_get_frame as a call (the driver keeps the frame it last set or the
+ host last reported).
+Programs: Second Chance (an app that embeds Wine): shows a program inside
+ its own window
+Uncertain: each present waits for glFinish. Windows of other processes as
+ owners aren't supported (v1).
+Status: 2026-11-22 (focus activation): window_focus carries
+ WMH_FOCUS_ACTIVATE when the plain driver would activate the app (within
+ 2 s of a global hotkey or a tray icon click), so a host needn't activate
+ on every focus. Test host, Notepad (1 run): focus came without the flag,
+ as expected; the flagged case not exercised.
+ 2026-11-22 (padding under emulated modes): a fullscreen window
+ under EmulateModeset has a surface padded beyond its window rect (to a
+ multiple of 128 px); the plain driver hides the padding with its black
+ mask (macdrv_set_window_mask), which host mode skips. The surface flush
+ now paints the padding black in host mode. Test host on meeka, 1 run
+ each: fullscreen-gdi-centred (2160x1440 window, 2176x1536 surface) had
+ grey padding on host8 and black with this; White Wolf's padding (columns
+ 1920-2175, x 2240-2496 on screen: the white strip Second Chance saw) is
+ black with it.
+ 2026-11-22 (integration, host8): Second Chance's integration tests of
+ every bundle (disc, download, Her download, Big Fish trial and owned,
+ Steam) passed with games' windows hosted; the fixes needed were all in
+ its host. Japanese conversion is open, and not a host-mode bug: with
+ Kotoeri's prediction popup or candidate list showing, Space doesn't
+ convert (the kana stay marked) and Return commits nothing (no callback
+ from the input method). Plain mode does the same (traced in a Screen
+ Slots slot, 2 runs; passing key-ups to the input context too didn't
+ change it).
+ 2026-11-21 (integration): Second Chance's integration test of
+ SkiFree passed on host6 with the game's window shown by its app bundle's
+ host (captured, clicked and quit through it; 1 run). HostWindows set per
+ game exe (AppDefaults), so explorer, Steam and the Game Manager stay on
+ the plain driver.
+ 2026-11-21 (input methods): the driver calls the host (ime_key) for
+ each key Wine gives an open IME, and replays the marked and committed
+ text the host's input context produced through macdrv_ime_set_text;
+ ime_rect and ime_clear stand in for the composition rect and
+ clear_ime_text. The host's KEYBOARD_CHANGED now makes the driver reread
+ the input source (it was dropped). Shown with tools/wmh-testhost
+ (WMH_TESTHOST_IME, scripted answers) and Notepad in a Screen Slots slot
+ with Japanese Romaji selected (macOS 26.7), 1 run: "a" gave the marked
+ text and Return committed it, ImeToAsciiEx traced both, Notepad's caret
+ moved one wide character with no new line. Without an input method the
+ keys reached Notepad directly, with no ime_key calls (1 run). Not yet
+ with a real input method in a host.
+ 2026-11-21 (drag and drop): files dragged onto a window: the host's
+ drag messages become the plain driver's drag-drop queries, answered with
+ drag_done; the driver opens the drag pasteboard by name. Shown with
+ tools/wmh-testhost (WMH_TESTHOST_DROP, a file URL on a named pasteboard)
+ and Notepad on meeka, 1 run: enter, update (ops copy) and drop were
+ accepted and Notepad opened the file. Not yet through Second Chance's
+ host or a real Finder drag.
+ 2026-11-21 (minimize, maximize, real host): Second Chance's host on host6,
+ Notepad: Zoom, Cmd-M and the Dock, and fullscreen in a Space work. After
+ a Dock restore Notepad came back about 4 pt narrower and 24 pt shorter
+ than its window: Wine works out the restored rect from the frame using
+ the minimized window's rects (no non-client area). The plain driver
+ corrects it with the frame change that follows every deminiaturize; the
+ host didn't send one. With the test host sending it, the rects came back
+ right (1 run). The protocol now says to send it.
+ 2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
+ WINDOW_MAXIMIZE_REQUESTED, run on the main thread as the plain driver
+ does (the receive thread can't call win32u: the first try hung it in
+ NtUserGetWindowLongW). Shown with tools/wmh-testhost and Notepad on
+ meeka (WMH_TESTHOST_STATES=1, 1 run): minimize gave window_state
+ MINIMIZED|MINIMIZED_VALID, DID_UNMINIMIZE gave state 0 and focus,
+ maximize gave MAXIMIZED and a 2560x1295 frame. Not yet through Second
+ Chance's host. White Wolf (D3D, EmulateModeset) through Second Chance's
+ host (host4): works; its pointer offset was the host's (AppKit
+ constrained the window and the host reported that frame), not the
+ driver's: the test host put the game's cursor on the pointer. Its GDI
+ surface shows a white strip at x 2240-2496 in host mode where the plain
+ driver shows black; not yet explained. Old Clock (cnc-ddraw, windowed):
+ works through Second Chance's host, no driver change.
+ 2026-11-21 (size limits, real host): through Second Chance's host,
+ Notepad's limits (asked for after window_create) were applied as the
+ window's content min/max; a live resize (QUERY_RESIZE_START, then
+ FRAME_CHANGED and RESIZE_ENDED) stopped at 111 wide, Notepad redrew at
+ that size from a new surface, and quit cleanly.
+ 2026-11-21 (size limits): with the test host, Notepad answered the
+ min/max query with min 111x0, max 5120x2880 (no limit, clamped to the
+ desktop as the plain driver does).
+ 2026-11-21 (cursor, real host): through Second Chance's host in a
+ Screen Slots login: cursortest's hourglass became the host's NSCursor
+ (32x32, hot 15,15); Notepad got the I-beam over its edit area and the
+ arrow over its menu. Warp not exercised by any program yet.
+ 2026-11-21 (cursor): with the test host, on the same swapped
+ tree: Notepad's I-beam came as the system cursor "IBeamCursor" once the
+ pointer was over its edit area, and a window using IDC_WAIT got the
+ hourglass as a 32x32 image with its hot spot at 15,15. Warp and clip
+ messages arrive; neither was exercised by a program that needs them.
+ Views confirmed by Second Chance's host in a Screen Slots login: the GL
+ and D3D9 tests showed right (flipped as the flag says) and closed;
+ d3d9test took 18.3 s for 279 frames in host mode against 19.9 s on the
+ plain driver from the same tree, on the same loaded Mac.
+ 2026-11-21 (views): with winemac.so built with the views swapped
+ into the same tree, and the test host: an OpenGL test window (scissored
+ clears) and a Direct3D 9 one (wined3d, windowed) each showed as a view,
+ their pictures right after flipping, and closed on request. A first
+ version left the GL context not current after each swap (wined3d's calls
+ then did nothing: "FBO 0 is incomplete", glClientWaitSync returning 0);
+ fixed, and the D3D9 test then ran with none of those errors. Its rate
+ matched plain build0 in a Screen Slots login on the same loaded Mac
+ (7.9 against 8.4 frames a second). No game tried yet.
+ 2026-11-21 (later): with Second Chance's host (a prototype), in a
+ Screen Slots login on meeka, the same swapped tree: SkiFree's window
+ showed and animated; clicks and steering by the pointer worked, so mouse
+ positions come back right; F2 restarted it; the host's quit request
+ (APP_QUIT_REQUESTED) ended ski32.exe and explorer.exe and the launcher
+ exited 0. Moving windows not yet tested. One "no free surface" warning in
+ a run, from that host releasing surfaces late.
+ 2026-11-21: not yet in a build. With winemac.so built with it
+ swapped into 11.22-build0 (plus 0068's ntdll.so), on meeka (macOS
+ 26.7.2), run in a LaunchAgent with a headless test host: explorer.exe and
+ notepad.exe each connected; Notepad's window, title, frames and focus
+ came through, its picture in the surface was right, and on
+ WINDOW_CLOSE_REQUESTED it closed and exited 0. Keys and mouse not yet
+ tested; nothing tested with a real host yet.
+
+diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
+--- a/dlls/winemac.drv/Makefile.in
++++ b/dlls/winemac.drv/Makefile.in
+@@ -24,6 +24,7 @@
+ 	cocoa_cursorclipping.m \
+ 	cocoa_display.m \
+ 	cocoa_event.m \
++	cocoa_host.m \
+ 	cocoa_main.m \
+ 	cocoa_opengl.m \
+ 	cocoa_status_item.m \
+diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -22,6 +22,7 @@
+ #import "macdrv.h"
+ 
+ #import "cocoa_app.h"
++#import "cocoa_host.h"
+ #import "cocoa_cursorclipping.h"
+ #import "cocoa_event.h"
+ #import "cocoa_window.h"
+@@ -115,6 +116,23 @@
+ 
+ @implementation WineApplicationController
+ 
++/***********************************************************************
++ *              macdrv_host_post_app_event
++ *
++ * Post an app-wide event (no window) to every thread's queue, as the
++ * controller does for its own. For host mode's receive thread.
++ */
++void macdrv_host_post_app_event(macdrv_event *event)
++{
++    WineApplicationController *controller = [WineApplicationController sharedController];
++    WineEventQueue *queue;
++
++    [controller->eventQueuesLock lock];
++    for (queue in controller->eventQueues)
++        [queue postEvent:event];
++    [controller->eventQueuesLock unlock];
++}
++
+     @synthesize keyboardType, lastFlagsChanged;
+     @synthesize applicationIcon;
+     @synthesize cursorFrames, cursorTimer, cursor;
+@@ -2405,6 +2423,11 @@
+  */
+ void macdrv_window_rejected_focus(const macdrv_event *event)
+ {
++    if (host_mode)
++    {
++        host_window_rejected_focus(event->window);
++        return;
++    }
+     OnMainThread(^{
+         [[WineApplicationController sharedController] windowRejectedFocusEvent:event];
+     });
+@@ -2486,6 +2509,12 @@
+ void macdrv_set_cursor(CFStringRef name, CFArrayRef frames)
+ {
+     SEL sel;
++
++    if (host_mode)
++    {
++        host_set_cursor(name, frames);
++        return;
++    }
+ 
+     sel = NSSelectorFromString((NSString*)name);
+     if (sel)
+@@ -2525,6 +2554,7 @@
+  */
+ int macdrv_get_cursor_position(CGPoint *pos)
+ {
++    if (host_mode) return host_get_cursor_position(pos);
+     OnMainThread(^{
+         NSPoint location = [NSEvent mouseLocation];
+         location = [[WineApplicationController sharedController] flippedMouseLocation:location];
+@@ -2542,6 +2572,7 @@
+  */
+ int macdrv_set_cursor_position(CGPoint pos)
+ {
++    if (host_mode) return host_set_cursor_position(pos);
+     __block int ret;
+ 
+     OnMainThread(^{
+@@ -2560,6 +2591,7 @@
+  */
+ int macdrv_clip_cursor(CGRect r)
+ {
++    if (host_mode) return host_clip_cursor(r);
+     __block int ret;
+ 
+     OnMainThread(^{
+@@ -2644,6 +2676,7 @@
+  */
+ void macdrv_set_mouse_capture_window(WineWindow *window)
+ {
++    if (host_mode) return;  /* not in v1: the host sees the buttons anyway */
+     [window.queue discardEventsMatchingMask:event_mask_for_type(RELEASE_CAPTURE) forWindow:window];
+ 
+     OnMainThread(^{
+diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
+--- a/dlls/winemac.drv/cocoa_event.m
++++ b/dlls/winemac.drv/cocoa_event.m
+@@ -28,6 +28,7 @@
+ #import "cocoa_event.h"
+ #import "cocoa_app.h"
+ #import "cocoa_window.h"
++#import "cocoa_host.h"
+ 
+ #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+ 
+@@ -736,6 +737,13 @@
+  */
+ void macdrv_set_query_done(macdrv_query *query)
+ {
++    /* Nobody here waits for a query the host asked: send it the answer. */
++    if (host_mode && query->host_serial)
++    {
++        host_drag_done(query);
++        return;
++    }
++
+     macdrv_retain_query(query);
+ 
+     OnMainThreadAsync(^{
+diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
+new file mode 100644
+--- /dev/null
++++ b/dlls/winemac.drv/cocoa_host.h
+@@ -0,0 +1,53 @@
++/*
++ * MACDRV host mode: windows shown by another, native application
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++#import <AppKit/AppKit.h>
++#include "macdrv_cocoa.h"
++#include "wmh_protocol.h"
++
++@class WineEventQueue;
++
++/* In host mode, a Win32 window's Cocoa side is one of these, cast to
++ * WineWindow*. It has no NSWindow: the host shows it. */
++@interface WineHostWindow : NSObject
++{
++@public
++    uint32_t        wid;
++    void           *hwnd;
++    WineEventQueue *queue;
++    CGRect          frame;
++    NSMutableArray *surfaces;       /* WineHostSurface, all the same size */
++    uint32_t        sent_features, sent_state;  /* the last sent, to skip repeats */
++    BOOL            state_sent, parent_sent;
++    uint32_t        sent_parent;
++    BOOL            min_max_sent;
++    struct wmh_window_min_max sent_min_max;
++}
++@property (readonly, nonatomic) WineEventQueue* queue;
++@end
++
++extern WineWindow *host_create_window(const struct macdrv_window_features *wf, CGRect frame,
++                                      void *hwnd, WineEventQueue *queue);
++extern void host_destroy_window(WineWindow *window);
++extern void host_set_window_features(WineWindow *window, const struct macdrv_window_features *wf);
++extern void host_set_window_state(WineWindow *window, const struct macdrv_window_state *state);
++extern void host_set_window_title(WineWindow *window, const UniChar *title, size_t length);
++extern void host_order_window(WineWindow *window, WineWindow *prev, WineWindow *next, bool activate);
++extern void host_hide_window(WineWindow *window);
++extern void host_set_window_frame(WineWindow *window, const CGRect *frame);
++extern void host_get_window_frame(WineWindow *window, CGRect *frame);
++extern void host_set_parent_window(WineWindow *window, WineWindow *parent);
++extern void host_window_set_io_surface(WineWindow *window, IOSurfaceRef surface, CGRect rect, CGRect dirty);
++extern void host_give_window_focus(WineWindow *window, bool activate);
++extern void host_set_window_min_max(WineWindow *window, CGSize min_size, CGSize max_size);
++extern void host_window_rejected_focus(WineWindow *window);
++extern void host_drag_done(macdrv_query *query);
++extern bool host_send_keydown_to_input_source(int keyc, unsigned int flags, int repeat, void *update);
++extern void host_clear_ime_text(void);
++extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
++extern int host_get_cursor_position(CGPoint *pos);
++extern int host_set_cursor_position(CGPoint pos);
++extern int host_clip_cursor(CGRect rect);
+diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
+new file mode 100644
+--- /dev/null
++++ b/dlls/winemac.drv/cocoa_host.m
+@@ -0,0 +1,1377 @@
++/*
++ * MACDRV host mode: windows shown by another, native application
++ *
++ * With HostWindows on and WINEMAC_HOST_SERVICE naming a host, the driver
++ * gives its windows to that host over Mach messages instead of making
++ * NSWindows: it sends each window's pictures as IOSurfaces, and the host
++ * sends input back. The protocol is docs/app-embedded-protocol.md in
++ * wine-mac-builds; the wire format is wmh_protocol.h.
++ *
++ * SPDX-License-Identifier: LGPL-2.1-or-later
++ */
++
++#import "config.h"
++#import "macdrv.h"
++
++#include <mach/mach.h>
++#include <servers/bootstrap.h>
++#include <pthread.h>
++#include <sys/time.h>
++#import <IOSurface/IOSurfaceRef.h>
++
++#import "cocoa_app.h"
++#import "cocoa_event.h"
++#import "cocoa_host.h"
++#include "wmh_protocol.h"
++
++#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
++
++WINE_DEFAULT_DEBUG_CHANNEL(macdrv);
++
++bool host_mode = false;
++
++static mach_port_t host_port = MACH_PORT_NULL;     /* send right to the host's service */
++static mach_port_t driver_port = MACH_PORT_NULL;   /* our receive right */
++static uint32_t host_features;
++
++static pthread_mutex_t host_lock = PTHREAD_MUTEX_INITIALIZER;
++static pthread_cond_t surface_released = PTHREAD_COND_INITIALIZER;
++static NSMutableDictionary *windows_by_id;         /* NSNumber -> WineHostWindow */
++static NSMutableDictionary *views_by_id;           /* NSNumber -> WineHostView */
++static uint32_t next_view_id = 1;
++static uint32_t next_window_id = 1, next_surface_id = 1;
++static CGPoint pointer;                             /* where the host last said the pointer is */
++static CFTypeRef sent_cursor;                       /* the name or frames last sent, retained */
++
++#define SEND_TIMEOUT_MS 1000
++#define CALL_TIMEOUT_MS 2000
++
++static struct wmh_rect wmh_rect_from(CGRect r);
++
++/* Calls waiting for the host's reply (host_call). */
++struct pending_call
++{
++    uint32_t             serial;
++    void                *reply;
++    size_t               reply_size;
++    uint32_t             status;
++    BOOL                 done;
++    struct pending_call *next;
++};
++static pthread_mutex_t call_lock = PTHREAD_MUTEX_INITIALIZER;
++static pthread_cond_t call_cond = PTHREAD_COND_INITIALIZER;
++static struct pending_call *pending_calls;
++static uint32_t next_call_serial = 1;
++
++/* The plain driver's keyboard-change handler; force skips its input context check. */
++@interface WineApplicationController (HostKeyboard)
++- (void) keyboardSelectionDidChange:(BOOL)force;
++@end
++#define MAX_SURFACES_PER_WINDOW 3
++
++
++/* An IOSurface registered with the host. */
++@interface WineHostSurface : NSObject
++{
++@public
++    uint32_t     sid;
++    IOSurfaceRef surface;
++    BOOL         with_host;     /* sent in a frame, not released yet */
++}
++@end
++
++@implementation WineHostSurface
++    - (void) dealloc
++    {
++        if (surface) CFRelease(surface);
++        [super dealloc];
++    }
++@end
++
++
++/* An OpenGL region of a window (a client surface). */
++@interface WineHostView : NSObject
++{
++@public
++    uint32_t        vid;
++    NSMutableArray *surfaces;       /* WineHostSurface */
++    uint32_t        sent_window;    /* the last view_frame and view_hidden sent */
++    CGRect          sent_frame;
++    int             sent_hidden;    /* -1: none yet */
++}
++@end
++
++@implementation WineHostView
++    - (void) dealloc
++    {
++        [surfaces release];
++        [super dealloc];
++    }
++@end
++
++
++@implementation WineHostWindow
++    @synthesize queue;
++
++    - (void) dealloc
++    {
++        [surfaces release];
++        [queue release];
++        [super dealloc];
++    }
++@end
++
++
++/***********************************************************************
++ *              sending
++ */
++struct plain_message
++{
++    mach_msg_header_t head;
++    struct wmh_header wmh;
++    char payload[];
++};
++
++struct port_message
++{
++    mach_msg_header_t head;
++    mach_msg_body_t body;
++    mach_msg_port_descriptor_t port;
++    struct wmh_header wmh;
++    char payload[];
++};
++
++static BOOL host_send_serial(uint32_t kind, uint32_t serial, const void *payload, size_t size)
++{
++    char buffer[sizeof(struct plain_message) + 1024];
++    struct plain_message *msg = (struct plain_message *)buffer;
++    kern_return_t kr;
++
++    if (host_port == MACH_PORT_NULL) return FALSE;
++    if (size > 1024) return FALSE;
++    memset(msg, 0, sizeof(*msg));
++    msg->head.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0);
++    msg->head.msgh_size = (sizeof(*msg) + size + 3) & ~3;
++    msg->head.msgh_remote_port = host_port;
++    msg->head.msgh_id = WMH_MSG_ID;
++    msg->wmh.kind = kind;
++    msg->wmh.serial = serial;
++    if (size) memcpy(msg->payload, payload, size);
++    memset(msg->payload + size, 0, msg->head.msgh_size - sizeof(*msg) - size);
++
++    kr = mach_msg(&msg->head, MACH_SEND_MSG | MACH_SEND_TIMEOUT, msg->head.msgh_size, 0,
++                  MACH_PORT_NULL, SEND_TIMEOUT_MS, MACH_PORT_NULL);
++    if (kr != KERN_SUCCESS)
++    {
++        WARN("host: sending kind %u failed: %s (%x)\n", kind, mach_error_string(kr), kr);
++        return FALSE;
++    }
++    return TRUE;
++}
++
++static BOOL host_send(uint32_t kind, const void *payload, size_t size)
++{
++    return host_send_serial(kind, 0, payload, size);
++}
++
++/* Send a call and wait for its reply. Returns WMH_STATUS_*; on OK, reply
++ * holds the reply struct (zero-filled past what the host sent). A host that
++ * doesn't answer in time gets WMH_STATUS_FAILED, and the caller uses its
++ * fallback. */
++static uint32_t host_call(uint32_t kind, const void *payload, size_t size, void *reply, size_t reply_size)
++{
++    struct pending_call call = { 0 }, **p;
++    struct timespec deadline;
++    struct timeval now;
++
++    memset(reply, 0, reply_size);
++    call.reply = reply;
++    call.reply_size = reply_size;
++    call.status = WMH_STATUS_FAILED;
++
++    pthread_mutex_lock(&call_lock);
++    call.serial = next_call_serial++;
++    if (!next_call_serial) next_call_serial = 1;
++    call.next = pending_calls;
++    pending_calls = &call;
++    pthread_mutex_unlock(&call_lock);
++
++    if (host_send_serial(kind, call.serial, payload, size))
++    {
++        gettimeofday(&now, NULL);
++        deadline.tv_sec = now.tv_sec + CALL_TIMEOUT_MS / 1000;
++        deadline.tv_nsec = now.tv_usec * 1000 + (CALL_TIMEOUT_MS % 1000) * 1000000;
++        if (deadline.tv_nsec >= 1000000000) { deadline.tv_sec++; deadline.tv_nsec -= 1000000000; }
++        pthread_mutex_lock(&call_lock);
++        while (!call.done)
++            if (pthread_cond_timedwait(&call_cond, &call_lock, &deadline)) break;
++        if (!call.done) WARN("host: call kind %u (serial %u) timed out\n", kind, call.serial);
++    }
++    else pthread_mutex_lock(&call_lock);
++
++    for (p = &pending_calls; *p; p = &(*p)->next)
++        if (*p == &call) { *p = call.next; break; }
++    pthread_mutex_unlock(&call_lock);
++    return call.done ? call.status : WMH_STATUS_FAILED;
++}
++
++/* On the receive thread: hand a reply to the call waiting for it. */
++static void reply_received(uint32_t serial, const struct wmh_reply *reply, size_t size)
++{
++    struct pending_call *call;
++
++    pthread_mutex_lock(&call_lock);
++    for (call = pending_calls; call; call = call->next)
++    {
++        if (call->serial != serial || call->done) continue;
++        call->status = reply->status;
++        if (reply->status == WMH_STATUS_OK)
++        {
++            size_t n = size - sizeof(*reply);
++            memcpy(call->reply, reply + 1, n < call->reply_size ? n : call->reply_size);
++        }
++        call->done = TRUE;
++        pthread_cond_broadcast(&call_cond);
++        break;
++    }
++    pthread_mutex_unlock(&call_lock);
++    if (!call) TRACE("host: reply for no call (serial %u)\n", serial);
++}
++
++/* disposition: MACH_MSG_TYPE_MAKE_SEND for our own receive right,
++   MACH_MSG_TYPE_MOVE_SEND for a send right we hand over. */
++static BOOL host_send_port(uint32_t kind, mach_port_t port, mach_msg_type_name_t disposition,
++                              const void *payload, size_t size)
++{
++    char buffer[sizeof(struct port_message) + 512];
++    struct port_message *msg = (struct port_message *)buffer;
++    kern_return_t kr;
++
++    if (host_port == MACH_PORT_NULL || size > 512) return FALSE;
++    memset(msg, 0, sizeof(*msg));
++    msg->head.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0) | MACH_MSGH_BITS_COMPLEX;
++    msg->head.msgh_size = (sizeof(*msg) + size + 3) & ~3;
++    msg->head.msgh_remote_port = host_port;
++    msg->head.msgh_id = WMH_MSG_ID;
++    msg->body.msgh_descriptor_count = 1;
++    msg->port.name = port;
++    msg->port.disposition = disposition;
++    msg->port.type = MACH_MSG_PORT_DESCRIPTOR;
++    msg->wmh.kind = kind;
++    memcpy(msg->payload, payload, size);
++
++    kr = mach_msg(&msg->head, MACH_SEND_MSG | MACH_SEND_TIMEOUT, msg->head.msgh_size, 0,
++                  MACH_PORT_NULL, SEND_TIMEOUT_MS, MACH_PORT_NULL);
++    if (kr != KERN_SUCCESS)
++    {
++        WARN("host: sending kind %u failed: %s (%x)\n", kind, mach_error_string(kr), kr);
++        /* A moved right wasn't consumed; drop it. */
++        if (disposition == MACH_MSG_TYPE_MOVE_SEND) mach_port_deallocate(mach_task_self(), port);
++        return FALSE;
++    }
++    return TRUE;
++}
++
++
++/***********************************************************************
++ *              receiving
++ */
++struct received_message
++{
++    mach_msg_header_t head;
++    char data[4096];
++};
++
++/* The inline data of a received message, after any descriptors. */
++static const struct wmh_header *message_body(const struct received_message *msg, size_t *size)
++{
++    const char *p = (const char *)&msg->head + sizeof(mach_msg_header_t);
++    const char *end = (const char *)&msg->head + msg->head.msgh_size;
++
++    if (msg->head.msgh_bits & MACH_MSGH_BITS_COMPLEX)
++    {
++        const mach_msg_body_t *body = (const mach_msg_body_t *)p;
++        p += sizeof(*body) + body->msgh_descriptor_count * sizeof(mach_msg_port_descriptor_t);
++    }
++    if (p + sizeof(struct wmh_header) > end) return NULL;
++    *size = end - p - sizeof(struct wmh_header);
++    return (const struct wmh_header *)p;
++}
++
++static WineHostWindow *window_for_id(uint32_t wid)
++{
++    WineHostWindow *window;
++
++    pthread_mutex_lock(&host_lock);
++    window = [[windows_by_id objectForKey:@(wid)] retain];
++    pthread_mutex_unlock(&host_lock);
++    return [window autorelease];
++}
++
++static unsigned long event_time_ms(double seconds)
++{
++    if (seconds > 0) return (unsigned long)(seconds * 1000.0);
++    return (unsigned long)([[NSProcessInfo processInfo] systemUptime] * 1000.0);
++}
++
++static void post_event(const struct wmh_event *ev)
++{
++    static const int types[] = {
++        [WMH_EV_KEY_PRESS] = KEY_PRESS + 1, [WMH_EV_KEY_RELEASE] = KEY_RELEASE + 1,
++        [WMH_EV_MOUSE_BUTTON] = MOUSE_BUTTON + 1, [WMH_EV_MOUSE_MOVED_ABSOLUTE] = MOUSE_MOVED_ABSOLUTE + 1,
++        [WMH_EV_MOUSE_MOVED_RELATIVE] = MOUSE_MOVED_RELATIVE + 1, [WMH_EV_MOUSE_SCROLL] = MOUSE_SCROLL + 1,
++        [WMH_EV_WINDOW_GOT_FOCUS] = WINDOW_GOT_FOCUS + 1, [WMH_EV_WINDOW_LOST_FOCUS] = WINDOW_LOST_FOCUS + 1,
++        [WMH_EV_APP_DEACTIVATED] = APP_DEACTIVATED + 1, [WMH_EV_WINDOW_BROUGHT_FORWARD] = WINDOW_BROUGHT_FORWARD + 1,
++        [WMH_EV_RELEASE_CAPTURE] = RELEASE_CAPTURE + 1, [WMH_EV_WINDOW_CLOSE_REQUESTED] = WINDOW_CLOSE_REQUESTED + 1,
++        [WMH_EV_WINDOW_FRAME_CHANGED] = WINDOW_FRAME_CHANGED + 1, [WMH_EV_WINDOW_RESIZE_ENDED] = WINDOW_RESIZE_ENDED + 1,
++        [WMH_EV_WINDOW_DID_UNMINIMIZE] = WINDOW_DID_UNMINIMIZE + 1,
++        [WMH_EV_WINDOW_RESTORE_REQUESTED] = WINDOW_RESTORE_REQUESTED + 1,
++        [WMH_EV_REASSERT_WINDOW_POSITION] = REASSERT_WINDOW_POSITION + 1,
++        [WMH_EV_APP_QUIT_REQUESTED] = APP_QUIT_REQUESTED + 1, [WMH_EV_DISPLAYS_CHANGED] = DISPLAYS_CHANGED + 1,
++    };
++    WineHostWindow *window = nil;
++    macdrv_event *event;
++    unsigned long time_ms = event_time_ms(ev->time);
++    int type;
++
++    /* Queries are posted without waiting: the answer goes back as messages. */
++    if (ev->type == WMH_EV_QUERY_MIN_MAX_INFO || ev->type == WMH_EV_QUERY_RESIZE_START)
++    {
++        macdrv_query *query;
++
++        if (!(window = window_for_id(ev->window))) return;
++        query = macdrv_create_query();
++        query->type = ev->type == WMH_EV_QUERY_MIN_MAX_INFO ? QUERY_MIN_MAX_INFO : QUERY_RESIZE_START;
++        query->window = (WineWindow *)[window retain];
++        event = macdrv_create_event(QUERY_EVENT, (WineWindow *)window);
++        event->query_event.query = macdrv_retain_query(query);
++        [window->queue postEvent:event];
++        macdrv_release_event(event);
++        macdrv_release_query(query);
++        return;
++    }
++
++    /* The input source changed: the driver reads the new one itself, as the
++     * plain driver does when macOS tells it (which it doesn't in host mode:
++     * the process has no text input context). */
++    if (ev->type == WMH_EV_KEYBOARD_CHANGED)
++    {
++        dispatch_async(dispatch_get_main_queue(), ^{
++            [[WineApplicationController sharedController] keyboardSelectionDidChange:YES];
++        });
++        return;
++    }
++
++    /* The user asked to minimize or zoom: the program decides, and its answer
++     * comes back as window_state and frames. The plain driver calls these on
++     * the main thread, from NSWindow's miniaturize: and
++     * windowShouldZoom:toFrame:. They call win32u, which this thread can't. */
++    if (ev->type == WMH_EV_WINDOW_MINIMIZE_REQUESTED || ev->type == WMH_EV_WINDOW_MAXIMIZE_REQUESTED)
++    {
++        void *hwnd;
++        BOOL minimize = ev->type == WMH_EV_WINDOW_MINIMIZE_REQUESTED;
++
++        if (!(window = window_for_id(ev->window))) return;
++        hwnd = window->hwnd;
++        dispatch_async(dispatch_get_main_queue(), ^{
++            if (minimize) macdrv_window_minimize_requested(hwnd);
++            else macdrv_window_maximize_requested(hwnd);
++        });
++        return;
++    }
++
++    /* The table holds macdrv's type + 1, so an unset slot is 0. */
++    if (ev->type >= sizeof(types) / sizeof(types[0]) || !types[ev->type])
++    {
++        TRACE("host: ignoring event type %u\n", ev->type);
++        return;
++    }
++    type = types[ev->type] - 1;
++
++    if (ev->window && !(window = window_for_id(ev->window)))
++    {
++        TRACE("host: event %u for unknown window %u\n", ev->type, ev->window);
++        return;
++    }
++
++
++    event = macdrv_create_event(type, (WineWindow *)window);
++    switch (type)
++    {
++    case KEY_PRESS:
++    case KEY_RELEASE:
++        event->key.keycode = ev->keycode;
++        event->key.modifiers = ev->modifiers;
++        event->key.time_ms = time_ms;
++        break;
++    case MOUSE_BUTTON:
++        pointer = CGPointMake(ev->x, ev->y);
++        event->mouse_button.button = ev->button;
++        event->mouse_button.pressed = ev->pressed != 0;
++        event->mouse_button.x = floor(ev->x);
++        event->mouse_button.y = floor(ev->y);
++        event->mouse_button.time_ms = time_ms;
++        break;
++    case MOUSE_MOVED_ABSOLUTE:
++    case MOUSE_MOVED_RELATIVE:
++        if (type == MOUSE_MOVED_ABSOLUTE) pointer = CGPointMake(ev->x, ev->y);
++        event->mouse_moved.x = floor(ev->x);
++        event->mouse_moved.y = floor(ev->y);
++        event->mouse_moved.drag = ev->pressed != 0;
++        event->mouse_moved.time_ms = time_ms;
++        break;
++    case MOUSE_SCROLL:
++        event->mouse_scroll.x_scroll = ev->scroll_x;
++        event->mouse_scroll.y_scroll = ev->scroll_y;
++        event->mouse_scroll.x = floor(ev->x);
++        event->mouse_scroll.y = floor(ev->y);
++        event->mouse_scroll.time_ms = time_ms;
++        break;
++    case WINDOW_GOT_FOCUS:
++        event->window_got_focus.serial = 0;
++        event->window_got_focus.tried_windows = NULL;
++        break;
++    case WINDOW_FRAME_CHANGED:
++        event->window_frame_changed.frame = CGRectMake(ev->frame.x, ev->frame.y, ev->frame.width, ev->frame.height);
++        event->window_frame_changed.fullscreen = (ev->flags & WMH_FRAME_FULLSCREEN) != 0;
++        event->window_frame_changed.in_resize = (ev->flags & WMH_FRAME_IN_RESIZE) != 0;
++        event->window_frame_changed.skip_size_move_loop = (ev->flags & WMH_FRAME_SKIP_SIZE_MOVE_LOOP) != 0;
++        if (window)
++        {
++            pthread_mutex_lock(&host_lock);
++            window->frame = event->window_frame_changed.frame;
++            pthread_mutex_unlock(&host_lock);
++        }
++        break;
++    case WINDOW_RESTORE_REQUESTED:
++        event->window_restore_requested.keep_frame = (ev->flags & 1) != 0;
++        event->window_restore_requested.frame = CGRectMake(ev->frame.x, ev->frame.y, ev->frame.width, ev->frame.height);
++        break;
++    case APP_QUIT_REQUESTED:
++        event->deliver = 1;
++        event->app_quit_requested.reason = ev->reason;
++        break;
++    case DISPLAYS_CHANGED:
++        event->displays_changed.activating = false;
++        break;
++    }
++
++    if (window)
++        [window->queue postEvent:event];
++    else
++        macdrv_host_post_app_event(event);
++    macdrv_release_event(event);
++}
++
++static void surface_was_released(uint32_t sid)
++{
++    pthread_mutex_lock(&host_lock);
++    NSMutableArray *pools = [NSMutableArray array];
++
++    for (WineHostWindow *window in [windows_by_id objectEnumerator]) [pools addObject:window->surfaces];
++    for (WineHostView *view in [views_by_id objectEnumerator]) [pools addObject:view->surfaces];
++    for (NSMutableArray *pool in pools)
++    {
++        for (WineHostSurface *s in pool)
++        {
++            if (s->sid == sid)
++            {
++                s->with_host = NO;
++                pthread_cond_broadcast(&surface_released);
++                pthread_mutex_unlock(&host_lock);
++                return;
++            }
++        }
++    }
++    pthread_mutex_unlock(&host_lock);
++}
++
++static void host_lost(void)
++{
++    macdrv_event *event;
++
++    ERR("host: the host has gone away; asking the program to quit\n");
++    event = macdrv_create_event(APP_QUIT_REQUESTED, nil);
++    event->deliver = 1;
++    event->app_quit_requested.reason = QUIT_REASON_LOGOUT;
++    macdrv_host_post_app_event(event);
++    macdrv_release_event(event);
++}
++
++/* A drag step from the host becomes the query the plain driver's
++ * NSDraggingDestination methods make, posted to the window's queue in
++ * order with its events; host_drag_done answers it. */
++static void post_drag(const struct wmh_drag *drag, uint32_t serial)
++{
++    static const int types[] = {
++        [WMH_DRAG_ENTER] = QUERY_DRAG_DROP_ENTER, [WMH_DRAG_UPDATE] = QUERY_DRAG_DROP_DRAG,
++        [WMH_DRAG_LEAVE] = QUERY_DRAG_DROP_LEAVE, [WMH_DRAG_DROP] = QUERY_DRAG_DROP_DROP,
++    };
++    struct wmh_drag_done done = { serial, 0, 0, 0 };
++    WineHostWindow *window;
++    macdrv_query *query;
++    macdrv_event *event;
++
++    if (!serial || drag->type < WMH_DRAG_ENTER || drag->type > WMH_DRAG_DROP || !(window = window_for_id(drag->window)))
++    {
++        TRACE("host: refusing drag type %u for window %u\n", drag->type, drag->window);
++        host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++        return;
++    }
++
++    query = macdrv_create_query();
++    query->type = types[drag->type];
++    query->window = (WineWindow *)[window retain];
++    query->host_serial = serial;
++    query->drag_drop.x = floor(drag->x);
++    query->drag_drop.y = floor(drag->y);
++    query->drag_drop.ops = drag->ops;
++    if (drag->type == WMH_DRAG_ENTER)
++    {
++        char name[WMH_PASTEBOARD_NAME_MAX + 1];
++        NSString *str;
++
++        memcpy(name, drag->pasteboard, WMH_PASTEBOARD_NAME_MAX);
++        name[WMH_PASTEBOARD_NAME_MAX] = 0;
++        if (name[0] && (str = [NSString stringWithUTF8String:name]))
++            query->drag_drop.pasteboard = (CFTypeRef)[[NSPasteboard pasteboardWithName:str] retain];
++        if (!query->drag_drop.pasteboard)
++        {
++            macdrv_release_query(query);
++            host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++            return;
++        }
++    }
++
++    event = macdrv_create_event(QUERY_EVENT, (WineWindow *)window);
++    event->query_event.query = macdrv_retain_query(query);
++    [window->queue postEvent:event];
++    macdrv_release_event(event);
++    macdrv_release_query(query);
++}
++
++/***********************************************************************
++ *              input methods
++ *
++ * The host's text input context does the input method's work; see
++ * wmh_protocol.h. These stand in for macdrv_send_keydown_to_input_source,
++ * macdrv_clear_ime_text and SetIMECompositionRect.
++ */
++bool host_send_keydown_to_input_source(int keyc, unsigned int flags, int repeat, void *update)
++{
++    struct wmh_ime_key key = { keyc, flags, repeat ? 1 : 0, 0 };
++    struct wmh_reply_ime_key *reply = malloc(sizeof(*reply));
++    WineHostWindow *window;
++    bool handled = false;
++    uint32_t i, count;
++
++    if (!reply) return false;
++    if (host_call(WMH_KIND_IME_KEY, &key, sizeof(key), reply, sizeof(*reply)) == WMH_STATUS_OK &&
++        (window = window_for_id(reply->window)))
++    {
++        count = reply->count < WMH_IME_TEXTS_MAX ? reply->count : WMH_IME_TEXTS_MAX;
++        for (i = 0; i < count; i++)
++        {
++            const struct wmh_ime_text *t = &reply->texts[i];
++            CFStringRef str = CFStringCreateWithCharacters(NULL, (const UniChar *)t->text,
++                                                           t->length < WMH_IME_TEXT_MAX ? t->length : WMH_IME_TEXT_MAX);
++            if (!str) continue;
++            macdrv_ime_set_text(window->hwnd, str, t->complete != 0, t->cursor_begin, t->cursor_end, update);
++            CFRelease(str);
++        }
++        handled = reply->handled != 0;
++    }
++    free(reply);
++    return handled;
++}
++
++void host_clear_ime_text(void)
++{
++    host_send(WMH_KIND_IME_CLEAR, NULL, 0);
++}
++
++void macdrv_host_set_ime_rect(CGRect rect)
++{
++    struct wmh_ime_rect msg = { wmh_rect_from(rect) };
++    static struct wmh_ime_rect sent;
++    static BOOL rect_sent;
++
++    if (!host_mode) return;
++    if (rect_sent && !memcmp(&msg, &sent, sizeof(msg))) return;
++    rect_sent = TRUE;
++    sent = msg;
++    host_send(WMH_KIND_IME_RECT, &msg, sizeof(msg));
++}
++
++void host_drag_done(macdrv_query *query)
++{
++    struct wmh_drag_done done = { query->host_serial, query->status ? 1 : 0, 0, 0 };
++
++    if (query->type == QUERY_DRAG_DROP_DRAG && query->status) done.ops = query->drag_drop.ops;
++    host_send(WMH_KIND_DRAG_DONE, &done, sizeof(done));
++}
++
++static void *receive_thread(void *arg)
++{
++    struct received_message *msg = malloc(sizeof(*msg) + MAX_TRAILER_SIZE);
++
++    for (;;)
++    {
++        @autoreleasepool
++        {
++            const struct wmh_header *wmh;
++            size_t size;
++            kern_return_t kr;
++
++            kr = mach_msg(&msg->head, MACH_RCV_MSG | MACH_RCV_LARGE, 0, sizeof(*msg),
++                          driver_port, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
++            if (kr == MACH_RCV_TOO_LARGE)
++            {
++                /* MACH_RCV_LARGE left it queued; take it and drop it. */
++                mach_msg(&msg->head, MACH_RCV_MSG, 0, sizeof(*msg), driver_port, 0, MACH_PORT_NULL);
++                continue;
++            }
++            if (kr != KERN_SUCCESS)
++            {
++                ERR("host: receive failed: %s (%x)\n", mach_error_string(kr), kr);
++                break;
++            }
++
++            if (msg->head.msgh_id == MACH_NOTIFY_DEAD_NAME)
++            {
++                host_lost();
++                break;
++            }
++            if (msg->head.msgh_id != WMH_MSG_ID || !(wmh = message_body(msg, &size)))
++            {
++                mach_msg_destroy(&msg->head);
++                continue;
++            }
++
++            switch (wmh->kind)
++            {
++            case WMH_KIND_EVENT:
++                if (size >= sizeof(struct wmh_event)) post_event((const struct wmh_event *)(wmh + 1));
++                break;
++            case WMH_KIND_REPLY:
++                if (size >= sizeof(struct wmh_reply))
++                    reply_received(wmh->serial, (const struct wmh_reply *)(wmh + 1), size);
++                break;
++            case WMH_KIND_DRAG:
++                if (size >= sizeof(struct wmh_drag)) post_drag((const struct wmh_drag *)(wmh + 1), wmh->serial);
++                break;
++            case WMH_KIND_SURFACE_RELEASE:
++                if (size >= sizeof(struct wmh_surface_ref))
++                    surface_was_released(((const struct wmh_surface_ref *)(wmh + 1))->surface);
++                break;
++            default:
++                TRACE("host: ignoring kind %u\n", wmh->kind);
++                break;
++            }
++            mach_msg_destroy(&msg->head);
++        }
++    }
++    free(msg);
++    return NULL;
++}
++
++
++/***********************************************************************
++ *              macdrv_host_connect
++ *
++ * Look the host up and do the handshake. Returns 0 if the process is now
++ * in host mode; otherwise the plain driver is used, and why is logged.
++ */
++int macdrv_host_connect(const char *service, const char *exe_name)
++{
++    struct { mach_msg_header_t head; char data[1024]; } reply;
++    struct wmh_hello hello;
++    const struct wmh_header *wmh;
++    const struct wmh_hello_reply *hr;
++    mach_port_t previous;
++    pthread_attr_t attr;
++    pthread_t thread;
++    kern_return_t kr;
++    size_t size;
++
++    kr = bootstrap_look_up(bootstrap_port, service, &host_port);
++    if (kr != KERN_SUCCESS)
++    {
++        ERR("host: no host named \"%s\" (%s); using the plain driver\n", service, mach_error_string(kr));
++        host_port = MACH_PORT_NULL;
++        return -1;
++    }
++
++    kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &driver_port);
++    if (kr != KERN_SUCCESS)
++    {
++        ERR("host: can't allocate a port: %s; using the plain driver\n", mach_error_string(kr));
++        goto fail;
++    }
++
++    memset(&hello, 0, sizeof(hello));
++    hello.protocol_version = WMH_PROTOCOL_VERSION;
++    hello.features = WMH_FEATURE_GDI_SURFACES | WMH_FEATURE_INPUT | WMH_FEATURE_GL_VIEWS | WMH_FEATURE_CURSOR;
++    hello.pid = getpid();
++    strlcpy(hello.exe_name, exe_name ? exe_name : "", sizeof(hello.exe_name));
++    if (!host_send_port(WMH_KIND_HELLO, driver_port, MACH_MSG_TYPE_MAKE_SEND, &hello, sizeof(hello)))
++    {
++        ERR("host: can't send hello to \"%s\"; using the plain driver\n", service);
++        goto fail;
++    }
++
++    /* Hosts on a fully loaded Mac can be slow; see the protocol doc. */
++    kr = mach_msg(&reply.head, MACH_RCV_MSG | MACH_RCV_TIMEOUT, 0, sizeof(reply),
++                  driver_port, 10000, MACH_PORT_NULL);
++    if (kr != KERN_SUCCESS)
++    {
++        ERR("host: no hello_reply from \"%s\" (%s); using the plain driver\n", service, mach_error_string(kr));
++        goto fail;
++    }
++    wmh = message_body((const struct received_message *)&reply, &size);
++    if (reply.head.msgh_id != WMH_MSG_ID || !wmh || wmh->kind != WMH_KIND_HELLO_REPLY ||
++        size < sizeof(struct wmh_hello_reply))
++    {
++        ERR("host: unexpected answer to hello from \"%s\"; using the plain driver\n", service);
++        mach_msg_destroy(&reply.head);
++        goto fail;
++    }
++    hr = (const struct wmh_hello_reply *)(wmh + 1);
++    if (hr->protocol_version != WMH_PROTOCOL_VERSION)
++    {
++        ERR("host: \"%s\" answered protocol version %u (we speak %u)%s; using the plain driver\n",
++            service, hr->protocol_version, WMH_PROTOCOL_VERSION,
++            hr->protocol_version ? "" : ", refusing this process");
++        mach_msg_destroy(&reply.head);
++        goto fail;
++    }
++    host_features = hr->features;
++    if (!(host_features & WMH_FEATURE_GDI_SURFACES))
++    {
++        ERR("host: \"%s\" doesn't take window surfaces; using the plain driver\n", service);
++        mach_msg_destroy(&reply.head);
++        goto fail;
++    }
++
++    /* Everything after hello goes to the host's port for this connection. */
++    if (!(reply.head.msgh_bits & MACH_MSGH_BITS_COMPLEX) ||
++        ((const mach_msg_body_t *)reply.data)->msgh_descriptor_count < 1 ||
++        ((const mach_msg_port_descriptor_t *)(reply.data + sizeof(mach_msg_body_t)))->name == MACH_PORT_NULL)
++    {
++        ERR("host: \"%s\" sent no port for this connection; using the plain driver\n", service);
++        mach_msg_destroy(&reply.head);
++        goto fail;
++    }
++    mach_port_deallocate(mach_task_self(), host_port);
++    host_port = ((const mach_msg_port_descriptor_t *)(reply.data + sizeof(mach_msg_body_t)))->name;
++
++    /* Hear about the host going away. */
++    mach_port_request_notification(mach_task_self(), host_port, MACH_NOTIFY_DEAD_NAME, 0,
++                                   driver_port, MACH_MSG_TYPE_MAKE_SEND_ONCE, &previous);
++
++    windows_by_id = [[NSMutableDictionary alloc] init];
++    views_by_id = [[NSMutableDictionary alloc] init];
++    pthread_attr_init(&attr);
++    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
++    if (pthread_create(&thread, &attr, receive_thread, NULL))
++    {
++        pthread_attr_destroy(&attr);
++        ERR("host: can't start the receive thread; using the plain driver\n");
++        goto fail;
++    }
++    pthread_attr_destroy(&attr);
++
++    TRACE("host: connected to \"%s\", features %#x\n", service, host_features);
++    host_mode = true;
++    return 0;
++
++fail:
++    if (driver_port != MACH_PORT_NULL) mach_port_mod_refs(mach_task_self(), driver_port, MACH_PORT_RIGHT_RECEIVE, -1);
++    if (host_port != MACH_PORT_NULL) mach_port_deallocate(mach_task_self(), host_port);
++    driver_port = host_port = MACH_PORT_NULL;
++    return -1;
++}
++
++
++/***********************************************************************
++ *              windows
++ */
++static uint32_t window_id(WineWindow *window)
++{
++    return window ? ((WineHostWindow *)window)->wid : 0;
++}
++
++static uint32_t features_bits(const struct macdrv_window_features *wf)
++{
++    return (wf->title_bar ? WMH_WF_TITLE_BAR : 0) | (wf->close_button ? WMH_WF_CLOSE_BUTTON : 0) |
++           (wf->minimize_button ? WMH_WF_MINIMIZE_BUTTON : 0) | (wf->resizable ? WMH_WF_RESIZABLE : 0) |
++           (wf->maximize_button ? WMH_WF_MAXIMIZE_BUTTON : 0) | (wf->utility ? WMH_WF_UTILITY : 0) |
++           (wf->shadow ? WMH_WF_SHADOW : 0) | (wf->prevents_app_activation ? WMH_WF_PREVENTS_APP_ACTIVATION : 0);
++}
++
++static struct wmh_rect wmh_rect_from(CGRect r)
++{
++    struct wmh_rect w = { r.origin.x, r.origin.y, r.size.width, r.size.height };
++    return w;
++}
++
++WineWindow *host_create_window(const struct macdrv_window_features *wf, CGRect frame,
++                               void *hwnd, WineEventQueue *queue)
++{
++    WineHostWindow *window = [[WineHostWindow alloc] init];
++    struct wmh_window_create msg;
++
++    window->hwnd = hwnd;
++    window->queue = [queue retain];
++    window->frame = frame;
++    window->surfaces = [[NSMutableArray alloc] init];
++
++    pthread_mutex_lock(&host_lock);
++    window->wid = next_window_id++;
++    [windows_by_id setObject:window forKey:@(window->wid)];
++    pthread_mutex_unlock(&host_lock);
++
++    memset(&msg, 0, sizeof(msg));
++    msg.window = window->wid;
++    msg.features = window->sent_features = features_bits(wf);
++    msg.frame = wmh_rect_from(frame);
++    msg.hwnd = (uintptr_t)hwnd;
++    host_send(WMH_KIND_WINDOW_CREATE, &msg, sizeof(msg));
++    TRACE("host: window %u for hwnd %p\n", window->wid, hwnd);
++    return (WineWindow *)window;
++}
++
++static void remove_pool(NSMutableArray *pool)
++{
++    /* host_lock held */
++    for (WineHostSurface *s in pool)
++    {
++        struct wmh_surface_ref msg = { s->sid, 0 };
++        host_send(WMH_KIND_SURFACE_REMOVE, &msg, sizeof(msg));
++    }
++    [pool removeAllObjects];
++}
++
++static void remove_surfaces(WineHostWindow *window)
++{
++    remove_pool(window->surfaces);
++}
++
++void host_destroy_window(WineWindow *w)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_ref msg = { window->wid, 0 };
++
++    pthread_mutex_lock(&host_lock);
++    remove_surfaces(window);
++    [windows_by_id removeObjectForKey:@(window->wid)];
++    pthread_cond_broadcast(&surface_released);
++    pthread_mutex_unlock(&host_lock);
++
++    host_send(WMH_KIND_WINDOW_DESTROY, &msg, sizeof(msg));
++    [window->queue discardEventsMatchingMask:-1 forWindow:(NSWindow *)window];
++    [window release];
++}
++
++void host_set_window_features(WineWindow *w, const struct macdrv_window_features *wf)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_flags msg = { window->wid, features_bits(wf) };
++
++    if (msg.flags == window->sent_features) return;
++    window->sent_features = msg.flags;
++    host_send(WMH_KIND_WINDOW_FEATURES, &msg, sizeof(msg));
++}
++
++void host_set_window_state(WineWindow *window, const struct macdrv_window_state *state)
++{
++    struct wmh_window_flags msg = { window_id(window), 0 };
++
++    msg.flags = (state->disabled ? WMH_WS_DISABLED : 0) | (state->no_foreground ? WMH_WS_NO_FOREGROUND : 0) |
++                (state->floating ? WMH_WS_FLOATING : 0) |
++                (state->excluded_by_expose ? WMH_WS_EXCLUDED_BY_EXPOSE : 0) |
++                (state->excluded_by_cycle ? WMH_WS_EXCLUDED_BY_CYCLE : 0) |
++                (state->minimized ? WMH_WS_MINIMIZED : 0) |
++                (state->minimized_valid ? WMH_WS_MINIMIZED_VALID : 0) |
++                (state->maximized ? WMH_WS_MAXIMIZED : 0);
++    if (((WineHostWindow *)window)->state_sent && msg.flags == ((WineHostWindow *)window)->sent_state) return;
++    ((WineHostWindow *)window)->state_sent = YES;
++    ((WineHostWindow *)window)->sent_state = msg.flags;
++    host_send(WMH_KIND_WINDOW_STATE, &msg, sizeof(msg));
++}
++
++void host_set_window_title(WineWindow *window, const UniChar *title, size_t length)
++{
++    struct wmh_window_title msg;
++    CFStringRef str;
++
++    memset(&msg, 0, sizeof(msg));
++    msg.window = window_id(window);
++    if (title && length && (str = CFStringCreateWithCharacters(NULL, title, length)))
++    {
++        CFIndex used = 0;
++        /* Whole characters only, leaving room for the NUL. */
++        CFStringGetBytes(str, CFRangeMake(0, CFStringGetLength(str)), kCFStringEncodingUTF8, 0, false,
++                         (UInt8 *)msg.title, sizeof(msg.title) - 1, &used);
++        msg.title[used] = 0;
++        CFRelease(str);
++    }
++    host_send(WMH_KIND_WINDOW_TITLE, &msg, sizeof(msg));
++}
++
++void host_order_window(WineWindow *window, WineWindow *prev, WineWindow *next, bool activate)
++{
++    struct wmh_window_order msg = { window_id(window), 0, WMH_ORDER_ABOVE, activate };
++
++    if (prev)
++    {
++        msg.relative = window_id(prev);
++        msg.position = WMH_ORDER_BELOW;
++    }
++    else if (next)
++        msg.relative = window_id(next);
++    host_send(WMH_KIND_WINDOW_ORDER, &msg, sizeof(msg));
++}
++
++void host_hide_window(WineWindow *window)
++{
++    struct wmh_window_ref msg = { window_id(window), 0 };
++    host_send(WMH_KIND_WINDOW_HIDE, &msg, sizeof(msg));
++}
++
++void host_set_window_frame(WineWindow *w, const CGRect *frame)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_frame msg = { window->wid, 0, wmh_rect_from(*frame) };
++
++    BOOL same;
++
++    /* The same as we last set, or the host last reported: it knows. */
++    pthread_mutex_lock(&host_lock);
++    same = CGRectEqualToRect(window->frame, *frame);
++    window->frame = *frame;
++    pthread_mutex_unlock(&host_lock);
++    if (!same) host_send(WMH_KIND_WINDOW_FRAME, &msg, sizeof(msg));
++}
++
++/* The frame we last set, or the host last reported (WINDOW_FRAME_CHANGED). */
++void host_get_window_frame(WineWindow *w, CGRect *frame)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++
++    pthread_mutex_lock(&host_lock);
++    *frame = window->frame;
++    pthread_mutex_unlock(&host_lock);
++}
++
++void host_set_parent_window(WineWindow *w, WineWindow *parent)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_parent msg = { window->wid, window_id(parent) };
++
++    if (window->parent_sent && window->sent_parent == msg.parent) return;
++    window->parent_sent = YES;
++    window->sent_parent = msg.parent;
++    host_send(WMH_KIND_WINDOW_PARENT, &msg, sizeof(msg));
++}
++
++void host_set_window_min_max(WineWindow *w, CGSize min_size, CGSize max_size)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_min_max msg;
++
++    memset(&msg, 0, sizeof(msg));
++    msg.window = window->wid;
++    msg.min_width = min_size.width;
++    msg.min_height = min_size.height;
++    /* No limit comes as CGFLOAT_MAX, possibly clamped to the desktop. */
++    msg.max_width = max_size.width >= 1e9 ? 0 : max_size.width;
++    msg.max_height = max_size.height >= 1e9 ? 0 : max_size.height;
++    if (window->min_max_sent && !memcmp(&msg, &window->sent_min_max, sizeof(msg))) return;
++    window->min_max_sent = YES;
++    window->sent_min_max = msg;
++    host_send(WMH_KIND_WINDOW_MIN_MAX, &msg, sizeof(msg));
++}
++
++void host_give_window_focus(WineWindow *window, bool activate)
++{
++    struct wmh_window_ref msg = { window_id(window), activate ? WMH_FOCUS_ACTIVATE : 0 };
++    host_send(WMH_KIND_WINDOW_FOCUS, &msg, sizeof(msg));
++}
++
++void host_window_rejected_focus(WineWindow *window)
++{
++    struct wmh_window_ref msg = { window_id(window), 0 };
++    host_send(WMH_KIND_FOCUS_REJECTED, &msg, sizeof(msg));
++}
++
++
++/***********************************************************************
++ *              surfaces
++ */
++
++/* A surface of this size from the pool that the host isn't holding,
++   creating and registering one if there's room; surfaces of another size
++   are removed first. host_lock held. */
++static IOSurfaceRef acquire_from_pool(NSMutableArray *pool, unsigned int width, unsigned int height,
++                                      const char *what, uint32_t id)
++{
++    WineHostSurface *found = nil, *created = nil;
++    struct timespec deadline;
++    IOSurfaceRef ret = NULL;
++
++    if (pool.count)
++    {
++        WineHostSurface *s = pool[0];
++        if (IOSurfaceGetWidth(s->surface) != width || IOSurfaceGetHeight(s->surface) != height)
++            remove_pool(pool);
++    }
++
++    clock_gettime(CLOCK_REALTIME, &deadline);
++    deadline.tv_nsec += 50 * 1000000;
++    if (deadline.tv_nsec >= 1000000000) { deadline.tv_sec++; deadline.tv_nsec -= 1000000000; }
++
++    for (;;)
++    {
++        for (WineHostSurface *s in pool)
++            if (!s->with_host) { found = s; break; }
++        if (found || pool.count < MAX_SURFACES_PER_WINDOW) break;
++        if (pthread_cond_timedwait(&surface_released, &host_lock, &deadline)) break;
++    }
++
++    if (!found && pool.count < MAX_SURFACES_PER_WINDOW)
++    {
++        const void *keys[] = { kIOSurfaceWidth, kIOSurfaceHeight, kIOSurfaceBytesPerElement, kIOSurfacePixelFormat };
++        uint32_t values_raw[] = { width, height, 4, 'BGRA' };
++        const void *values[4];
++        CFDictionaryRef props;
++        IOSurfaceRef surface;
++        int i;
++
++        for (i = 0; i < 4; i++) values[i] = CFNumberCreate(NULL, kCFNumberSInt32Type, &values_raw[i]);
++        props = CFDictionaryCreate(NULL, keys, values, 4, &kCFTypeDictionaryKeyCallBacks,
++                                   &kCFTypeDictionaryValueCallBacks);
++        surface = IOSurfaceCreate(props);
++        CFRelease(props);
++        for (i = 0; i < 4; i++) CFRelease(values[i]);
++
++        if (surface)
++        {
++            struct wmh_surface_add msg;
++            mach_port_t port = IOSurfaceCreateMachPort(surface);
++
++            created = [[[WineHostSurface alloc] init] autorelease];
++            created->sid = next_surface_id++;
++            created->surface = surface;
++            msg.surface = created->sid;
++            msg.width = width;
++            msg.height = height;
++            msg.pixel_format = WMH_PIXEL_BGRA8;
++            if (host_send_port(WMH_KIND_SURFACE_ADD, port, MACH_MSG_TYPE_MOVE_SEND, &msg, sizeof(msg)))
++            {
++                [pool addObject:created];
++                found = created;
++            }
++        }
++    }
++
++    if (!found && pool.count)
++    {
++        /* The host holds every surface past the wait: draw into the oldest
++           anyway (it may tear) rather than stall the program. */
++        WARN("host: %s %u: no free surface\n", what, id);
++        found = pool[0];
++    }
++    if (found) ret = found->surface;
++    return ret;
++}
++
++/***********************************************************************
++ *              macdrv_host_acquire_surface
++ *
++ * An IOSurface of this size the driver owns (the host isn't holding it),
++ * for surface.c to draw a window's whole picture into. Surfaces of another
++ * size are removed. Returns a +0 reference, valid until it's sent or the
++ * window goes away.
++ */
++IOSurfaceRef macdrv_host_acquire_surface(WineWindow *w, unsigned int width, unsigned int height)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    IOSurfaceRef ret;
++
++    pthread_mutex_lock(&host_lock);
++    ret = acquire_from_pool(window->surfaces, width, height, "window", window->wid);
++    pthread_mutex_unlock(&host_lock);
++    return ret;
++}
++
++void host_window_set_io_surface(WineWindow *w, IOSurfaceRef surface, CGRect rect, CGRect dirty)
++{
++    WineHostWindow *window = (WineHostWindow *)w;
++    struct wmh_window_frame_ready msg;
++
++    memset(&msg, 0, sizeof(msg));
++    pthread_mutex_lock(&host_lock);
++    for (WineHostSurface *s in window->surfaces)
++    {
++        if (s->surface == surface)
++        {
++            s->with_host = YES;
++            msg.surface = s->sid;
++            break;
++        }
++    }
++    pthread_mutex_unlock(&host_lock);
++    if (!msg.surface) return;  /* not one of ours: the plain driver's front/back buffers */
++
++    msg.window = window->wid;
++    msg.width = IOSurfaceGetWidth(surface);
++    msg.height = IOSurfaceGetHeight(surface);
++    msg.rect = wmh_rect_from(rect);
++    msg.dirty = wmh_rect_from(dirty);
++    host_send(WMH_KIND_WINDOW_FRAME_READY, &msg, sizeof(msg));
++}
++
++
++/***********************************************************************
++ *              views
++ */
++static WineHostView *view_for_id(uint32_t vid)
++{
++    /* host_lock held */
++    return [views_by_id objectForKey:@(vid)];
++}
++
++unsigned int macdrv_host_view_create(void)
++{
++    WineHostView *view = [[[WineHostView alloc] init] autorelease];
++    struct wmh_view_ref msg;
++
++    view->surfaces = [[NSMutableArray alloc] init];
++    view->sent_hidden = -1;
++    pthread_mutex_lock(&host_lock);
++    view->vid = next_view_id++;
++    [views_by_id setObject:view forKey:@(view->vid)];
++    pthread_mutex_unlock(&host_lock);
++
++    msg.view = view->vid;
++    msg.reserved = 0;
++    host_send(WMH_KIND_VIEW_CREATE, &msg, sizeof(msg));
++    return view->vid;
++}
++
++void macdrv_host_view_destroy(unsigned int vid)
++{
++    struct wmh_view_ref msg = { vid, 0 };
++    WineHostView *view;
++
++    if (!vid) return;
++    pthread_mutex_lock(&host_lock);
++    if ((view = view_for_id(vid)))
++    {
++        remove_pool(view->surfaces);
++        [views_by_id removeObjectForKey:@(vid)];
++        pthread_cond_broadcast(&surface_released);
++    }
++    pthread_mutex_unlock(&host_lock);
++    host_send(WMH_KIND_VIEW_DESTROY, &msg, sizeof(msg));
++}
++
++/* frame: in the window's content area, in the protocol's space (the units
++   macdrv_set_view_frame gets). */
++void macdrv_host_view_set_frame(unsigned int vid, WineWindow *window, CGRect frame)
++{
++    struct wmh_view_frame msg;
++
++    WineHostView *view;
++    BOOL same = FALSE;
++
++    if (!vid) return;
++    msg.view = vid;
++    msg.window = window_id(window);
++    msg.frame = wmh_rect_from(frame);
++    pthread_mutex_lock(&host_lock);
++    if ((view = view_for_id(vid)))
++    {
++        same = view->sent_window == msg.window && CGRectEqualToRect(view->sent_frame, frame);
++        view->sent_window = msg.window;
++        view->sent_frame = frame;
++    }
++    pthread_mutex_unlock(&host_lock);
++    if (!same) host_send(WMH_KIND_VIEW_FRAME, &msg, sizeof(msg));
++}
++
++void macdrv_host_view_set_hidden(unsigned int vid, bool hidden)
++{
++    struct wmh_view_hidden msg = { vid, hidden };
++    WineHostView *view;
++    BOOL same = FALSE;
++
++    if (!vid) return;
++    pthread_mutex_lock(&host_lock);
++    if ((view = view_for_id(vid)))
++    {
++        same = view->sent_hidden == (int)hidden;
++        view->sent_hidden = hidden;
++    }
++    pthread_mutex_unlock(&host_lock);
++    if (!same) host_send(WMH_KIND_VIEW_HIDDEN, &msg, sizeof(msg));
++}
++
++IOSurfaceRef macdrv_host_view_acquire_surface(unsigned int vid, unsigned int width, unsigned int height)
++{
++    WineHostView *view;
++    IOSurfaceRef ret = NULL;
++
++    pthread_mutex_lock(&host_lock);
++    if ((view = view_for_id(vid)))
++        ret = acquire_from_pool(view->surfaces, width, height, "view", vid);
++    pthread_mutex_unlock(&host_lock);
++    return ret;
++}
++
++/* The surface, finished, now belongs to the host. */
++void macdrv_host_view_frame_ready(unsigned int vid, IOSurfaceRef surface)
++{
++    struct wmh_view_frame_ready msg;
++    WineHostView *view;
++
++    memset(&msg, 0, sizeof(msg));
++    pthread_mutex_lock(&host_lock);
++    if ((view = view_for_id(vid)))
++    {
++        for (WineHostSurface *s in view->surfaces)
++        {
++            if (s->surface == surface)
++            {
++                s->with_host = YES;
++                msg.surface = s->sid;
++                break;
++            }
++        }
++    }
++    pthread_mutex_unlock(&host_lock);
++    if (!msg.surface) return;
++
++    msg.view = vid;
++    msg.width = IOSurfaceGetWidth(surface);
++    msg.height = IOSurfaceGetHeight(surface);
++    msg.flags = WMH_SURFACE_BOTTOM_UP;
++    host_send(WMH_KIND_VIEW_FRAME_READY, &msg, sizeof(msg));
++}
++
++
++/***********************************************************************
++ *              cursor
++ */
++static IOSurfaceRef surface_from_image(CGImageRef image)
++{
++    size_t width = CGImageGetWidth(image), height = CGImageGetHeight(image);
++    const void *keys[] = { kIOSurfaceWidth, kIOSurfaceHeight, kIOSurfaceBytesPerElement, kIOSurfacePixelFormat };
++    uint32_t values_raw[] = { width, height, 4, 'BGRA' };
++    const void *values[4];
++    CFDictionaryRef props;
++    IOSurfaceRef surface;
++    CGColorSpaceRef space;
++    CGContextRef ctx;
++    int i;
++
++    for (i = 0; i < 4; i++) values[i] = CFNumberCreate(NULL, kCFNumberSInt32Type, &values_raw[i]);
++    props = CFDictionaryCreate(NULL, keys, values, 4, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
++    surface = IOSurfaceCreate(props);
++    CFRelease(props);
++    for (i = 0; i < 4; i++) CFRelease(values[i]);
++    if (!surface) return NULL;
++
++    IOSurfaceLock(surface, 0, NULL);
++    space = CGColorSpaceCreateDeviceRGB();
++    ctx = CGBitmapContextCreate(IOSurfaceGetBaseAddress(surface), width, height, 8, IOSurfaceGetBytesPerRow(surface),
++                                space, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
++    if (ctx)
++    {
++        CGContextClearRect(ctx, CGRectMake(0, 0, width, height));
++        CGContextDrawImage(ctx, CGRectMake(0, 0, width, height), image);
++        CGContextRelease(ctx);
++    }
++    CGColorSpaceRelease(space);
++    IOSurfaceUnlock(surface, 0, NULL);
++    return surface;
++}
++
++/* name: an NSCursor class method, or frames: Wine's cursor frames (the
++   first is sent); neither: hide the cursor. */
++void host_set_cursor(CFStringRef name, CFArrayRef frames)
++{
++    struct wmh_cursor_set msg;
++    CFTypeRef which = name ? (CFTypeRef)name : (CFTypeRef)frames;
++
++    /* Programs set the same cursor over and over. */
++    if (which && sent_cursor && CFEqual(which, sent_cursor)) return;
++    if (!which && sent_cursor == kCFNull) return;
++    if (sent_cursor) CFRelease(sent_cursor);
++    sent_cursor = CFRetain(which ? which : kCFNull);
++
++    memset(&msg, 0, sizeof(msg));
++    if (name)
++    {
++        msg.type = WMH_CURSOR_SYSTEM;
++        CFStringGetCString(name, msg.name, sizeof(msg.name), kCFStringEncodingUTF8);
++        host_send(WMH_KIND_CURSOR_SET, &msg, sizeof(msg));
++    }
++    else if (frames && CFArrayGetCount(frames))
++    {
++        CFDictionaryRef frame = CFArrayGetValueAtIndex(frames, 0);
++        CGImageRef image = (CGImageRef)CFDictionaryGetValue(frame, CFSTR("image"));
++        CFDictionaryRef hot = CFDictionaryGetValue(frame, CFSTR("hotSpot"));
++        CGPoint hot_spot = CGPointZero;
++        IOSurfaceRef surface;
++
++        if (!image || !(surface = surface_from_image(image))) return;
++        if (hot) CGPointMakeWithDictionaryRepresentation(hot, &hot_spot);
++        msg.type = WMH_CURSOR_IMAGE;
++        msg.width = IOSurfaceGetWidth(surface);
++        msg.height = IOSurfaceGetHeight(surface);
++        msg.hot_x = hot_spot.x;
++        msg.hot_y = hot_spot.y;
++        host_send_port(WMH_KIND_CURSOR_SET, IOSurfaceCreateMachPort(surface), MACH_MSG_TYPE_MOVE_SEND, &msg, sizeof(msg));
++        CFRelease(surface);
++    }
++    else
++    {
++        msg.type = WMH_CURSOR_HIDDEN;
++        host_send(WMH_KIND_CURSOR_SET, &msg, sizeof(msg));
++    }
++}
++
++int host_get_cursor_position(CGPoint *pos)
++{
++    *pos = pointer;
++    return 1;
++}
++
++int host_set_cursor_position(CGPoint pos)
++{
++    struct wmh_cursor_warp msg = { pos.x, pos.y };
++
++    pointer = pos;
++    return host_send(WMH_KIND_CURSOR_WARP, &msg, sizeof(msg));
++}
++
++int host_clip_cursor(CGRect rect)
++{
++    static struct wmh_cursor_clip sent = { 0 };
++    static BOOL clip_sent;
++    struct wmh_cursor_clip msg;
++
++    memset(&msg, 0, sizeof(msg));
++    /* An infinite rect (CGRectInfinite) releases the clip, as for the plain driver. */
++    if (!CGRectIsInfinite(rect) && !CGRectIsNull(rect))
++    {
++        msg.clipped = 1;
++        msg.rect = wmh_rect_from(rect);
++    }
++    if (clip_sent && !memcmp(&msg, &sent, sizeof(msg))) return 1;
++    clip_sent = TRUE;
++    sent = msg;
++    return host_send(WMH_KIND_CURSOR_CLIP, &msg, sizeof(msg));
++}
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -30,6 +30,7 @@
+ #import "cocoa_window.h"
+ 
+ #import "cocoa_app.h"
++#import "cocoa_host.h"
+ #import "cocoa_event.h"
+ #import "cocoa_opengl.h"
+ #import "d3dmetal_objc.h" /* CW HACK 22435 */
+@@ -3117,6 +3118,8 @@
+         CGRect frame, void* hwnd, WineEventQueue *queue)
+ {
+     __block WineWindow* window;
++
++    if (host_mode) return host_create_window(wf, frame, hwnd, queue);
+ 
+     OnMainThread(^{
+         window = [[WineWindow createWindowWithFeatures:wf
+@@ -3135,6 +3138,7 @@
+  */
+ void macdrv_destroy_cocoa_window(WineWindow *window)
+ {
++    if (host_mode) { host_destroy_window(window); return; }
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3154,6 +3158,7 @@
+  */
+ void* macdrv_get_window_hwnd(WineWindow *window)
+ {
++    if (host_mode) return window ? ((WineHostWindow*)window)->hwnd : NULL;
+     return window.hwnd;
+ }
+ 
+@@ -3165,6 +3170,7 @@
+ void macdrv_set_cocoa_window_features(WineWindow *window,
+         const struct macdrv_window_features* wf)
+ {
++    if (host_mode) { host_set_window_features(window, wf); return; }
+     OnMainThread(^{
+         [window setWindowFeatures:wf];
+     });
+@@ -3178,6 +3184,7 @@
+ void macdrv_set_cocoa_window_state(WineWindow *window,
+         const struct macdrv_window_state* state)
+ {
++    if (host_mode) { host_set_window_state(window, state); return; }
+     OnMainThread(^{
+         [window setMacDrvState:state];
+     });
+@@ -3191,6 +3198,7 @@
+ void macdrv_set_cocoa_window_title(WineWindow *window, const unsigned short* title,
+         size_t length)
+ {
++    if (host_mode) { host_set_window_title(window, title, length); return; }
+ @autoreleasepool
+ {
+     NSString* titleString;
+@@ -3218,6 +3226,7 @@
+ void macdrv_order_cocoa_window(WineWindow *window, WineWindow *prev,
+         WineWindow *next, bool activate)
+ {
++    if (host_mode) { host_order_window(window, prev, next, activate); return; }
+     OnMainThreadAsync(^{
+         [window orderBelow:prev
+                    orAbove:next
+@@ -3236,6 +3245,7 @@
+  */
+ void macdrv_hide_cocoa_window(WineWindow *window)
+ {
++    if (host_mode) { host_hide_window(window); return; }
+     OnMainThread(^{
+         [window doOrderOut];
+     });
+@@ -3248,6 +3258,7 @@
+  */
+ void macdrv_set_cocoa_window_frame(WineWindow *window, const CGRect* new_frame)
+ {
++    if (host_mode) { host_set_window_frame(window, new_frame); return; }
+     OnMainThread(^{
+         [window setFrameFromWine:NSRectFromCGRect(cgrect_mac_from_win(*new_frame))];
+     });
+@@ -3260,6 +3271,7 @@
+  */
+ void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame)
+ {
++    if (host_mode) { host_get_window_frame(window, out_frame); return; }
+     OnMainThread(^{
+         NSRect frame;
+ 
+@@ -3277,6 +3289,7 @@
+  */
+ void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent)
+ {
++    if (host_mode) { host_set_parent_window(window, parent); return; }
+     OnMainThread(^{
+         [window setMacDrvParentWindow:parent];
+     });
+@@ -3291,6 +3304,7 @@
+  */
+ void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rect, CGRect dirty)
+ {
++    if (host_mode) { host_window_set_io_surface(window, s, rect, dirty); return; }
+ @autoreleasepool
+ {
+     IOSurface* surface = (IOSurface*)s;
+@@ -3315,6 +3329,7 @@
+  */
+ void macdrv_window_shape_changed(WineWindow *window, bool has_shape)
+ {
++    if (host_mode) return;  /* not in v1 */
+ @autoreleasepool
+ {
+     OnMainThreadAsync(^{
+@@ -3335,6 +3350,7 @@
+  */
+ void macdrv_set_window_shape(WineWindow *window, const CGRect *rects, int count)
+ {
++    if (host_mode) return;  /* not in v1 */
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3363,6 +3379,7 @@
+  */
+ void macdrv_set_window_alpha(WineWindow *window, CGFloat alpha)
+ {
++    if (host_mode) return;  /* not in v1 */
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3376,6 +3393,7 @@
+  */
+ void macdrv_window_use_per_pixel_alpha(WineWindow *window, bool use_per_pixel_alpha)
+ {
++    if (host_mode) return;  /* not in v1 */
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3390,6 +3408,7 @@
+  */
+ void macdrv_set_window_mask(WineWindow *window, CGRect rect)
+ {
++    if (host_mode) return;  /* not in v1 */
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3407,6 +3426,7 @@
+  */
+ void macdrv_give_cocoa_window_focus(WineWindow *window, bool activate)
+ {
++    if (host_mode) { host_give_window_focus(window, activate); return; }
+     OnMainThread(^{
+         [window makeFocused:activate];
+     });
+@@ -3419,6 +3439,7 @@
+  */
+ void macdrv_set_window_min_max_sizes(WineWindow *window, CGSize min_size, CGSize max_size)
+ {
++    if (host_mode) { host_set_window_min_max(window, min_size, max_size); return; }
+     OnMainThread(^{
+         [window setWineMinSize:NSSizeFromCGSize(cgsize_mac_from_win(min_size)) maxSize:NSSizeFromCGSize(cgsize_mac_from_win(max_size))];
+     });
+@@ -3532,6 +3553,7 @@
+  */
+ void macdrv_set_view_superview(WineContentView *view, WineContentView *parent, WineWindow *window, WineContentView *prev, WineContentView *next)
+ {
++    if (host_mode && window) return;  /* views in host windows: not in v1 */
+ @autoreleasepool
+ {
+     OnMainThreadAsync(^{
+@@ -3832,6 +3854,7 @@
+ 
+ void macdrv_window_create_ca_layer_host_view(WineWindow *window, unsigned int context_id)
+ {
++    if (host_mode) return;
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3845,6 +3868,7 @@
+ 
+ void macdrv_window_release_ca_layer_host_view(WineWindow *window, unsigned int context_id)
+ {
++    if (host_mode) return;
+ @autoreleasepool
+ {
+     OnMainThread(^{
+@@ -3938,6 +3962,8 @@
+ {
+     __block bool ret;
+ 
++    if (host_mode) return host_send_keydown_to_input_source(keyc, flags, repeat, update);
++
+     OnMainThread(^{
+         WineWindow* window = (WineWindow*)[NSApp keyWindow];
+         if (![window isKindOfClass:[WineWindow class]])
+@@ -3978,6 +4004,7 @@
+ 
+ void macdrv_clear_ime_text(void)
+ {
++    if (host_mode) { host_clear_ime_text(); return; }
+     OnMainThreadAsync(^{
+         WineWindow* window = (WineWindow*)[NSApp keyWindow];
+         if (![window isKindOfClass:[WineWindow class]])
+diff --git a/dlls/winemac.drv/ime.c b/dlls/winemac.drv/ime.c
+--- a/dlls/winemac.drv/ime.c
++++ b/dlls/winemac.drv/ime.c
+@@ -87,6 +87,7 @@
+     pthread_mutex_lock( &ime_composition_rect_mutex );
+     ime_composition_rect = cgrect_from_rect( rect );
+     pthread_mutex_unlock( &ime_composition_rect_mutex );
++    macdrv_host_set_ime_rect( cgrect_from_rect( rect ) );
+ 
+     return TRUE;
+ }
+diff --git a/dlls/winemac.drv/macdrv.h b/dlls/winemac.drv/macdrv.h
+--- a/dlls/winemac.drv/macdrv.h
++++ b/dlls/winemac.drv/macdrv.h
+@@ -238,6 +238,7 @@
+     HWND                hwnd;                   /* hwnd that this private data belongs to */
+     WineWindow         *cocoa_window;
+     WineContentView    *client_view;
++    unsigned int        client_host_view; /* host mode: the shown client surface's view */
+     struct window_rects rects;                  /* window rects in monitor DPI, relative to parent client area */
+     HANDLE              drag_event;             /* event to signal that Cocoa-driven window dragging has ended */
+     unsigned int        on_screen : 1;          /* is window ordered in? (minimized or not) */
+@@ -257,6 +258,7 @@
+     struct client_surface   client;
+     WineContentView        *cocoa_view;
+     WineMetalSwapChain_id   metal_swapchain;
++    unsigned int            host_view;   /* host mode: the view's id (cocoa_host.m) */
+ };
+ 
+ extern struct macdrv_client_surface *impl_from_client_surface(struct client_surface *client);
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -119,6 +119,7 @@
+ extern bool retina_on;       /* Whether Retina mode is currently active (enabled and display is in default mode). */
+ extern bool enable_app_nap;
+ extern bool accessory_activation_policy;
++extern bool host_mode;  /* windows go to a host application (cocoa_host.m) */
+ extern int cocoa_start_timeout;
+ 
+ static inline CGRect cgrect_mac_from_win(CGRect rect)
+@@ -405,6 +406,7 @@
+     WineWindow         *window;
+     bool                status;
+     bool                done;
++    uint32_t            host_serial;    /* host mode: answer the host's drag with this serial */
+     union {
+         struct {
+             int                 x;
+@@ -437,6 +439,7 @@
+ extern int macdrv_copy_event_from_queue(WineEventQueue *queue,
+         macdrv_event_mask mask, macdrv_event **event);
+ extern void macdrv_release_event(macdrv_event *event);
++extern void macdrv_host_post_app_event(macdrv_event *event);
+ 
+ extern macdrv_query* macdrv_create_query(void);
+ extern macdrv_query* macdrv_retain_query(macdrv_query *query);
+@@ -489,6 +492,14 @@
+ extern void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame);
+ extern void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent);
+ extern void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rect, CGRect dirty);
++extern int macdrv_host_connect(const char *service, const char *exe_name);
++extern IOSurfaceRef macdrv_host_acquire_surface(WineWindow *window, unsigned int width, unsigned int height);
++extern unsigned int macdrv_host_view_create(void);
++extern void macdrv_host_view_destroy(unsigned int view);
++extern void macdrv_host_view_set_frame(unsigned int view, WineWindow *window, CGRect frame);
++extern void macdrv_host_view_set_hidden(unsigned int view, bool hidden);
++extern IOSurfaceRef macdrv_host_view_acquire_surface(unsigned int view, unsigned int width, unsigned int height);
++extern void macdrv_host_view_frame_ready(unsigned int view, IOSurfaceRef surface);
+ extern void macdrv_window_shape_changed(WineWindow *window, bool has_shape);
+ extern void macdrv_set_window_shape(WineWindow *window, const CGRect *rects, int count);
+ extern void macdrv_set_window_alpha(WineWindow *window, CGFloat alpha);
+@@ -524,6 +535,7 @@
+ extern uint32_t macdrv_window_background_color(void);
+ extern bool macdrv_send_keydown_to_input_source(int keyc, unsigned int flags, int repeat, void *update);
+ extern void macdrv_clear_ime_text(void);
++extern void macdrv_host_set_ime_rect(CGRect rect);
+ 
+ 
+ /* keyboard */
+diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
+--- a/dlls/winemac.drv/macdrv_main.c
++++ b/dlls/winemac.drv/macdrv_main.c
+@@ -55,6 +55,8 @@
+ bool retina_enabled = false;
+ bool enable_app_nap = false;
+ bool accessory_activation_policy = false;
++static bool host_windows = false;           /* HostWindows: give windows to a host app */
++static char host_exe_name[256];
+  bool force_backing_store = FALSE;
+ int cocoa_start_timeout = 60;
+ 
+@@ -290,6 +292,8 @@
+     if ((p = wcsrchr(appname, '/'))) appname = p + 1;
+     if ((p = wcsrchr(appname, '\\'))) appname = p + 1;
+     len = lstrlenW(appname);
++    if (ntdll_wcstoumbs(appname, len, host_exe_name, sizeof(host_exe_name) - 1, FALSE) < 0)
++        host_exe_name[0] = 0;
+ 
+     if (len && len < MAX_PATH)
+     {
+@@ -392,6 +396,11 @@
+        normal level, so they don't go over the app that is active. */
+     if (accessory_activation_policy)
+         topmost_float_inactive = TOPMOST_FLOAT_INACTIVE_NONE;
++
++    /* "y": show this program's windows in the host application named by
++       WINEMAC_HOST_SERVICE (cocoa_host.m), if one answers. */
++    if (!get_config_key(hkey, appkey, "HostWindows", buffer, sizeof(buffer)))
++        host_windows = IS_OPTION_TRUE(buffer[0]);
+ 
+     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
+         force_backing_store = IS_OPTION_TRUE(buffer[0]);
+@@ -544,6 +553,15 @@
+     load_plugins();
+     load_strings(params->strings);
+ 
++    if (host_windows)
++    {
++        const char *service = getenv("WINEMAC_HOST_SERVICE");
++        if (!service || !service[0])
++            ERR("HostWindows is on but WINEMAC_HOST_SERVICE isn't set; using the plain driver\n");
++        else
++            macdrv_host_connect(service, host_exe_name);
++    }
++
+     if (macdrv_start_cocoa_app(NtGetTickCount()))
+     {
+         ERR("Failed to start Cocoa app main loop\n");
+diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
+--- a/dlls/winemac.drv/opengl.c
++++ b/dlls/winemac.drv/opengl.c
+@@ -27,6 +27,7 @@
+ #include "macdrv.h"
+ 
+ #include <dlfcn.h>
++#include <OpenGL/CGLIOSurface.h>
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(wgl);
+ 
+@@ -57,6 +58,278 @@
+ static const struct opengl_funcs *funcs;
+ static const struct opengl_driver_funcs macdrv_driver_funcs;
+ static const struct opengl_drawable_funcs macdrv_surface_funcs;
++
++/**********************************************************************
++ * Host mode (cocoa_host.m): OpenGL into IOSurfaces the host is sent
++ *
++ * In host mode, a window's OpenGL default framebuffer is an FBO whose
++ * colour buffer is an IOSurface from the view's pool (each one the host
++ * hands back with surface_release), and nothing is drawn into the window's
++ * Cocoa view. Framebuffer 0 is remapped here, in the functions the driver
++ * hands out, so win32u, opengl32 and wined3d are unchanged. Each present
++ * finishes, sends the surface to the host and moves to a free one.
++ */
++#define PROBE_MAX_CONTEXTS 8
++
++struct probe_fbo
++{
++    CGLContextObj ctx;
++    GLuint fbo, tex, depth;
++    unsigned int gen;
++    int width, height;      /* of the depth buffer */
++};
++
++struct macdrv_drawable
++{
++    struct opengl_drawable base;
++    IOSurfaceRef surface;
++    int width, height;
++    unsigned int gen;
++    struct probe_fbo fbos[PROBE_MAX_CONTEXTS];
++};
++
++static BOOL host_gl;
++static __thread struct macdrv_drawable *probe_draw, *probe_read;
++
++static void (*probe_pglBindFramebuffer)(GLenum, GLuint);
++static void (*probe_pglBindFramebufferEXT)(GLenum, GLuint);
++static void (*probe_pglDrawBuffer)(GLenum);
++static void (*probe_pglDrawBuffers)(GLsizei, const GLenum *);
++static void (*probe_pglReadBuffer)(GLenum);
++static void (*probe_pglGetIntegerv)(GLenum, GLint *);
++static void (*probe_pglFinish)(void);
++static void (*probe_pglGenFramebuffers)(GLsizei, GLuint *);
++static void (*probe_pglGenTextures)(GLsizei, GLuint *);
++static void (*probe_pglGenRenderbuffers)(GLsizei, GLuint *);
++static void (*probe_pglBindTexture)(GLenum, GLuint);
++static void (*probe_pglBindRenderbuffer)(GLenum, GLuint);
++static void (*probe_pglRenderbufferStorage)(GLenum, GLenum, GLsizei, GLsizei);
++static void (*probe_pglFramebufferTexture2D)(GLenum, GLenum, GLenum, GLuint, GLint);
++static void (*probe_pglFramebufferRenderbuffer)(GLenum, GLenum, GLenum, GLuint);
++static GLenum (*probe_pglCheckFramebufferStatus)(GLenum);
++
++static void probe_init(void)
++{
++    static BOOL done;
++
++    if (done) return;
++    done = TRUE;
++    if (!host_mode) return;
++    host_gl = TRUE;
++#define LOAD(f) probe_p##f = dlsym(opengl_handle, #f)
++    LOAD(glBindFramebuffer); LOAD(glBindFramebufferEXT); LOAD(glDrawBuffer); LOAD(glDrawBuffers);
++    LOAD(glReadBuffer); LOAD(glGetIntegerv); LOAD(glFinish); LOAD(glGenFramebuffers);
++    LOAD(glGenTextures); LOAD(glGenRenderbuffers); LOAD(glBindTexture); LOAD(glBindRenderbuffer);
++    LOAD(glRenderbufferStorage); LOAD(glFramebufferTexture2D); LOAD(glFramebufferRenderbuffer);
++    LOAD(glCheckFramebufferStatus);
++#undef LOAD
++    TRACE("host mode: OpenGL draws into IOSurfaces\n");
++}
++
++static struct macdrv_drawable *probe_drawable(struct opengl_drawable *base)
++{
++    if (!host_gl || !base || !base->client || base->funcs != &macdrv_surface_funcs) return NULL;
++    return CONTAINING_RECORD(base, struct macdrv_drawable, base);
++}
++
++/* A free IOSurface from the view's pool, sized to the drawable's client area. */
++static void probe_update_surface(struct macdrv_drawable *d)
++{
++    struct macdrv_client_surface *surface = impl_from_client_surface(d->base.client);
++    RECT rect = surface->client.raw ? surface->client.monitor_rect : surface->client.virtual_rect;
++    int width = max(1, rect.right - rect.left), height = max(1, rect.bottom - rect.top);
++
++    if (d->surface && d->width == width && d->height == height) return;
++    d->surface = macdrv_host_view_acquire_surface(surface->host_view, width, height);
++    d->width = width;
++    d->height = height;
++    d->gen++;
++    TRACE("drawable %p: view %u, IOSurface %p, %dx%d\n", d, surface->host_view, d->surface, width, height);
++}
++
++/* The FBO standing in for framebuffer 0 of drawable d, in the current context. */
++static GLuint probe_fbo_for(struct macdrv_drawable *d)
++{
++    CGLContextObj ctx = CGLGetCurrentContext();
++    struct probe_fbo *e = NULL;
++    GLint prev_tex, prev_draw, prev_read, prev_rb;
++    GLenum status;
++    int i;
++
++    if (!ctx) return 0;
++    probe_update_surface(d);
++    if (!d->surface) return 0;
++    for (i = 0; i < PROBE_MAX_CONTEXTS; i++)
++        if (d->fbos[i].ctx == ctx) { e = &d->fbos[i]; break; }
++    if (!e)
++    {
++        for (i = 0; i < PROBE_MAX_CONTEXTS; i++)
++            if (!d->fbos[i].ctx) { e = &d->fbos[i]; break; }
++        if (!e) e = &d->fbos[0];
++        memset(e, 0, sizeof(*e));
++        e->ctx = ctx;
++    }
++    if (e->fbo && e->gen == d->gen) return e->fbo;
++
++    probe_pglGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE_ARB, &prev_tex);
++    probe_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_draw);
++    probe_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prev_read);
++    probe_pglGetIntegerv(GL_RENDERBUFFER_BINDING, &prev_rb);
++
++    if (!e->fbo) probe_pglGenFramebuffers(1, &e->fbo);
++    if (!e->tex) probe_pglGenTextures(1, &e->tex);
++    if (!e->depth) probe_pglGenRenderbuffers(1, &e->depth);
++
++    probe_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, e->tex);
++    if (CGLTexImageIOSurface2D(ctx, GL_TEXTURE_RECTANGLE_ARB, GL_RGBA, d->width, d->height, GL_BGRA,
++                               GL_UNSIGNED_INT_8_8_8_8_REV, d->surface, 0) != kCGLNoError)
++        ERR("CGLTexImageIOSurface2D failed\n");
++    probe_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, prev_tex);
++
++    /* A new surface of the same size keeps the depth buffer. */
++    if (e->width != d->width || e->height != d->height)
++    {
++        probe_pglBindRenderbuffer(GL_RENDERBUFFER, e->depth);
++        probe_pglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, d->width, d->height);
++        probe_pglBindRenderbuffer(GL_RENDERBUFFER, prev_rb);
++        e->width = d->width;
++        e->height = d->height;
++    }
++
++    probe_pglBindFramebuffer(GL_FRAMEBUFFER, e->fbo);
++    probe_pglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, e->tex, 0);
++    probe_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, e->depth);
++    probe_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e->depth);
++    status = probe_pglCheckFramebufferStatus(GL_FRAMEBUFFER);
++    if (status != GL_FRAMEBUFFER_COMPLETE)
++        ERR("context %p drawable %p: FBO %u incomplete, status %#x\n", ctx, d, e->fbo, status);
++    probe_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_draw);
++    probe_pglBindFramebuffer(GL_READ_FRAMEBUFFER, prev_read);
++
++    e->gen = d->gen;
++    return e->fbo;
++}
++
++static GLuint probe_default_fbo(BOOL read)
++{
++    struct macdrv_drawable *d = read ? probe_read : probe_draw;
++    return d ? probe_fbo_for(d) : 0;
++}
++
++static BOOL probe_bound_is_default(BOOL read)
++{
++    GLint bound;
++    GLuint fbo;
++
++    if (!host_gl || !(fbo = probe_default_fbo(read))) return FALSE;
++    probe_pglGetIntegerv(read ? GL_READ_FRAMEBUFFER_BINDING : GL_DRAW_FRAMEBUFFER_BINDING, &bound);
++    return bound == fbo;
++}
++
++static GLenum probe_map_buffer(GLenum buffer)
++{
++    switch (buffer)
++    {
++    case GL_FRONT: case GL_BACK: case GL_LEFT: case GL_FRONT_LEFT: case GL_BACK_LEFT: case GL_FRONT_AND_BACK:
++        return GL_COLOR_ATTACHMENT0;
++    }
++    return buffer;
++}
++
++static void probe_bind(void (*bind)(GLenum, GLuint), GLenum target, GLuint fbo)
++{
++    if (!fbo && host_gl && (probe_draw || probe_read))
++    {
++        GLuint draw = probe_default_fbo(FALSE), read = probe_default_fbo(TRUE);
++        if (target == GL_DRAW_FRAMEBUFFER) fbo = draw;
++        else if (target == GL_READ_FRAMEBUFFER) fbo = read;
++        else if (draw != read)
++        {
++            bind(GL_DRAW_FRAMEBUFFER, draw);
++            bind(GL_READ_FRAMEBUFFER, read);
++            return;
++        }
++        else fbo = draw;
++    }
++    bind(target, fbo);
++}
++
++static void probe_glBindFramebuffer(GLenum target, GLuint fbo)
++{
++    probe_bind(probe_pglBindFramebuffer, target, fbo);
++}
++
++static void probe_glBindFramebufferEXT(GLenum target, GLuint fbo)
++{
++    probe_bind(probe_pglBindFramebufferEXT, target, fbo);
++}
++
++static void probe_glDrawBuffer(GLenum buffer)
++{
++    if (probe_bound_is_default(FALSE)) buffer = probe_map_buffer(buffer);
++    probe_pglDrawBuffer(buffer);
++}
++
++static void probe_glDrawBuffers(GLsizei n, const GLenum *buffers)
++{
++    GLenum mapped;
++
++    if (n == 1 && probe_bound_is_default(FALSE))
++    {
++        mapped = probe_map_buffer(buffers[0]);
++        probe_pglDrawBuffers(1, &mapped);
++        return;
++    }
++    probe_pglDrawBuffers(n, buffers);
++}
++
++static void probe_glReadBuffer(GLenum buffer)
++{
++    if (probe_bound_is_default(TRUE)) buffer = probe_map_buffer(buffer);
++    probe_pglReadBuffer(buffer);
++}
++
++static void probe_glGetIntegerv(GLenum pname, GLint *data)
++{
++    probe_pglGetIntegerv(pname, data);
++    if (!host_gl) return;
++    if (pname == GL_DRAW_FRAMEBUFFER_BINDING && *data && (GLuint)*data == probe_default_fbo(FALSE)) *data = 0;
++    else if (pname == GL_READ_FRAMEBUFFER_BINDING && *data && (GLuint)*data == probe_default_fbo(TRUE)) *data = 0;
++}
++
++/* After a context is made current: the default framebuffer is the probe's. */
++static void probe_activate(struct opengl_drawable *draw, struct opengl_drawable *read)
++{
++    GLint bound;
++
++    if (!host_gl) return;
++    probe_draw = probe_drawable(draw);
++    probe_read = probe_drawable(read);
++    probe_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
++    if (!bound && probe_draw) probe_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, probe_fbo_for(probe_draw));
++    probe_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &bound);
++    if (!bound && probe_read) probe_pglBindFramebuffer(GL_READ_FRAMEBUFFER, probe_fbo_for(probe_read));
++}
++
++/* Send the finished picture to the host and draw the next one into a free
++   surface: the FBO's texture is pointed at it, so the FBO stays bound. */
++static void probe_present(struct opengl_drawable *base)
++{
++    struct macdrv_drawable *d = probe_drawable(base);
++    struct macdrv_client_surface *surface;
++    IOSurfaceRef next;
++
++    if (!d || !d->surface) return;
++    surface = impl_from_client_surface(d->base.client);
++    probe_pglFinish();
++    macdrv_host_view_frame_ready(surface->host_view, d->surface);
++    if ((next = macdrv_host_view_acquire_surface(surface->host_view, d->width, d->height)) && next != d->surface)
++    {
++        d->surface = next;
++        d->gen++;
++        if ((probe_draw == d || probe_read == d) && CGLGetCurrentContext()) probe_fbo_for(d);
++    }
++}
+ 
+ static void (*pglCopyColorTable)(GLenum target, GLenum internalformat, GLint x, GLint y,
+                                  GLsizei width);
+@@ -1138,12 +1411,16 @@
+ static BOOL macdrv_surface_create(struct client_surface *client, int format, struct opengl_drawable **drawable)
+ {
+     TRACE("client %s, format %d, drawable %p\n", debugstr_client_surface(client), format, drawable);
++    probe_init();
+     return !!(*drawable = opengl_drawable_create(&macdrv_surface_funcs, format, client, NULL));
+ }
+ 
+ static void macdrv_surface_destroy(struct opengl_drawable *base)
+ {
++    struct macdrv_drawable *d = CONTAINING_RECORD(base, struct macdrv_drawable, base);
++
+     TRACE("drawable %s\n", debugstr_opengl_drawable(base));
++    d->surface = NULL;
+ }
+ 
+ static void macdrv_context_select_drawable(struct macdrv_context *context, struct opengl_drawable *drawable)
+@@ -1151,6 +1428,15 @@
+     GLint enabled;
+ 
+     TRACE("context %p, drawable %s\n", context, debugstr_opengl_drawable(drawable));
++
++    /* Host mode draws into FBOs and attaches no view; keep the context
++       current (macdrv_make_context_current with no view would clear it). */
++    if (host_gl)
++    {
++        if (CGLGetCurrentContext() != context->base.host_context)
++            CGLSetCurrentContext(context->base.host_context);
++        return;
++    }
+ 
+     if (drawable && drawable->client)
+     {
+@@ -1658,6 +1944,7 @@
+     if (flags & GL_FLUSH_PRESENT)
+     {
+         macdrv_flush_opengl_context(context->context);
++        probe_present(base);
+         client_surface_present(base->client);
+     }
+ }
+@@ -1859,6 +2146,7 @@
+ 
+     macdrv_context_select_drawable(context, draw);
+     CGLSetCurrentContext(context->base.host_context);
++    probe_activate(draw, read);
+     return TRUE;
+ }
+ 
+@@ -2323,6 +2611,17 @@
+ 
+ static void *macdrv_get_proc_address(const char *name)
+ {
++    probe_init();
++    if (host_gl)
++    {
++        if (!strcmp(name, "glBindFramebuffer")) return probe_glBindFramebuffer;
++        if (!strcmp(name, "glBindFramebufferEXT")) return probe_glBindFramebufferEXT;
++        if (!strcmp(name, "glDrawBuffer")) return probe_glDrawBuffer;
++        if (!strcmp(name, "glDrawBuffers")) return probe_glDrawBuffers;
++        if (!strcmp(name, "glReadBuffer")) return probe_glReadBuffer;
++        if (!strcmp(name, "glGetIntegerv")) return probe_glGetIntegerv;
++    }
++
+     /* redirect some standard OpenGL functions */
+     if (!strcmp(name, "glCopyPixels")) return macdrv_glCopyPixels;
+     if (!strcmp(name, "glGetString")) return macdrv_glGetString;
+@@ -2347,6 +2646,7 @@
+     {
+         macdrv_context_select_drawable(context, base);
+         macdrv_flush_opengl_context(context->context);
++        probe_present(base);
+     }
+     client_surface_present(base->client);
+     return TRUE;
+@@ -2379,7 +2679,7 @@
+ 
+ static const struct opengl_drawable_funcs macdrv_surface_funcs =
+ {
+-    .size = sizeof(struct opengl_drawable),
++    .size = sizeof(struct macdrv_drawable),
+     .destroy = macdrv_surface_destroy,
+     .flush = macdrv_surface_flush,
+     .swap = macdrv_surface_swap,
+diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
+--- a/dlls/winemac.drv/surface.c
++++ b/dlls/winemac.drv/surface.c
+@@ -115,6 +115,19 @@
+     }
+ }
+ 
++/* The IOSurface to draw the next picture into. In host mode the host may
++   still be showing the back buffer, so take one it isn't holding. */
++static IOSurfaceRef surface_to_draw(struct macdrv_window_surface *surface)
++{
++    IOSurfaceRef io_surface;
++
++    if (host_mode &&
++        (io_surface = macdrv_host_acquire_surface(surface->window, IOSurfaceGetWidth(surface->back_buffer),
++                                                  IOSurfaceGetHeight(surface->back_buffer))))
++        return io_surface;
++    return surface->back_buffer;
++}
++
+ /***********************************************************************
+  *              macdrv_surface_flush
+  */
+@@ -123,10 +136,11 @@
+                                  const BITMAPINFO *shape_info, const void *shape_bits)
+ {
+     struct macdrv_window_surface *surface = get_mac_surface(window_surface);
+-    IOSurfaceRef io_surface = surface->back_buffer;
++    IOSurfaceRef io_surface = surface_to_draw(surface);
+     bool use_alpha = !!window_surface->alpha_mask;
+     struct macdrv_win_data *data;
+-    RECT surface_rect = *rect, dirty_rect = *dirty;
++    RECT surface_rect = *rect, dirty_rect = *dirty, masked;
++    BOOL mask_padding = FALSE;
+     vImage_Buffer src = {
+         .data = (void *)color_bits,
+         .height = IOSurfaceGetHeight(io_surface),
+@@ -142,6 +156,29 @@
+ 
+     if (shape_changed && shape_bits) update_shape(&surface->shape_mask, shape_info, shape_bits);
+ 
++    if ((data = get_win_data(window_surface->hwnd)))
++    {
++        /* When a program changes the display mode under EmulateModeset, win32u stretches a
++         * fullscreen window's visible rect over the whole monitor and keeps its window rect
++         * where the scaled picture belongs (centred, with the rest masked black). The window
++         * surface is relative to the window rect then, so move it there. */
++        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
++
++        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
++            window->right <= visible->right && window->bottom <= visible->bottom)
++        {
++            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
++            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
++            /* The surface is padded beyond the window rect. The plain driver hides that
++             * with its black mask (macdrv_set_window_mask); a host has no mask, so the
++             * padding itself is made black. */
++            if ((mask_padding = host_mode && !EqualRect(window, visible)))
++                SetRect(&masked, window->right - window->left - rect->left,
++                        window->bottom - window->top - rect->top, src.width, src.height);
++        }
++        release_win_data(data);
++    }
++
+     IOSurfaceLock(io_surface, 0, NULL);
+     if (use_alpha)
+     {
+@@ -165,28 +202,34 @@
+     {
+         vImageSelectChannels_ARGB8888(&surface->shape_mask, &src, &dst, 0x1, kvImageNoFlags);
+         vImageClipToAlpha_BGRA8888(&dst, &dst, kvImageNoFlags);
++    }
++    if (mask_padding)
++    {
++        static const Pixel_8888 black = {0, 0, 0, 255};  /* BGRA */
++        vImage_Buffer part = dst;
++
++        if (masked.left >= 0 && masked.left < (LONG)dst.width)
++        {
++            part.data = (BYTE *)dst.data + masked.left * 4;
++            part.width = dst.width - masked.left;
++            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
++        }
++        if (masked.top >= 0 && masked.top < (LONG)dst.height)
++        {
++            part = dst;
++            part.data = (BYTE *)dst.data + masked.top * dst.rowBytes;
++            part.height = dst.height - masked.top;
++            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
++        }
+     }
+     IOSurfaceUnlock(io_surface, 0, NULL);
+ 
+-    surface->back_buffer = surface->front_buffer;
+-    surface->front_buffer = io_surface;
+-
+-    if ((data = get_win_data(window_surface->hwnd)))
++    if (io_surface == surface->back_buffer)
+     {
+-        /* When a program changes the display mode under EmulateModeset, win32u stretches a
+-         * fullscreen window's visible rect over the whole monitor and keeps its window rect
+-         * where the scaled picture belongs (centred, with the rest masked black). The window
+-         * surface is relative to the window rect then, so move it there. */
+-        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
+-
+-        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
+-            window->right <= visible->right && window->bottom <= visible->bottom)
+-        {
+-            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
+-            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
+-        }
+-        release_win_data(data);
++        surface->back_buffer = surface->front_buffer;
++        surface->front_buffer = io_surface;
+     }
++
+     macdrv_window_set_io_surface(surface->window, io_surface, cgrect_from_rect(surface_rect),
+                                  cgrect_from_rect(dirty_rect));
+ 
+@@ -202,6 +245,11 @@
+             macdrv_set_view_hidden(data->client_view, TRUE);
+             data->client_view = NULL;
+         }
++        if (data->client_host_view)
++        {
++            macdrv_host_view_set_hidden(data->client_host_view, TRUE);
++            data->client_host_view = 0;
++        }
+         release_win_data(data);
+     }
+ 
+diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+--- a/dlls/winemac.drv/window.c
++++ b/dlls/winemac.drv/window.c
+@@ -1103,11 +1103,15 @@
+         {
+             if (data->client_view == surface->cocoa_view)
+                 data->client_view = NULL;
++            if (surface->host_view && data->client_host_view == surface->host_view)
++                data->client_host_view = 0;
+             release_win_data(data);
+         }
+ 
+         macdrv_dispose_view(surface->cocoa_view);
+     }
++    if (surface->host_view) macdrv_host_view_destroy(surface->host_view);
++    surface->host_view = 0;
+ }
+ 
+ static void macdrv_client_surface_update(struct client_surface *client)
+@@ -1121,6 +1125,8 @@
+     if (!(data = get_win_data(toplevel))) return;
+     macdrv_set_view_frame(surface->cocoa_view, cgrect_from_rect(client->monitor_rect));
+     macdrv_set_view_superview(surface->cocoa_view, toplevel == hwnd ? NULL : data->client_view, data->cocoa_window, NULL, NULL);
++    if (surface->host_view)
++        macdrv_host_view_set_frame(surface->host_view, data->cocoa_window, cgrect_from_rect(client->monitor_rect));
+     release_win_data(data);
+ }
+ 
+@@ -1138,6 +1144,12 @@
+         macdrv_set_view_hidden(surface->cocoa_view, FALSE);
+         data->client_view = surface->cocoa_view;
+     }
++    if (surface->host_view && data->client_host_view != surface->host_view)
++    {
++        if (data->client_host_view) macdrv_host_view_set_hidden(data->client_host_view, TRUE);
++        macdrv_host_view_set_hidden(surface->host_view, FALSE);
++        data->client_host_view = surface->host_view;
++    }
+     release_win_data(data);
+ }
+ 
+@@ -1163,6 +1175,7 @@
+     surface = client_surface_create(&macdrv_client_surface_funcs, hwnd, pixel_format, raw);
+     surface->cocoa_view = macdrv_create_view(cgrect_from_rect(surface->client.monitor_rect));
+     macdrv_set_view_hidden(surface->cocoa_view, TRUE);
++    if (host_mode) surface->host_view = macdrv_host_view_create();
+ 
+     if (surface)
+     {
+diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
+new file mode 100644
+--- /dev/null
++++ b/dlls/winemac.drv/wmh_protocol.h
+@@ -0,0 +1,523 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later
++ *
++ * App-embedded Mac driver: host protocol wire format, version 1 (draft).
++ * The design is docs/app-embedded-protocol.md; this file fixes the bytes,
++ * and is the one copy: the driver and every host use it as is. Plain C,
++ * fixed-width fields, no pointers, no bool, no enums in structs. The sizes
++ * are the same on x86_64 (the driver, under Rosetta 2) and arm64; the
++ * static asserts at the end check them.
++ *
++ * Every message is one Mach message:
++ *
++ *     mach_msg_header_t                    msgh_id = WMH_MSG_ID, always
++ *     [mach_msg_body_t + port descriptors] only for the kinds marked PORTS
++ *     struct wmh_header                    kind, serial
++ *     the kind's payload struct
++ *
++ * msgh_bits has MACH_MSGH_BITS_COMPLEX set exactly when descriptors follow.
++ * A message shorter than its kind's payload is dropped (and logged). A
++ * longer one is read up to the fields the receiver knows, so either side can
++ * add fields at the end of a payload without a version change. Unknown kinds
++ * are ignored; a call of an unknown kind is answered with a WMH_KIND_REPLY
++ * whose status is WMH_STATUS_UNSUPPORTED.
++ *
++ * hello goes to the host's service port. The host answers with a port of
++ * its own for this connection (in hello_reply), and the driver sends
++ * everything after hello there, so the host knows which process each
++ * message comes from. Host -> driver goes to the receive right the driver
++ * sends in hello. Each direction is ordered.
++ *
++ * Ids (window, surface) are chosen by the driver, per connection, never 0,
++ * never reused while live. 0 means "none".
++ *
++ * Positions and sizes are in the protocol's space (see the design doc): the
++ * units the Mac driver uses between its C and Cocoa halves, origin at the
++ * top left of the primary display, y down, as doubles. They're points
++ * unless Wine's RetinaMode is on, when they're pixels (the host halves
++ * them). Surface sizes are in pixels.
++ */
++
++#ifndef WMH_PROTOCOL_H
++#define WMH_PROTOCOL_H
++
++#include <stdint.h>
++
++#define WMH_PROTOCOL_VERSION 1u
++#define WMH_MSG_ID           0x574d4831u /* 'WMH1' */
++
++#define WMH_EXE_NAME_MAX     256u        /* bytes of UTF-8 with the NUL; longer is truncated */
++#define WMH_TITLE_MAX        512u
++
++typedef uint32_t wmh_window_id;
++typedef uint32_t wmh_surface_id;
++
++struct wmh_header {
++    uint32_t kind;      /* WMH_KIND_* */
++    uint32_t serial;    /* nonzero on a call; its reply carries it back */
++};
++
++struct wmh_rect { double x, y, width, height; };
++
++enum {
++    /* ---- driver -> host ---- */
++    WMH_KIND_HELLO = 1,                 /* PORTS: [0] send right to the driver's receive port */
++    WMH_KIND_WINDOW_CREATE = 10,
++    WMH_KIND_WINDOW_DESTROY,
++    WMH_KIND_WINDOW_FEATURES,
++    WMH_KIND_WINDOW_STATE,
++    WMH_KIND_WINDOW_TITLE,
++    WMH_KIND_WINDOW_ORDER,
++    WMH_KIND_WINDOW_HIDE,
++    WMH_KIND_WINDOW_FRAME,
++    WMH_KIND_WINDOW_PARENT,
++    WMH_KIND_WINDOW_FOCUS,
++    WMH_KIND_WINDOW_FRAME_READY,
++    WMH_KIND_FOCUS_REJECTED,
++    WMH_KIND_WINDOW_MIN_MAX,
++    WMH_KIND_VIEW_CREATE = 30,          /* struct wmh_view_ref */
++    WMH_KIND_VIEW_DESTROY,              /* struct wmh_view_ref */
++    WMH_KIND_VIEW_FRAME,
++    WMH_KIND_VIEW_HIDDEN,
++    WMH_KIND_VIEW_FRAME_READY,
++    WMH_KIND_CURSOR_SET = 50,           /* PORTS (image only): [0] the image's IOSurface, moved */
++    WMH_KIND_CURSOR_WARP,
++    WMH_KIND_CURSOR_CLIP,
++    WMH_KIND_SURFACE_ADD = 40,          /* PORTS: [0] the IOSurface (IOSurfaceCreateMachPort), moved */
++    WMH_KIND_SURFACE_REMOVE,
++    WMH_KIND_WINDOW_GET_FRAME = 60,     /* call: struct wmh_reply_rect */
++    WMH_KIND_CURSOR_GET,                /* call: struct wmh_reply_point */
++    WMH_KIND_DISPLAYS_GET,              /* call: struct wmh_reply_displays */
++    WMH_KIND_IME_KEY,                   /* call: struct wmh_ime_key; reply struct wmh_reply_ime_key */
++    WMH_KIND_IME_CLEAR = 70,            /* no payload struct beyond the header */
++    WMH_KIND_IME_RECT,                  /* struct wmh_ime_rect */
++    WMH_KIND_QUIT_REPLY = 80,
++    WMH_KIND_DRAG_DONE,                 /* struct wmh_drag_done: the answer to a drag */
++
++    /* ---- host -> driver ---- */
++    WMH_KIND_HELLO_REPLY = 1001,        /* PORTS: [0] send right to the host's port for this connection */
++    WMH_KIND_REPLY,                     /* struct wmh_reply, then the call's reply struct */
++    WMH_KIND_SURFACE_RELEASE = 1010,
++    WMH_KIND_EVENT = 1020,              /* struct wmh_event */
++    WMH_KIND_DRAG = 1030,               /* struct wmh_drag; answered with drag_done */
++};
++
++/* ---- handshake ---- */
++
++/* hello.features (what the driver can send) and hello_reply.features (the
++ * part the host will use). */
++#define WMH_FEATURE_GDI_SURFACES  (1u << 0)
++#define WMH_FEATURE_INPUT         (1u << 1)
++#define WMH_FEATURE_GL_VIEWS      (1u << 2)   /* takes view surfaces */
++#define WMH_FEATURE_CURSOR        (1u << 3)   /* takes cursor_set, cursor_warp, cursor_clip */
++
++struct wmh_hello {
++    uint32_t protocol_version;          /* WMH_PROTOCOL_VERSION */
++    uint32_t features;
++    int32_t  pid;                       /* the host checks it against the audit token's */
++    uint32_t reserved;
++    char     exe_name[WMH_EXE_NAME_MAX]; /* "Game.exe", as AppDefaults names it; NUL-terminated */
++};
++
++/* A refusal (version 0) needs no port. */
++struct wmh_hello_reply {
++    uint32_t protocol_version;          /* 0: the host won't take this process */
++    uint32_t features;
++    uint32_t reserved[2];
++};
++
++/* ---- windows ---- */
++
++/* macdrv_window_features, bit for bit. */
++#define WMH_WF_TITLE_BAR                (1u << 0)
++#define WMH_WF_CLOSE_BUTTON             (1u << 1)
++#define WMH_WF_MINIMIZE_BUTTON          (1u << 2)
++#define WMH_WF_RESIZABLE                (1u << 3)
++#define WMH_WF_MAXIMIZE_BUTTON          (1u << 4)
++#define WMH_WF_UTILITY                  (1u << 5)
++#define WMH_WF_SHADOW                   (1u << 6)
++#define WMH_WF_PREVENTS_APP_ACTIVATION  (1u << 7)
++
++/* macdrv_window_state, bit for bit.
++ *
++ * Minimizing, maximizing and fullscreen. The program decides; the host
++ * shows what it decided:
++ * - The user's minimize (button, Dock, Cmd-M): the host sends
++ *   WINDOW_MINIMIZE_REQUESTED and doesn't miniaturize yet. If the program
++ *   agrees, window_state comes with MINIMIZED (and MINIMIZED_VALID), and
++ *   the host miniaturizes then. A program can minimize itself the same
++ *   way, unasked.
++ * - window_state without MINIMIZED (MINIMIZED_VALID set) while the window
++ *   is miniaturized: the host deminiaturizes it, and sends nothing back.
++ * - The user's deminiaturize (Dock, clicking the window's tile): the host
++ *   deminiaturizes and sends WINDOW_DID_UNMINIMIZE, then WINDOW_FRAME_CHANGED
++ *   with the window's frame, even though it hasn't changed, as the plain
++ *   driver does (windowDidDeminiaturize: calls windowDidResize:). Wine
++ *   restores the window to a rect worked out from that frame using the
++ *   minimized window's rects, which have no title bar or borders, so the
++ *   restored window is a little smaller; the frame change corrects it.
++ * - The user's zoom (green button or double-click on the title bar, when
++ *   the window has WMH_WF_MAXIMIZE_BUTTON): the host sends
++ *   WINDOW_MAXIMIZE_REQUESTED and doesn't resize; a frame follows. When
++ *   the window is MAXIMIZED, zoom or a live resize sends
++ *   WINDOW_RESTORE_REQUESTED instead (flags 1 and the current frame for a
++ *   resize: keep that frame).
++ * - Fullscreen in its own Space (the host's toggleFullScreen:, offered for
++ *   a resizable window that isn't MAXIMIZED or DISABLED): the host sends
++ *   WINDOW_FRAME_CHANGED with WMH_FRAME_FULLSCREEN and the screen's
++ *   frame on entering, and the frame it had before, without the flag, on
++ *   leaving. A program that makes itself fullscreen (a borderless window
++ *   covering the screen) isn't put in a Space: it just gets that frame. */
++#define WMH_WS_DISABLED                 (1u << 0)
++#define WMH_WS_NO_FOREGROUND            (1u << 1)
++#define WMH_WS_FLOATING                 (1u << 2)
++#define WMH_WS_EXCLUDED_BY_EXPOSE       (1u << 3)
++#define WMH_WS_EXCLUDED_BY_CYCLE        (1u << 4)
++#define WMH_WS_MINIMIZED                (1u << 5)
++#define WMH_WS_MINIMIZED_VALID          (1u << 6)   /* MINIMIZED means something only with this */
++#define WMH_WS_MAXIMIZED                (1u << 7)
++
++struct wmh_window_create {
++    wmh_window_id   window;
++    wmh_window_id   owner;              /* 0: none; same connection only in v1 */
++    uint32_t        features;           /* WMH_WF_* */
++    uint32_t        state;              /* WMH_WS_* */
++    struct wmh_rect frame;              /* the content area */
++    uint64_t        hwnd;               /* for logs only */
++};
++
++struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destroy, hide, focus, focus_rejected */
++/* window_focus: make the window the key window. reserved carries
++ * WMH_FOCUS_ACTIVATE when the plain driver would also bring the app to the
++ * front (activate ignoring other apps); without it, the host makes the
++ * window key without activating the app. */
++#define WMH_FOCUS_ACTIVATE 0x1u
++struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
++struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
++struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };
++
++/* The content size the user may resize the window to (WM_GETMINMAXINFO).
++ * 0 for a max dimension: no limit. */
++struct wmh_window_min_max {
++    wmh_window_id window;
++    uint32_t      reserved;
++    double        min_width, min_height, max_width, max_height;
++};
++struct wmh_window_title  { wmh_window_id window; uint32_t reserved; char title[WMH_TITLE_MAX]; };
++
++/* macdrv_order_cocoa_window(window, prev, next): below prev if there is
++ * one, else above next, else above every window of the connection. */
++#define WMH_ORDER_ABOVE 0u
++#define WMH_ORDER_BELOW 1u
++struct wmh_window_order {
++    wmh_window_id window;
++    wmh_window_id relative;             /* 0: every window of the connection */
++    uint32_t      position;             /* WMH_ORDER_* */
++    uint32_t      activate;             /* nonzero: the program wants it active */
++};
++
++/* ---- surfaces ---- */
++
++#define WMH_PIXEL_BGRA8 0x42475241u     /* 'BGRA', kCVPixelFormatType_32BGRA, premultiplied */
++
++struct wmh_surface_add {                /* plus the IOSurface port descriptor */
++    wmh_surface_id surface;
++    uint32_t       width, height;       /* pixels */
++    uint32_t       pixel_format;        /* WMH_PIXEL_* */
++};
++
++struct wmh_surface_ref { wmh_surface_id surface; uint32_t reserved; };  /* remove, release */
++
++/* The surface belongs to the host from here until it sends surface_release.
++ * rect: where the surface goes in the window's content area; dirty: the
++ * part that changed, a hint (the host shows the whole surface). Both in
++ * the protocol's space, relative to the content area. The surface is
++ * drawn at rect's origin at its own size, not scaled into the window, and
++ * clipped to the content area. It needn't cover it: under an emulated
++ * display mode a fullscreen window's picture is centred (rect at 320,0
++ * in a wider window, say) and can reach past the window's edges. What it
++ * doesn't cover is black, as with the plain driver. A host drops (and
++ * releases) a frame whose width and height don't match the surface as
++ * registered. */
++struct wmh_window_frame_ready {
++    wmh_window_id   window;
++    wmh_surface_id  surface;
++    uint32_t        width, height;
++    struct wmh_rect rect;
++    struct wmh_rect dirty;
++};
++
++/* ---- views ----
++ *
++ * A view is a region of a window that a program draws into with OpenGL
++ * (Direct3D through wined3d, DirectDraw wrappers, games): a layer over the
++ * window's own picture, shown only while not hidden (views start hidden).
++ * Its pictures come in view_frame_ready, from surfaces registered and
++ * released as for windows. They're bottom-up (row 0 is the bottom) when
++ * WMH_SURFACE_BOTTOM_UP is set, as OpenGL draws them; the host flips them.
++ * A host scales the surface to the view's frame. */
++
++struct wmh_view_ref { uint32_t view; uint32_t reserved; };
++
++struct wmh_view_frame {
++    uint32_t        view;
++    wmh_window_id   window;             /* the window it's in; 0: in none, don't show */
++    struct wmh_rect frame;              /* in the window's content area, points */
++};
++
++struct wmh_view_hidden { uint32_t view; uint32_t hidden; };
++
++#define WMH_SURFACE_BOTTOM_UP (1u << 0)
++
++struct wmh_view_frame_ready {
++    uint32_t       view;
++    wmh_surface_id surface;
++    uint32_t       width, height;       /* as registered */
++    uint32_t       flags;               /* WMH_SURFACE_* */
++    uint32_t       reserved;
++};
++
++/* ---- cursor ----
++ *
++ * cursor_set: what the pointer looks like over the program's windows. A
++ * system cursor is named as NSCursor's class method ("arrowCursor",
++ * "IBeamCursor", "pointingHandCursor", ...). An image comes as a BGRA
++ * IOSurface (premultiplied, top row first), shown at one point per image
++ * pixel, with its hot spot in image pixels; animated cursors send their
++ * first frame. The driver sends it when the cursor changes.
++ *
++ * cursor_warp: the program moved the pointer (SetCursorPos). The host
++ * decides whether to move the real one; either way, its next mouse events
++ * say where the pointer is.
++ *
++ * cursor_clip: the program confined the pointer (ClipCursor) to a rect, or
++ * released it. The host confines the real pointer, as the plain driver
++ * does, so the user can't take it out of the rect (say, to drag a window
++ * by its title bar). Keeping only the reported positions inside the rect
++ * lets the two part. */
++
++#define WMH_CURSOR_HIDDEN 0u
++#define WMH_CURSOR_SYSTEM 1u
++#define WMH_CURSOR_IMAGE  2u
++
++struct wmh_cursor_set {
++    uint32_t type;                      /* WMH_CURSOR_* */
++    uint32_t width, height;             /* IMAGE: pixels */
++    uint32_t reserved;
++    double   hot_x, hot_y;              /* IMAGE: image pixels from the top left */
++    char     name[64];                  /* SYSTEM: NUL-terminated */
++};
++
++struct wmh_cursor_warp { double x, y; };
++
++struct wmh_cursor_clip {
++    uint32_t        clipped;            /* 0: released */
++    uint32_t        reserved;
++    struct wmh_rect rect;
++};
++
++/* ---- calls and replies ---- */
++
++struct wmh_window_get_frame { wmh_window_id window; uint32_t reserved; };
++
++#define WMH_STATUS_OK          0u
++#define WMH_STATUS_UNSUPPORTED 1u       /* the driver uses its fallback answer */
++#define WMH_STATUS_FAILED      2u
++
++struct wmh_reply { uint32_t status; uint32_t reserved; };   /* then the reply struct, if OK */
++
++struct wmh_reply_rect  { struct wmh_rect rect; };           /* window_get_frame */
++struct wmh_reply_point { double x, y; };                    /* cursor_get */
++
++/* displays_get: the displays the host shows windows on, in the protocol's
++ * space. The first is the primary and must be at the origin; the driver
++ * gives Wine these as its monitors (frame, work area) and the frame's size
++ * as each one's current mode, and uses the real displays if the first
++ * isn't at the origin. A real screen with no display here is left out.
++ * The pixel sizes aren't used by the driver yet. */
++#define WMH_DISPLAYS_MAX 8u
++struct wmh_display {
++    struct wmh_rect frame, work_area;
++    uint32_t        pixels_wide, pixels_high;
++};
++struct wmh_reply_displays {             /* the first is the primary */
++    uint32_t           count;
++    uint32_t           reserved;
++    struct wmh_display displays[WMH_DISPLAYS_MAX];
++};
++
++struct wmh_quit_reply { uint32_t quitting; uint32_t reserved; };
++
++/* ---- text input through an input method ----
++ *
++ * The host's text input context does the input method's work, driven by the
++ * driver, the way the plain driver drives its own:
++ * - The host sends key presses as KEY_PRESS events and doesn't give them to
++ *   an input context itself.
++ * - When a program has an IME open and the current input source is an
++ *   input method, the driver calls ime_key with each key press. The host
++ *   makes a key-down NSEvent from it (from a CGEvent, which input methods
++ *   accept, with the keycode, flags and autorepeat), gives it to the
++ *   input context of its key window's text input client
++ *   ([inputContext handleEvent:]), and records what the input method
++ *   calls back, in order: setMarkedText:selectedRange: as a text with
++ *   complete 0 and the selection as cursor_begin..cursor_end (UTF-16
++ *   units); insertText: and unmarkText as complete 1 (unmarkText with an
++ *   empty text). handled is what handleEvent: returned, and 0 if the
++ *   input method called doCommandBySelector:, as with the plain driver.
++ * - ime_rect: where the program shows its composition, in the protocol's
++ *   space, for firstRectForCharacterRange: (candidate windows go below it).
++ *   Like a window's frame, it is in the virtual screen, not relative to a
++ *   window: the host maps it as it maps that window's picture before
++ *   returning it in Cocoa screen coordinates. For a window placed at its
++ *   protocol frame that is only the flip; a scaled window needs the
++ *   scaling too.
++ * - ime_clear: the program closed its IME: discard the marked text
++ *   ([inputContext discardMarkedText]) without sending anything.
++ * The host's text input client keeps the marked text, its selection, and
++ * the attributed substrings the input method asks for; it doesn't edit
++ * anything else. */
++
++#define WMH_IME_TEXTS_MAX 4u
++#define WMH_IME_TEXT_MAX  255u              /* UTF-16 units; longer is cut */
++
++struct wmh_ime_key {
++    uint32_t keycode;                   /* Mac virtual key code */
++    uint32_t modifiers;                 /* CGEventFlags, low 32 bits */
++    uint32_t repeat;                    /* nonzero: autorepeat */
++    uint32_t reserved;
++};
++
++struct wmh_ime_text {
++    uint32_t complete;                  /* nonzero: insertText (committed); 0: setMarkedText */
++    uint32_t cursor_begin, cursor_end;  /* marked text: the selection, UTF-16 units */
++    uint32_t length;                    /* UTF-16 units in text */
++    uint16_t text[WMH_IME_TEXT_MAX + 1];
++};
++
++struct wmh_reply_ime_key {
++    uint32_t           handled;         /* nonzero: the input method took the key */
++    wmh_window_id      window;          /* the window whose text input client it was */
++    uint32_t           count;           /* texts used */
++    uint32_t           reserved;
++    struct wmh_ime_text texts[WMH_IME_TEXTS_MAX];
++};
++
++struct wmh_ime_rect { struct wmh_rect rect; };
++
++/* ---- drag and drop onto a window ----
++ *
++ * The host is the drag destination for its windows and passes each step
++ * on as a drag message, as the plain driver's NSDraggingDestination
++ * methods do. The driver reads the dragged data itself from the drag
++ * pasteboard, which it opens by name (pasteboards are system-wide), and
++ * answers every drag with drag_done carrying the drag's header serial.
++ * The steps go through the window's event queue, in order with its other
++ * events, so the host waits for each answer before returning from the
++ * AppKit method, as the plain driver does, for as long as it does:
++ * - draggingEntered: ENTER (pasteboard set), wait 0.1 s, then as for
++ *   draggingUpdated;
++ * - draggingUpdated: UPDATE, wait 3 s; the operation to return is
++ *   drag_done's ops if accepted, else NSDragOperationNone;
++ * - draggingExited: LEAVE, wait 0.1 s;
++ * - performDragOperation: DROP, wait up to 180 s; return accepted.
++ * A host that times out goes on as if refused. Dragging out of a Wine
++ * window isn't supported, as with the plain driver. */
++
++#define WMH_DRAG_ENTER  1u
++#define WMH_DRAG_UPDATE 2u
++#define WMH_DRAG_LEAVE  3u
++#define WMH_DRAG_DROP   4u
++#define WMH_PASTEBOARD_NAME_MAX 128u
++
++struct wmh_drag {
++    uint32_t      type;                 /* WMH_DRAG_* */
++    wmh_window_id window;
++    double        x, y;                 /* UPDATE, DROP: in the window's content area, protocol space */
++    uint32_t      ops;                  /* UPDATE, DROP: the source's NSDragOperation mask */
++    uint32_t      reserved;
++    char          pasteboard[WMH_PASTEBOARD_NAME_MAX];  /* ENTER: the drag pasteboard's name, NUL-terminated */
++};
++
++struct wmh_drag_done {
++    uint32_t serial;                    /* the drag's header serial */
++    uint32_t accepted;                  /* nonzero: the program took it */
++    uint32_t ops;                       /* UPDATE: the NSDragOperation to show */
++    uint32_t reserved;
++};
++
++/* ---- events, host -> driver: the macdrv_event types they become ---- */
++
++enum {
++    WMH_EV_KEY_PRESS = 1, WMH_EV_KEY_RELEASE, WMH_EV_KEYBOARD_CHANGED,
++    WMH_EV_MOUSE_BUTTON = 10, WMH_EV_MOUSE_MOVED_ABSOLUTE, WMH_EV_MOUSE_MOVED_RELATIVE, WMH_EV_MOUSE_SCROLL,
++    WMH_EV_WINDOW_GOT_FOCUS = 20, WMH_EV_WINDOW_LOST_FOCUS, WMH_EV_APP_DEACTIVATED,
++    WMH_EV_WINDOW_BROUGHT_FORWARD, WMH_EV_RELEASE_CAPTURE,
++    WMH_EV_WINDOW_CLOSE_REQUESTED = 30, WMH_EV_WINDOW_FRAME_CHANGED, WMH_EV_WINDOW_RESIZE_ENDED,
++    WMH_EV_WINDOW_DID_UNMINIMIZE, WMH_EV_WINDOW_RESTORE_REQUESTED, WMH_EV_REASSERT_WINDOW_POSITION,
++    WMH_EV_WINDOW_MINIMIZE_REQUESTED, WMH_EV_WINDOW_MAXIMIZE_REQUESTED,
++    WMH_EV_APP_QUIT_REQUESTED = 40, WMH_EV_DISPLAYS_CHANGED,
++    /* Questions the driver answers with messages, not a reply:
++     * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);
++     * QUERY_RESIZE_START: the user is starting to resize or move the window
++     * (WM_ENTERSIZEMOVE; WINDOW_RESIZE_ENDED ends it); window_min_max follows. */
++    WMH_EV_QUERY_MIN_MAX_INFO = 50, WMH_EV_QUERY_RESIZE_START,
++};
++
++/* WINDOW_FRAME_CHANGED flags */
++#define WMH_FRAME_FULLSCREEN           (1u << 0)
++#define WMH_FRAME_IN_RESIZE            (1u << 1)
++#define WMH_FRAME_SKIP_SIZE_MOVE_LOOP  (1u << 2)
++
++/* APP_QUIT_REQUESTED reasons (macdrv's QUIT_REASON_*) */
++#define WMH_QUIT_REASON_NONE      0u
++#define WMH_QUIT_REASON_LOGOUT    1u
++#define WMH_QUIT_REASON_RESTART   2u
++#define WMH_QUIT_REASON_SHUTDOWN  3u
++
++/* One struct for every event: the fields its type uses, the rest zero. */
++struct wmh_event {
++    uint32_t        type;               /* WMH_EV_* */
++    wmh_window_id   window;             /* 0 for app events */
++    double          time;               /* seconds, the clock of -[NSEvent timestamp] */
++    /* keys */
++    uint32_t        keycode;            /* Mac virtual key code */
++    uint32_t        modifiers;          /* CGEventFlags, low 32 bits */
++    /* mouse: the protocol's space, the host's scaling undone */
++    double          x, y;
++    int32_t         button;             /* 0 left, 1 right, 2 middle, 3.. others */
++    uint32_t        pressed;            /* MOUSE_BUTTON: nonzero pressed; MOUSE_MOVED_*: nonzero dragging */
++    double          scroll_x, scroll_y; /* in WHEEL_DELTA units, as the plain driver sends */
++    /* frame changed, restore, quit */
++    struct wmh_rect frame;
++    uint32_t        flags;              /* FRAME_CHANGED: WMH_FRAME_*; RESTORE_REQUESTED: 1 keep frame */
++    uint32_t        reason;             /* APP_QUIT_REQUESTED: WMH_QUIT_REASON_* */
++};
++
++#define WMH_ASSERT_SIZE(t, n) _Static_assert(sizeof(struct t) == (n), #t " size")
++WMH_ASSERT_SIZE(wmh_header, 8);
++WMH_ASSERT_SIZE(wmh_rect, 32);
++WMH_ASSERT_SIZE(wmh_hello, 272);
++WMH_ASSERT_SIZE(wmh_hello_reply, 16);
++WMH_ASSERT_SIZE(wmh_window_create, 56);
++WMH_ASSERT_SIZE(wmh_window_title, 520);
++WMH_ASSERT_SIZE(wmh_window_order, 16);
++WMH_ASSERT_SIZE(wmh_window_frame, 40);
++WMH_ASSERT_SIZE(wmh_window_min_max, 40);
++WMH_ASSERT_SIZE(wmh_surface_add, 16);
++WMH_ASSERT_SIZE(wmh_window_frame_ready, 80);
++WMH_ASSERT_SIZE(wmh_view_frame, 40);
++WMH_ASSERT_SIZE(wmh_view_frame_ready, 24);
++WMH_ASSERT_SIZE(wmh_cursor_set, 96);
++WMH_ASSERT_SIZE(wmh_cursor_clip, 40);
++WMH_ASSERT_SIZE(wmh_reply, 8);
++WMH_ASSERT_SIZE(wmh_ime_key, 16);
++WMH_ASSERT_SIZE(wmh_ime_text, 528);
++WMH_ASSERT_SIZE(wmh_reply_ime_key, 16 + 4 * 528);
++WMH_ASSERT_SIZE(wmh_ime_rect, 32);
++WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
++WMH_ASSERT_SIZE(wmh_event, 104);
++WMH_ASSERT_SIZE(wmh_drag, 160);
++WMH_ASSERT_SIZE(wmh_drag_done, 16);
++#undef WMH_ASSERT_SIZE
++
++#endif /* WMH_PROTOCOL_H */

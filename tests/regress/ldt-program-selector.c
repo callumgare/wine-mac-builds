@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0057 cpu-rosetta-refuse-program-ldt-entries (11.x)
+ * Guards: ntdll-rosetta-refuse-ldt-entries
  *
  * A 32-bit program asks ntdll for an LDT entry of its own. Wine 11 passes
  * such entries to i386_set_ldt, and Rosetta 2 stops the thread for good on

@@ -1,0 +1,62 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Wait up to 120 s, not 10 s, for explorer to set up the desktop
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/win32u/winstation.c (get_desktop_window); written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: The first process of a session to need the desktop starts
+ explorer.exe /desktop and waits for it to go idle, which it does once it
+ has loaded the display driver, created the desktop window and registered
+ the display devices. The wait gave up after 10 s. The process then had the
+ server create a bare desktop window, which has no display-device GUID, so
+ load_desktop_driver found no GraphicsDriver and the process stayed on the
+ null driver for the rest of its life ("The explorer process failed to
+ start.", nodrv_CreateWindow): no windows, no Direct3D device. With every
+ core busy under Rosetta, explorer can take far longer than 10 s. The wait
+ is now 120 s; it still ends at once if explorer exits.
+Programs: Second Chance (an app that embeds Wine), with nine games
+ starting at once on one Mac: Secrets Can Kill Remastered crashed on a null
+ Direct3D object 10 s in, installers and patchers exited non-zero, an AutoIt
+ script exited without a window. Second Chance now starts explorer itself
+ and waits for its display devices first.
+Uncertain: Explorer took about 2.5 minutes there under the heaviest load,
+ longer than this wait too; a host should still start explorer first, as
+ Second Chance does. The wait is in the program's first window or GDI call,
+ so a program whose explorer never goes idle now stalls up to 120 s
+ instead of 10 s before getting the null driver.
+Evidence: With explorer made 15 s late before it creates the desktop (a
+ graphics driver listed before the Mac driver that sleeps 15 s in DllMain
+ and then fails), a program's CreateWindowEx failed after 10.1 s on 11.22
+ (host11 tree, macOS 26.7.2); with this change it got its window after 17
+ to 18 s. Holding explorer back before Wine starts in it doesn't show the
+ bug: NtCreateUserProcess waits for the child to start, with no timeout.
+Status: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
+ hosted integration run on meeka passed every source: disc 36/36, download
+ 6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
+ Can Kill Remastered's trial needed reruns (its DRM ended without starting
+ the game, no Wine errors), as on host8 and host10 before these patches.
+ 2026-11-22: not yet in a build. Tested by swapping a win32u.so
+ built with it into the host11 tree on meeka (macOS 26.7.2): the
+ regression test desktop-wait passes (2 runs); on host11 it fails (1 run).
+ The full suite on that tree: 54 passed, 0 failed, 2 skipped (the
+ screen-taking tests, WMB_REGRESS_NO_SCREEN).
+
+diff --git a/dlls/win32u/winstation.c b/dlls/win32u/winstation.c
+--- a/dlls/win32u/winstation.c
++++ b/dlls/win32u/winstation.c
+@@ -894,7 +894,11 @@
+         {
+             NtResumeThread( thread, NULL );
+             TRACE_(win)( "started explorer\n" );
+-            NtUserWaitForInputIdle( process, 10000, FALSE );
++            /* Explorer sets up the desktop and its display devices before it goes idle;
++             * without them this process gets the null driver for good. With every core
++             * busy that can take much longer than 10 s. The wait also ends if explorer
++             * exits. */
++            NtUserWaitForInputIdle( process, 120000, FALSE );
+             NtClose( thread );
+             NtClose( process );
+         }

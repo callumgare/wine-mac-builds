@@ -1,0 +1,116 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
+Category: cpu
+Kind: workaround
+Origin: crossover (ported here)
+From: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
+Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+CW-Hack: 24256, 24265
+Upstream: no
+Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
+Port: to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:
+ CX's __restore_mxcsr_thunk reads the TEB from %gs:0x30 and stashes the value in amd64_thread_data()->mxcsr (offset 0x33c). In 11.21 both are wrong: 0x33c is upstream's
+ "Unix-side mxcsr" slot (saved at thread start, loaded on every syscall entry), so CX's thunk would leave Unix code running with the Windows MXCSR; and after a signal
+ handler on macOS %gs is the pthread TSD, not the TEB. The thunk now loads the value from the syscall frame instead (frame->xsave.MxCsr, 0xd8(%rcx); %rcx is the frame
+ when sigsys_handler resumes at __wine_syscall_dispatcher_prolog_end), and the dispatcher overwrites that field with the live MXCSR right after. The 10.0 patch's
+ amd64_thread_data mxcsr field is therefore not added. Not compiled or run here: check a raw-syscall app under Rosetta.
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 774a142..eed47c9 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -89,6 +89,12 @@ WINE_DECLARE_DEBUG_CHANNEL(seh);
+ 
+ #include "dwarf.h"
+ 
++#ifdef __APPLE__
++/* CW Hack 24256 */
++#include <sys/sysctl.h>
++static BOOL is_rosetta2;
++#endif
++
+ static USHORT cs32_sel;  /* selector for %cs in 32-bit mode */
+ static USHORT cs64_sel;  /* selector for %cs in 64-bit mode */
+ static USHORT ds64_sel;  /* selector for %ds/%es/%ss in 64-bit mode */
+@@ -854,6 +860,13 @@ static void save_context( struct thread_data *data, struct xcontext *xcontext,
+ 
+         context->ContextFlags |= CONTEXT_FLOATING_POINT;
+         memcpy( &context->FltSave, FPU_sig(sigcontext), sizeof(context->FltSave) );
++#ifdef __APPLE__
++        /* CW Hack 24256: mxcsr in signal contexts is incorrect in Rosetta.
++           In Rosetta only, the actual value of the register from within the
++           handler is correct (on Intel it has some default value). */
++        if (is_rosetta2)
++            __asm__ volatile( "stmxcsr %0" : "=m" (context->FltSave.MxCsr) );
++#endif
+         context->MxCsr = context->FltSave.MxCsr;
+         if (xstate_extended_features && (xs = XState_sig(FPU_sig(sigcontext))))
+         {
+@@ -2656,6 +2669,14 @@ static void usr1_handler( int signal, siginfo_t *siginfo, void *_sigcontext )
+ 
+ 
+ #if defined(__APPLE__) || defined(__linux__)
++#ifdef __APPLE__
++/* CW Hack 24265 */
++extern void __restore_mxcsr_thunk(void);
++__ASM_GLOBAL_FUNC( __restore_mxcsr_thunk,
++                   "ldmxcsr 0xd8(%rcx)\n\t"  /* frame->xsave.MxCsr */
++                   "jmp " __ASM_LOCAL_LABEL("__wine_syscall_dispatcher_prolog_end") );
++#endif
++
+ /**********************************************************************
+  *		sigsys_handler
+  *
+@@ -2693,6 +2714,30 @@ static void sigsys_handler( int signal, siginfo_t *siginfo, void *_sigcontext )
+         frame->restore_flags |= CONTEXT_CONTROL;
+     }
+     RIP_sig(sigcontext) = (ULONG64)__wine_syscall_dispatcher_prolog_end_ptr;
++
++#ifdef __APPLE__
++    /* CW Hack 24265 */
++    if (is_rosetta2 && FPU_sig(sigcontext))
++    {
++        XMM_SAVE_AREA32 fpu;
++        unsigned int direct_mxcsr;
++        __asm__ volatile( "stmxcsr %0" : "=m" (direct_mxcsr) );
++        memcpy( &fpu, FPU_sig(sigcontext), sizeof(fpu) );
++
++        if (direct_mxcsr != fpu.MxCsr)
++        {
++            fpu.MxCsr = direct_mxcsr;
++            memcpy( FPU_sig(sigcontext), &fpu, sizeof(fpu) );
++
++            /* On the M3, Rosetta will restore mxcsr to the initial, incorrect
++               value from the sigcontext, even if we change it. So we jump to a
++               thunk that restores the value from the syscall frame (%rcx), which
++               the dispatcher overwrites with the live value right after. */
++            frame->xsave.MxCsr = direct_mxcsr;
++            RIP_sig(sigcontext) = (ULONG64)__restore_mxcsr_thunk;
++        }
++    }
++#endif
+ }
+ #endif
+ 
+@@ -2877,6 +2922,19 @@ void signal_init_process( TEB *teb )
+     alloc_syscall_frame( (frame_size + 63) & ~63 );
+     signal_alloc_thread( teb );
+ 
++#ifdef __APPLE__
++    /* CW Hack 24256: We need the value of sysctl.proc_translated in signal
++       handlers but sysctl[byname] is not signal-safe. */
++    {
++        int ret = 0;
++        size_t size = sizeof(ret);
++        if (sysctlbyname( "sysctl.proc_translated", &ret, &size, NULL, 0 ) == -1)
++            is_rosetta2 = 0;
++        else
++            is_rosetta2 = ret;
++    }
++#endif
++
+     sig_act.sa_mask = server_block_set;
+     sig_act.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
+ 

@@ -4,8 +4,11 @@
 
     build/patch_header.py [patch ...]
 
-With no arguments, checks every patch under patches/wine and patches/macfixes.
-Prints one line per problem (file:line: message) and exits 1 if there are any.
+With no arguments, checks every patch under patches/<base>/ and the layout
+itself: folder and file names, version lists, order numbers and set ranges,
+copies, and the flavours' patch sets (the rules are in patches/README.md).
+Prints one line per problem (file:line: message) and exits 1 if there are
+any; warnings don't fail.
 build/compile.sh runs it on a build's patch list before applying anything, and
 CI runs it on every push. build/manifest.py imports parse() to put each
 patch's header into BUILD-INFO.json, which the website shows on build pages.
@@ -37,7 +40,6 @@ FIELDS = [
     ("Evidence", False),
     ("Port", False),
     ("Expects before it", False),
-    ("Applies to", True),
     ("Status", False),
 ]
 ORDER = {k: i for i, (k, _) in enumerate(FIELDS)}
@@ -85,7 +87,7 @@ JSON_KEYS = {
     "CW-Hack": "cw_hacks", "Upstream": "upstream", "Why": "why",
     "Programs": "programs",
     "Uncertain": "uncertain", "Evidence": "evidence", "Port": "port",
-    "Expects before it": "expects_before", "Applies to": "applies_to",
+    "Expects before it": "expects_before",
 }
 
 
@@ -213,19 +215,153 @@ def to_json(h):
 
 
 def all_patches():
-    return sorted(p for d in ("wine", "macfixes") for p in (ROOT / "patches" / d).rglob("*.patch"))
+    import patches as P
+    return sorted(c.path for base in P.bases() for p in P.load(base) for c in p.copies)
+
+
+# Fields every copy of a patch must agree on: the website shows one patch.
+SHARED = ("Summary", "Category", "Kind", "Programs")
+# Fields that may differ between copies, though usually shouldn't.
+SHARED_WARN = ("Why", "Uncertain")
+
+
+def check_tree():
+    """The layout rules (patches/README.md). Returns (errors, warnings),
+    each a list of 'path: message' strings."""
+    import patches as P
+    errors, warnings = [], []
+    err = lambda where, msg: errors.append(f"{where}: {msg}")
+    warn = lambda where, msg: warnings.append(f"{where}: {msg}")
+    root = P.PATCHES
+    for old in ("wine", "macfixes"):
+        if (root / old).exists():
+            err(root / old, "the old per-flavour layout; move these patches into patch sets "
+                "(tools/patch-migrate)")
+    for leftover in root.rglob("*"):
+        if leftover.suffix in (".orig", ".rej"):
+            err(leftover, "left over from patch; delete it")
+    for base in P.bases():
+        if base in ("wine", "macfixes"):
+            continue
+        pinned = P.base_versions(base)
+        if not pinned:
+            err(root / base, f"no pinned versions (inputs/{base}/<version>.sh)")
+        ranges = {}
+        for s in P.sets(base):
+            d = root / base / s
+            info = P.set_info(base, s)
+            if not info.get("summary") or not info.get("range"):
+                err(d / "README.md", "a set's README starts with 'Summary: ...' and "
+                    "'Range: NNNN-NNNN' lines")
+            else:
+                ranges[s] = info["range"]
+            for e in d.iterdir():
+                if e.name == "README.md":
+                    continue
+                m = P.DIR_RE.match(e.name)
+                if not e.is_dir() or not m:
+                    err(e, "a set holds only README.md and <NNNN>-<name> folders "
+                        "(four digits, then lower-case letters, digits, '.' and '-')")
+                    continue
+                for f in e.iterdir():
+                    fm = P.FILE_RE.match(f.name)
+                    if not fm or fm.group(1) != m.group(2):
+                        err(f, f"a patch folder holds only {m.group(2)}@<versions>.patch files")
+        names, numbers = {}, {}
+        for p in P.load(base):
+            where = p.path.relative_to(P.ROOT)
+            if p.name in names:
+                err(where, f"name {p.name} is also {names[p.name]}")
+            names[p.name] = where
+            if p.number in numbers:
+                err(where, f"number {p.number} is also {numbers[p.number]}")
+            numbers[p.number] = where
+            r = ranges.get(p.set)
+            if r and not r[0] <= int(p.number) <= r[1]:
+                err(where, f"number {p.number} is outside {p.set}'s range {r[0]:04d}-{r[1]:04d}")
+            if not p.copies:
+                err(where, "no copies")
+            seen = {}
+            headers = []
+            for c in p.copies:
+                cw = c.path.relative_to(P.ROOT)
+                if c.error:
+                    err(cw, f"versions {c.versions_text!r}: {c.error}")
+                    continue
+                normal = P.format_versions(c.versions, pinned)
+                if c.versions_text != normal:
+                    err(cw, f"versions should be written {normal!r} (ascending; three or more "
+                        "consecutive pinned versions as first-last)")
+                for v in c.versions:
+                    if v in seen:
+                        err(cw, f"{v} is also covered by {seen[v]}")
+                    seen[v] = c.path.name
+                headers.append((cw, parse(c.path)))
+            for key in SHARED + SHARED_WARN:
+                values = {h.fields.get(key) for _, h in headers}
+                if len(values) > 1:
+                    (err if key in SHARED else warn)(
+                        where, f"{key} differs between its copies ({', '.join(str(w.name) for w, _ in headers)})")
+            if len(headers) > 1:
+                for cw, h in headers:
+                    if "Port" not in h.fields:
+                        warn(cw, "differs from the patch's other copies; say how in Port "
+                             "(an Origin block from stage 3 of the patch-sets plan)")
+        # The layer rule: a set in a lower range is taken by every flavour
+        # that takes a set in a higher one.
+        takers = {s: set() for s in ranges}
+        for fl in P.flavours():
+            info = P.flavour(fl)
+            if info["base"] != base:
+                continue
+            fw = f"flavours/{fl}.sh"
+            for s in info["sets"]:
+                if s not in ranges:
+                    err(fw, f"set {s} isn't in patches/{base}/ (or has no README with a Range)")
+                else:
+                    takers[s].add(fl)
+            los = [ranges[s][0] for s in info["sets"] if s in ranges]
+            if los != sorted(los):
+                err(fw, "list PATCH_SETS in layer order (by each set's Range)")
+            for v in info["versions"]:
+                if v not in pinned:
+                    err(fw, f"version {v} has no inputs/{base}/{v}.sh")
+        known = set(names)
+        for t in sorted((P.ROOT / "tests" / "regress").glob("*")):
+            if t.suffix not in (".c", ".sh"):
+                continue
+            for line in t.read_text(errors="replace").splitlines()[:40]:
+                m = re.match(r"^(?: \*|#) Guards: (.*)$", line)
+                if m and base == "winehq":
+                    for n in m.group(1).split():
+                        if n not in known:
+                            err(t.relative_to(P.ROOT), f"Guards names {n}, which isn't a patch")
+        for a in ranges:
+            for b in ranges:
+                if ranges[a][0] < ranges[b][0] and not takers[b] <= takers[a]:
+                    err(f"patches/{base}/{b}", f"range {ranges[b][0]:04d} is above {a}'s, but "
+                        f"{', '.join(sorted(takers[b] - takers[a]))} takes {b} without {a}")
+    return errors, warnings
 
 
 def main(argv):
+    sys.path.insert(0, str(ROOT / "build"))
     paths = [pathlib.Path(a) for a in argv] or all_patches()
     problems = 0
+    if not argv:
+        errors, warnings = check_tree()
+        for line in warnings:
+            print(f"warning: {line}", file=sys.stderr)
+        for line in errors:
+            print(line, file=sys.stderr)
+        problems += len(errors)
     for p in paths:
         h = parse(p)
         for line, msg in h.errors:
             print(f"{p}:{line}: {msg}", file=sys.stderr)
             problems += 1
     if problems:
-        print(f"{problems} problem(s) in patch headers; the format is in patches/README.md", file=sys.stderr)
+        print(f"{problems} problem(s) in patches; the rules are in patches/README.md", file=sys.stderr)
         return 1
     print(f"{len(paths)} patch headers OK", file=sys.stderr)
     return 0

@@ -1,16 +1,17 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Quick checks that need no Mac: every patch header follows
-# patches/README.md (build/patch_header.py). Builds check their own patches
-# again before applying them (build/compile.sh).
+# patches/README.md, and so do the patch sets' layout, the flavours' sets and
+# versions, and the regression tests' Guards (build/patch_header.py). Builds
+# check their own patches again before applying them (build/compile.sh).
 
 name: checks
 
 on:
   push:
-    paths: [patches/**, build/patch_header.py, .github/workflows/checks.yml]
+    paths: [patches/**, flavours/**, inputs/**, tests/regress/**, build/patch_header.py, build/patches.py, .github/workflows/checks.yml]
   pull_request:
-    paths: [patches/**, build/patch_header.py, .github/workflows/checks.yml]
+    paths: [patches/**, flavours/**, inputs/**, tests/regress/**, build/patch_header.py, build/patches.py, .github/workflows/checks.yml]
 
 permissions:
   contents: read

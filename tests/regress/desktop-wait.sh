@@ -1,10 +1,9 @@
 #!/bin/bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Flavours: macfixes
 # Versions: 11.22
 # Timeout: 150
-# Guards: 0072 win32u-desktop-wait
+# Guards: win32u-desktop-wait
 #
 # The first process of a session to need the desktop starts explorer.exe
 # and waited only 10 s for it. On a Mac with every core busy, explorer

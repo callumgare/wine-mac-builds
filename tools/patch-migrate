@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+"""Move patches from the old per-flavour, per-version layout to patch sets.
+
+    tools/patch-migrate [--map build/patch-map.tsv]
+
+Old layout: patches/wine/NNNN-*.patch and patches/macfixes/<version>/NNNN-*.patch,
+listed per version in inputs/<flavour>/<version>.sh (PATCHES=(...)).
+New layout (patches/README.md):
+patches/winehq/<set>/<NNNN>-<name>/<name>@<versions>.patch.
+
+The map gives each old patch its set, order number and name
+(`macfixes/0066<TAB>essential-fixes<TAB>2066<TAB>winemac-...`). Copies of a
+patch that differ only in line numbers (the same hunks, context and order)
+are merged into one file
+covering all their versions; the newest version's diff is kept. Copies with different Origins aren't merged. Merged copies' headers keep
+one entry per version, each starting with its version, for any of From,
+Source, Evidence, Port and Status that differ, and any other field that differs keeps the newest version's
+value and is reported. `Applies to` is dropped (the versions are in the file
+name, the flavours come from the sets); any prose in it beyond versions,
+flavours and "after NNNN" is reported for a person to move into Why.
+
+Two old patches mapped to the same name are concatenated, the first one's
+header kept; that's reported too, for a person to merge the headers.
+
+Kept after the migration so that a patch added the old way on another branch
+can be converted: put it in the old layout and the map, and run this again.
+It only writes patches/winehq/ and doesn't delete anything; the old folders
+are removed with git rm afterwards.
+"""
+
+import collections
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "build"))
+import patches as P  # noqa: E402
+import patch_header  # noqa: E402
+
+FIELD_ORDER = patch_header.ORDER
+
+BASE = "winehq"
+# Fields that may differ between merged copies: each keeps one entry per
+# version. Any other field that differs keeps the newest copy's value.
+PER_VERSION = ("From", "Source", "Evidence", "Port", "Status")
+
+
+def read_inputs_patches(flavour):
+    """{version: [old patch path, ...]} from inputs/<flavour>/<version>.sh."""
+    out = {}
+    for f in sorted((ROOT / "inputs" / flavour).glob("*.sh")):
+        text = f.read_text()
+        m = re.search(r"^PATCHES=\((.*?)^\)", text, re.S | re.M)
+        out[f.stem] = re.findall(r"^\s*(patches/\S+\.patch)", m.group(1), re.M) if m else []
+    return out
+
+
+def split_header(text):
+    """(fields [(key, value)], body). Values keep their continuation lines."""
+    head, _, body = text.partition("\n\n")
+    fields = []
+    for line in head.split("\n"):
+        if line[:1] in (" ", "\t") and fields:
+            fields[-1] = (fields[-1][0], fields[-1][1] + "\n" + line)
+        else:
+            k, _, v = line.partition(": ")
+            fields.append((k, v))
+    return fields, body
+
+
+def join_header(fields, body):
+    return "\n".join(f"{k}: {v}" for k, v in fields) + "\n\n" + body
+
+
+def signature(body):
+    """A diff without its line numbers: each file's hunks, with their
+    context, +/- lines and order. Copies with the same signature differ only
+    in where the hunks land, so the newest applies to the others with
+    offsets and gives the same result."""
+    sig = collections.defaultdict(list)
+    cur = None
+    for line in body.split("\n"):
+        if line.startswith("diff --git "):
+            cur = line.split(" b/", 1)[-1]
+        elif line.startswith("+++ "):
+            cur = line[4:].split("\t")[0]
+            cur = cur[2:] if cur.startswith("b/") else cur
+        elif line.startswith(("--- ", "index ", "new file mode", "deleted file mode")):
+            continue
+        elif line.startswith("@@"):
+            sig[cur].append("@@")
+        elif cur and line[:1] in ("+", "-", " ", "\\"):
+            sig[cur].append(line)
+    return dict(sig)
+
+
+APPLIES_RE = re.compile(
+    r"^wine [0-9.x]+(?:, [0-9.x]+)*"
+    r"(?: \((?:(?:macfixes|plain|staging)(?:, )?)*(?:after \d{4})?\))?"
+    r"(?:, macfixes)?")
+
+
+def applies_prose(value):
+    v = " ".join(value.split())
+    m = APPLIES_RE.match(v)
+    rest = v[m.end():] if m else v
+    return rest.lstrip(";, ").strip()
+
+
+def main(argv):
+    map_path = ROOT / (argv[argv.index("--map") + 1] if "--map" in argv else "build/patch-map.tsv")
+    mapping = {}
+    for line in map_path.read_text().splitlines():
+        if line.strip() and not line.startswith("#"):
+            old, s, num, name = line.split("\t")
+            mapping[old] = (s, num, name)
+
+    # name -> version -> [old files in map order]
+    by_name = collections.defaultdict(lambda: collections.defaultdict(list))
+    info = {}
+    for flavour in ("wine", "macfixes"):
+        for version, files in read_inputs_patches(flavour).items():
+            for f in files:
+                m = re.match(r"patches/(wine|macfixes)/(?:[^/]+/)?(\d{4})-", f)
+                key = f"{m.group(1)}/{m.group(2)}"
+                if key not in mapping:
+                    sys.exit(f"{f} (as {key}) isn't in {map_path}")
+                s, num, name = mapping[key]
+                info[name] = (s, num)
+                if f not in by_name[name][version]:
+                    by_name[name][version].append(f)
+
+    pinned = P.base_versions(BASE)
+    report = []
+    written = 0
+    for name, per_version in sorted(by_name.items(), key=lambda kv: info[kv[0]][1]):
+        s, num = info[name]
+        texts = {}
+        for v, files in per_version.items():
+            parts = [split_header((ROOT / f).read_text()) for f in files]
+            fields, body = parts[0]
+            if len(parts) > 1:
+                report.append(f"{name}@{v}: concatenated {', '.join(files)}; merge their headers by hand")
+                body = "".join(b if b.endswith("\n") else b + "\n" for _, b in parts)
+            texts[v] = (fields, body)
+        # Group versions by diff signature.
+        groups = []
+        for v in sorted(texts, key=P.version_key):
+            # Copies merge only with the same code and the same origin.
+            sig = (signature(texts[v][1]), dict(texts[v][0]).get("Origin"))
+            for g in groups:
+                if g["sig"] == sig:
+                    g["versions"].append(v)
+                    break
+            else:
+                groups.append({"sig": sig, "versions": [v]})
+        d = ROOT / "patches" / BASE / s / f"{num}-{name}"
+        d.mkdir(parents=True, exist_ok=True)
+        for g in groups:
+            vs = g["versions"]
+            newest = vs[-1]
+            fields, body = texts[newest]
+            merged = []
+            for key, value in fields:
+                if key == "Applies to":
+                    prose = applies_prose(value)
+                    if prose:
+                        report.append(f"{name}@{newest}: Applies to prose dropped, move into Why: {prose!r}")
+                    continue
+                values = {v: dict(texts[v][0]).get(key) for v in vs}
+                distinct = {x for x in values.values() if x is not None}
+                if len(vs) > 1 and len(distinct) > 1 and key in PER_VERSION:
+                    entries = [f"{v}: {values[v]}" for v in reversed(vs) if values[v] is not None]
+                    value = "\n ".join(entries)
+                elif len(vs) > 1 and len(distinct) > 1:
+                    report.append(f"{name}: {key} differs between {', '.join(vs)}; kept {newest}'s")
+                merged.append((key, value))
+            # Keys only an older copy has.
+            have = {k for k, _ in merged} | {"Applies to"}
+            for v in vs[:-1]:
+                for key, value in texts[v][0]:
+                    if key not in have:
+                        report.append(f"{name}: {key} only in {v}'s copy; added")
+                        merged.append((key, f"{v}: {value}" if key in PER_VERSION else value))
+                        have.add(key)
+            merged.sort(key=lambda kv: FIELD_ORDER.get(kv[0], len(FIELD_ORDER)))
+            out = d / f"{name}@{P.format_versions(vs, pinned)}.patch"
+            out.write_text(join_header(merged, body))
+            written += 1
+    for line in report:
+        print(line)
+    print(f"{len(by_name)} patches, {written} copies written under patches/{BASE}/", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

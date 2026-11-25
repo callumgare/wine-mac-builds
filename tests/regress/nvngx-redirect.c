@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0038 sik-kernelbase-nvngx-d3dmetal
+ * Guards: kernelbase-nvngx-d3dmetal
  *
  * DLSS games (NVIDIA's Streamline/NGX loader) open
  * c:\windows\system32\nvngx.dll with CreateFileW(GENERIC_READ,

@@ -1,7 +1,7 @@
 # App-embedded Mac driver: host protocol
 
 Version 1, draft. The driver side is implemented in the macfixes 11.22
-patches 0069 (`winemac: HostWindows option`) and 0076 (displays), and has
+patches `winemac-host-windows` (`winemac: HostWindows option`) and `winemac-host-displays` (displays), and has
 been tested in local test builds with `tools/wmh-testhost` and with Second
 Chance's host. No numbered build carries it yet. The protocol may change
 until the first build that does, and after that only by raising the
@@ -58,7 +58,7 @@ struct wmh_header {
 
 The bytes of each message (kinds, structs, which messages carry a port) are
 in [app-embedded-protocol.h](app-embedded-protocol.h), which the driver and
-hosts share (0069 adds a copy to the driver as `wmh_protocol.h`; the two
+hosts share (`winemac-host-windows` adds a copy to the driver as `wmh_protocol.h`; the two
 are kept identical). It defines every implemented message. The planned ones
 in the tables below get their structs when they're implemented.
 
@@ -189,7 +189,7 @@ yet; in host mode the driver does nothing for them.
 | `cursor_set` | `set_cursor` | done | hidden, a system cursor name, or an image (IOSurface) with its hot spot |
 | `cursor_warp` | `set_cursor_position` | done | the host decides whether to move the real pointer |
 | `cursor_clip` | `clip_cursor` | done | rect or none; the host must confine the real pointer |
-| `displays_get` (*call*) | `get_monitors`, the current mode | done (0076) | the host's displays: the window's screen, or what it emulates. The first is the primary, at the origin. Each becomes a monitor (frame, work area), and its frame's size the current mode, which is also listed and setting it changes nothing. Fallback (no answer, unsupported, or the first not at the origin): the real displays, and a host that didn't answer isn't asked again |
+| `displays_get` (*call*) | `get_monitors`, the current mode | done (`winemac-host-displays`) | the host's displays: the window's screen, or what it emulates. The first is the primary, at the origin. Each becomes a monitor (frame, work area), and its frame's size the current mode, which is also listed and setting it changes nothing. Fallback (no answer, unsupported, or the first not at the origin): the real displays, and a host that didn't answer isn't asked again |
 | `ime_key` (*call*) | `send_keydown_to_input_source` | done | the host's input context handles the key and returns the marked and committed text. Fallback: not handled |
 | `ime_clear` | `clear_ime_text` | done | discard the marked text |
 | `ime_rect` | `SetIMECompositionRect` | done | for the candidate window, in the protocol's space; the host maps it as it maps the window's picture |
@@ -259,7 +259,7 @@ protocol yet.
 - The clipboard (the pasteboard is system-wide).
 - Display modes. With `EmulateModeset` on, Wine never changes the real
   mode. With it off, Wine can change the real mode itself; telling the
-  host (`display_mode_changed`) is planned. With 0076, the current mode is
+  host (`display_mode_changed`) is planned. With `winemac-host-displays`, the current mode is
   the host's display's size, and setting that size changes nothing.
 - Status items (tray icons).
 - Input source lists.
@@ -308,14 +308,14 @@ inside `winemac.drv` on Wine 11.22 with a Direct3D 9 game (through wined3d,
 emulated display mode): over 3,500 frames, the right way up, with no
 changes outside the Mac driver.
 
-With the driver implemented (0069), a GL test program drew 279 frames in
+With the driver implemented (`winemac-host-windows`), a GL test program drew 279 frames in
 18.3 s through Second Chance's host, against 19.9 s with the plain driver
 (one run each). Second Chance's full hosted integration runs passed on the
 local test builds: on host14, disc 36/36, download 6/6, Her downloads 3/3,
 Steam 11/11 and Big Fish; on host15, disc 36/36; on host16 (host15 with
-0076), disc 36/36, download 6/6, Her downloads 3/3, Steam 11/11, Big Fish
+`winemac-host-displays`), disc 36/36, download 6/6, Her downloads 3/3, Steam 11/11, Big Fish
 trials 30/30 and the one owned Big Fish game (one run each; one Her game
-passed on a rerun after a failure in Second Chance's own launcher). 0076
+passed on a rerun after a failure in Second Chance's own launcher). `winemac-host-displays`
 was checked on a notched MacBook Pro with a second display, one run.
 
 ## Testing without a real host

@@ -1,0 +1,167 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Wait longer for the Cocoa app to start on a busy Mac
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: written for wine-mac-builds (not in Sikarugir), after Second Chance's
+ in-process helper that lengthens the same wait.
+Source: none published
+Upstream: no (candidate, kept on Second Chance's list for later). The bug is
+ in WineHQ 10.0 to master and in CrossOver 25.1.
+Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
+ Cocoa app. On a Mac with every core busy, under Rosetta, that can be
+ missed: the process then has no display driver ("Failed to start Cocoa app
+ main loop"). Worse, the startup info was on the waiting thread's stack and
+ the run-loop source was only released, never invalidated, so when the main
+ thread got to it later it read a dead frame and crashed. Now the info is on
+ the heap, counted (the source holds a reference), the source is
+ invalidated on timeout, and the wait is 60 s by default, set by
+ CocoaStartTimeout (seconds, 1-3600) under HKCU\Software\Wine\Mac Driver
+ (or the per-app key). Processes with no graphics session are still refused
+ earlier, in macdrv_init, so SSH runs fail as fast as before.
+Programs: none known
+Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+
+diff --git a/dlls/winemac.drv/cocoa_main.m b/dlls/winemac.drv/cocoa_main.m
+index 8c9507a..b7de753 100644
+--- a/dlls/winemac.drv/cocoa_main.m
++++ b/dlls/winemac.drv/cocoa_main.m
+@@ -42,8 +42,31 @@
+     unsigned long long  tickcount;
+     uint64_t            uptime_ns;
+     BOOL                success;
++    int                 refs;
+ };
+ 
++/* The startup info is shared by macdrv_start_cocoa_app and the run loop
++   source that runs run_cocoa_app on the main thread.  It's on the heap and
++   counted, because after a timeout the main thread may still run the source
++   later; with the info on the waiting thread's stack it then read a dead
++   frame and crashed. */
++static const void* startup_info_retain(const void* info)
++{
++    struct cocoa_app_startup_info* startup_info = (struct cocoa_app_startup_info*)info;
++    __atomic_add_fetch(&startup_info->refs, 1, __ATOMIC_SEQ_CST);
++    return info;
++}
++
++static void startup_info_release(const void* info)
++{
++    struct cocoa_app_startup_info* startup_info = (struct cocoa_app_startup_info*)info;
++    if (!__atomic_sub_fetch(&startup_info->refs, 1, __ATOMIC_SEQ_CST))
++    {
++        [startup_info->lock release];
++        free(startup_info);
++    }
++}
++
+ 
+ /***********************************************************************
+  *              run_cocoa_app
+@@ -114,7 +137,7 @@ int macdrv_start_cocoa_app(unsigned long long tickcount)
+ {
+     int ret = -1;
+     CFRunLoopSourceRef source;
+-    struct cocoa_app_startup_info startup_info;
++    struct cocoa_app_startup_info* startup_info;
+     uint64_t uptime_mach = mach_absolute_time();
+     mach_timebase_info_data_t mach_timebase;
+     NSDate* timeLimit;
+@@ -126,35 +149,45 @@ int macdrv_start_cocoa_app(unsigned long long tickcount)
+                              toTarget:[NSThread class]
+                            withObject:nil];
+ 
+-    startup_info.lock = [[NSConditionLock alloc] initWithCondition:COCOA_APP_NOT_RUNNING];
+-    startup_info.tickcount = tickcount;
+-    startup_info.success = FALSE;
++    if (!(startup_info = calloc(1, sizeof(*startup_info))))
++        return -1;
++    startup_info->refs = 1;
++    startup_info->lock = [[NSConditionLock alloc] initWithCondition:COCOA_APP_NOT_RUNNING];
++    startup_info->tickcount = tickcount;
++    startup_info->success = FALSE;
+ 
+     mach_timebase_info(&mach_timebase);
+-    startup_info.uptime_ns = uptime_mach * mach_timebase.numer / mach_timebase.denom;
++    startup_info->uptime_ns = uptime_mach * mach_timebase.numer / mach_timebase.denom;
+ 
+-    timeLimit = [NSDate dateWithTimeIntervalSinceNow:5];
++    timeLimit = [NSDate dateWithTimeIntervalSinceNow:cocoa_start_timeout];
+ 
+-    source_context.info = &startup_info;
++    source_context.info = startup_info;
++    source_context.retain = startup_info_retain;
++    source_context.release = startup_info_release;
+     source_context.perform = run_cocoa_app;
+     source = CFRunLoopSourceCreate(NULL, 0, &source_context);
+ 
+-    if (source && startup_info.lock && timeLimit)
++    if (source && startup_info->lock && timeLimit)
+     {
+         CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
+         CFRunLoopSourceSignal(source);
+         CFRunLoopWakeUp(CFRunLoopGetMain());
+ 
+-        if ([startup_info.lock lockWhenCondition:COCOA_APP_RUNNING beforeDate:timeLimit])
++        if ([startup_info->lock lockWhenCondition:COCOA_APP_RUNNING beforeDate:timeLimit])
++        {
++            [startup_info->lock unlock];
++            ret = !startup_info->success;
++        }
++        else
+         {
+-            [startup_info.lock unlock];
+-            ret = !startup_info.success;
++            /* Timed out: make sure the main thread never runs it now. */
++            CFRunLoopSourceInvalidate(source);
+         }
+     }
+ 
+     if (source)
+         CFRelease(source);
+-    [startup_info.lock release];
++    startup_info_release(startup_info);
+     return ret;
+ }
+ }
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index 20d82b9..9f8a011 100644
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -158,6 +158,7 @@
+ extern int retina_enabled;  /* Whether Retina mode is enabled via registry setting. */
+ extern int retina_on;       /* Whether Retina mode is currently active (enabled and display is in default mode). */
+ extern int enable_app_nap;
++extern int cocoa_start_timeout;
+ 
+ static inline CGRect cgrect_mac_from_win(CGRect rect)
+ {
+diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
+index e057d68..f8d80af 100644
+--- a/dlls/winemac.drv/macdrv_main.c
++++ b/dlls/winemac.drv/macdrv_main.c
+@@ -60,6 +60,7 @@ int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
+ int retina_enabled = FALSE;
+ int enable_app_nap = FALSE;
+ BOOL force_backing_store = FALSE;
++int cocoa_start_timeout = 60;
+ 
+ UINT64 app_icon_callback = 0;
+ UINT64 app_quit_request_callback = 0;
+@@ -383,6 +384,16 @@ static void setup_options(void)
+     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
+         force_backing_store = IS_OPTION_TRUE(buffer[0]);
+ 
++    /* Seconds to wait for the main thread to start Cocoa.  Upstream waits 5,
++       which a Mac with every core busy, under Rosetta, can miss. */
++    if (!get_config_key(hkey, appkey, "CocoaStartTimeout", buffer, sizeof(buffer)))
++    {
++        const WCHAR *p = buffer;
++        int secs = 0;
++        while (*p >= '0' && *p <= '9' && secs <= 3600) secs = secs * 10 + (*p++ - '0');
++        if (secs > 0 && secs <= 3600) cocoa_start_timeout = secs;
++    }
++
+     /* Don't use appkey.  The DPI and monitor sizes should be consistent for all
+        processes in the prefix. */
+     if (!get_config_key(hkey, NULL, "RetinaMode", buffer, sizeof(buffer)))

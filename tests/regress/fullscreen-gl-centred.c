@@ -1,13 +1,12 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Versions: 11.*
  * Timeout: 90
  * Libs: -mwindows -lopengl32 -lgdi32 -luser32 -ladvapi32
  * Screenshot: centred ff00ff
  * Wrapper: needs-opengl
- * Guards: 0052 winemac-raw-client-surface-backing (11.x)
+ * Guards: winemac-raw-client-surface-backing
  *
  * With EmulateModeset on, a program switches to a display mode shaped
  * differently from the screen and draws its fullscreen window with OpenGL.

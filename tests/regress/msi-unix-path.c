@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Libs: -lmsi
- * Guards: 0075 msi-database-path-length
+ * Guards: msi-database-path-length
  *
  * MSI_OpenDatabaseW takes a path without a backslash as relative and built
  * "<current directory>\<path>" in a MAX_PATH buffer on the stack. A Unix

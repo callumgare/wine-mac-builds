@@ -1,0 +1,169 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Report free disk space as Finder does, including purgeable space
+Category: system
+Kind: fix
+Origin: winehq
+From: upstream commits 98a370e5e1877e011880e582126958755bcfd455,
+ c8b715068001cbae25f72372e71c70db1a06d381 (ntdll),
+ 361b82c32e093e4cb9fe4a886289bdebb823a408 and
+ a32e9be3d5e6771a3ad76d7477307f79bcac8edf (mountmgr), all by Tim Clem
+Source: https://gitlab.winehq.org/wine/wine/-/commit/98a370e5e1877e011880e582126958755bcfd455 ; https://gitlab.winehq.org/wine/wine/-/commit/c8b715068001cbae25f72372e71c70db1a06d381 ; https://gitlab.winehq.org/wine/wine/-/commit/361b82c32e093e4cb9fe4a886289bdebb823a408 ; https://gitlab.winehq.org/wine/wine/-/commit/a32e9be3d5e6771a3ad76d7477307f79bcac8edf
+Upstream: yes, commits 98a370e5e1 and 361b82c32e (in Wine 11.2), c8b7150680 and a32e9be3d5 (in Wine 11.7)
+Why: Report free space "for important usage" (what Finder shows, including
+ purgeable space) in FileFsFullSizeInformation, falling back to statfs when
+ it is 0; and the same in mountmgr's volume size queries, so both paths
+ agree.
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so and mountmgr.so import
+ kCFURLVolumeAvailableCapacityForImportantUsageKey; the "space == 0 -> -1"
+ fallback is in both disassemblies
+
+diff --git a/dlls/ntdll/unix/file.c b/dlls/ntdll/unix/file.c
+index 8bc6955..b4247c0 100644
+--- a/dlls/ntdll/unix/file.c
++++ b/dlls/ntdll/unix/file.c
+@@ -103,6 +103,9 @@
+ #undef XATTR_ADDITIONAL_OPTIONS
+ #include <sys/extattr.h>
+ #endif
++#ifdef __APPLE__
++#include <CoreFoundation/CoreFoundation.h>
++#endif
+ #include <time.h>
+ #include <unistd.h>
+ 
+@@ -2085,6 +2088,35 @@ static NTSTATUS fill_name_info( const char *unix_name, FILE_NAME_INFORMATION *in
+ }
+ 
+ 
++#ifdef __APPLE__
++static LONGLONG get_free_bytes_for_important_data(int fd)
++{
++    CFURLRef url = NULL;
++    CFNumberRef num = NULL;
++    char *path = NULL;
++    LONGLONG space = -1;
++
++    if (!(path = malloc( MAXPATHLEN ))) goto done;
++    if (fcntl( fd, F_GETPATH, path ) == -1) goto done;
++    if (!(url = CFURLCreateFromFileSystemRepresentation( NULL, (UInt8 *)path, strlen(path), false ))) goto done;
++    if (!CFURLCopyResourcePropertyForKey( url, kCFURLVolumeAvailableCapacityForImportantUsageKey, &num, NULL )) goto done;
++    CFNumberGetValue( num, kCFNumberLongLongType, &space );
++    if (space == 0)
++    {
++        /* It's unlikely that a writeable disk has exactly 0 free bytes. This
++         * probably means the disk is read-only, or is not APFS. Fall back to
++         * statfs. */
++        space = -1;
++    }
++
++done:
++    free( path );
++    if (url) CFRelease( url );
++    if (num) CFRelease( num );
++    return space;
++}
++#endif
++
+ static NTSTATUS get_full_size_info(int fd, FILE_FS_FULL_SIZE_INFORMATION *info) {
+     struct stat st;
+     ULONGLONG bsize;
+@@ -2095,6 +2127,10 @@ static NTSTATUS get_full_size_info(int fd, FILE_FS_FULL_SIZE_INFORMATION *info)
+     struct statfs stfs;
+ #endif
+ 
++#ifdef __APPLE__
++    LONGLONG important_free_bytes;
++#endif
++
+     if (fstat( fd, &st ) < 0) return errno_to_status( errno );
+     if (!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) return STATUS_INVALID_DEVICE_REQUEST;
+ 
+@@ -2106,6 +2142,12 @@ static NTSTATUS get_full_size_info(int fd, FILE_FS_FULL_SIZE_INFORMATION *info)
+     if (fstatfs( fd, &stfs ) < 0) return errno_to_status( errno );
+     bsize = stfs.f_bsize;
+ #endif
++
++#ifdef __APPLE__
++    important_free_bytes = get_free_bytes_for_important_data( fd );
++    if (important_free_bytes != -1) stfs.f_bavail = stfs.f_bfree = important_free_bytes / bsize;
++#endif
++
+     if (bsize == 2048)  /* assume CD-ROM */
+     {
+         info->BytesPerSector = 2048;
+diff --git a/dlls/mountmgr.sys/unixlib.c b/dlls/mountmgr.sys/unixlib.c
+index 36f9f82..0212ca1 100644
+--- a/dlls/mountmgr.sys/unixlib.c
++++ b/dlls/mountmgr.sys/unixlib.c
+@@ -36,6 +36,10 @@
+ #ifdef HAVE_SYS_STATVFS_H
+ # include <sys/statvfs.h>
+ #endif
++#ifdef __APPLE__
++# include <CoreFoundation/CoreFoundation.h>
++# include <sys/param.h>
++#endif
+ #include <unistd.h>
+ 
+ #include "unixlib.h"
+@@ -311,6 +315,35 @@ static NTSTATUS set_dosdev_symlink( void *args )
+     return status;
+ }
+ 
++#ifdef __APPLE__
++static LONGLONG get_free_bytes_for_important_data(int fd)
++{
++    CFURLRef url = NULL;
++    CFNumberRef num = NULL;
++    char *path = NULL;
++    LONGLONG space = -1;
++
++    if (!(path = malloc( MAXPATHLEN ))) goto done;
++    if (fcntl( fd, F_GETPATH, path ) == -1) goto done;
++    if (!(url = CFURLCreateFromFileSystemRepresentation( NULL, (UInt8 *)path, strlen( path ), false ))) goto done;
++    if (!CFURLCopyResourcePropertyForKey( url, kCFURLVolumeAvailableCapacityForImportantUsageKey, &num, NULL )) goto done;
++    CFNumberGetValue( num, kCFNumberLongLongType, &space );
++    if (space == 0)
++    {
++        /* It's unlikely that a writeable disk has exactly 0 free bytes. This
++         * probably means the disk is read-only, or is not APFS. Fall back to
++         * statfs. */
++        space = -1;
++    }
++
++done:
++    free( path );
++    if (url) CFRelease( url );
++    if (num) CFRelease( num );
++    return space;
++}
++#endif
++
+ static NTSTATUS get_volume_size_info( void *args )
+ {
+     const struct get_volume_size_info_params *params = args;
+@@ -328,6 +361,10 @@ static NTSTATUS get_volume_size_info( void *args )
+     struct statfs stfs;
+ #endif
+ 
++#ifdef __APPLE__
++    LONGLONG important_free_bytes;
++#endif
++
+     if (!unix_mount) return STATUS_NO_SUCH_DEVICE;
+ 
+     if (unix_mount[0] != '/')
+@@ -365,6 +402,12 @@ static NTSTATUS get_volume_size_info( void *args )
+     }
+     bsize = stfs.f_bsize;
+ #endif
++
++#ifdef __APPLE__
++    important_free_bytes = get_free_bytes_for_important_data( fd );
++    if (important_free_bytes != -1) stfs.f_bavail = stfs.f_bfree = important_free_bytes / bsize;
++#endif
++
+     if (bsize == 2048)  /* assume CD-ROM */
+     {
+         info->bytes_per_sector = 2048;

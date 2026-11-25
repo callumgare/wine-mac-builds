@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
  * Libs: -lws2_32
- * Guards: 0029 apps-server-macos-loopback-bind
+ * Guards: server-loopback-bind
  *
  * GOG Galaxy binds sockets to loopback addresses other than 127.0.0.1. On
  * Windows (and Linux) all of 127.0.0.0/8 is local, but macOS only lets a

@@ -17,6 +17,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # run with -I
 import patch_header  # noqa: E402
+import patches as patchsets  # noqa: E402
 
 SCHEMA_VERSION = 1
 
@@ -85,6 +86,46 @@ def patch_info(path):
     return patch_header.to_json(h)
 
 
+def diff_sha256(path):
+    """The sha256 of the diff alone (after the header's blank line), so two
+    copies with the same code match whatever their headers say."""
+    text = (ROOT / path).read_bytes()
+    return hashlib.sha256(text.split(b"\n\n", 1)[1]).hexdigest()
+
+
+# Each applied copy, by its file: which patch, set and versions it is.
+COPIES = {c.file: c for p in patchsets.load(env["PATCH_BASE"]) for c in p.copies}
+
+
+def patch_entry(f):
+    """One applied patch as BUILD-INFO records it (the patch-sets plan's
+    "What BUILD-INFO records"; the website reads these fields)."""
+    c = COPIES.get(f)
+    if c is None:
+        sys.exit(f"error: {f} isn't a patch copy under patches/{env['PATCH_BASE']}/")
+    header = patch_info(ROOT / f)
+    origin = {"project": header.get("origin"), "ported_here": header.get("ported", False)}
+    for key in ("from", "source", "cw_hacks", "port"):
+        if key in header:
+            origin[key] = header[key]
+    return {
+        "name": c.patch.name, "set": c.patch.set, "number": c.patch.number, "file": f,
+        "versions": c.versions, "sha256": sha256(ROOT / f), "diff_sha256": diff_sha256(f),
+        "summary": header.get("summary"), "category": header.get("category"),
+        "kind": header.get("kinds"),
+        # One entry per source the patch comes from. Until the headers'
+        # Origin blocks (patch-sets plan, stage 2b), there is one.
+        "origins": [origin],
+        "header": header,
+    }
+
+
+def patch_set_entry(name):
+    info = patchsets.set_info(env["PATCH_BASE"], name)
+    lo, hi = info["range"]
+    return {"name": name, "summary": info["summary"], "range": f"{lo:04d}-{hi:04d}"}
+
+
 # --- Components ---------------------------------------------------------------
 components = []
 
@@ -96,8 +137,7 @@ components.append({
                "signed_by": env.get("WINE_SIGNING_KEY")},
     # Each patch's parsed header (patches/README.md) goes in too, so the
     # build's page can say what each patch does and where it came from.
-    "patches": [{"file": p, "sha256": sha256(ROOT / p), **patch_info(ROOT / p)}
-                for p in env["PATCH_LIST"].split() if p],
+    "patches": [patch_entry(p) for p in env["PATCH_LIST"].split() if p],
 })
 
 licenses_dir = T / "LICENSES"
@@ -177,6 +217,11 @@ info = {
     "build_id": BUILD_ID,
     "build_name": env["BUILD_NAME"],
     "flavour": env["FLAVOUR"],
+    "flavour_description": env.get("FLAVOUR_DESCRIPTION", ""),
+    # The flavour's patch sets, in layer order; the patches themselves are
+    # under components (wine).
+    "patch_base": env["PATCH_BASE"],
+    "patch_sets": [patch_set_entry(s) for s in env["PATCH_SETS_LIST"].split()],
     "wine_version": env["WINE_VERSION"],
     "build_number": int(env["BUILD_NUMBER"]),
     "platform": "macos-x86_64",

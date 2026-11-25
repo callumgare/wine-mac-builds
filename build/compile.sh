@@ -62,7 +62,7 @@ export PATH="$TC/bin:$(clean_path):$TC/libexec/llvm-mingw/bin"
 export MACOSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 export SOURCE_DATE_EPOCH="$WINE_RELEASE_EPOCH"
 export ZERO_AR_DATE=1
-# winegcc's temp directory path ends up in every PDB (patch 0003 makes its
+# winegcc's temp directory path ends up in every PDB (winegcc-deterministic-temp-dir makes its
 # name deterministic); keep it off the per-user /var/folders path too.
 export TMPDIR="/tmp/wmb-$SRC_NAME"
 rm -rf "$TMPDIR"; mkdir -p "$TMPDIR"

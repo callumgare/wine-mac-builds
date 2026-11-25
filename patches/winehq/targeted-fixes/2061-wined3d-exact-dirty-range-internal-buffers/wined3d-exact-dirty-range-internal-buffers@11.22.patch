@@ -1,0 +1,61 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: wined3d: keep the mapped range for Wine's own buffers, so streamed draws don't flush whole buffers
+Category: graphics
+Kind: performance, fix
+Origin: wine-mac-builds
+From: dlls/wined3d/buffer.c, buffer_resource_sub_resource_map()
+Source: none published
+Upstream: no
+Why: WineHQ b6810e41 (11.22) marks the whole buffer dirty on every write map
+ of a non-managed buffer, because applications write outside the range they
+ lock. It also applies to the buffers wined3d and ddraw keep for themselves,
+ such as the streaming buffer that DrawPrimitiveUP fills, though their
+ writers stay inside the mapped range. Each small streamed draw then sends
+ the whole buffer (512 KB or more) again. Iji (Game Maker 7, d3d8, ~557
+ DrawPrimitiveUP quads a frame) ran its menu loop about 3x slower on 11.22
+ than on 11.21. In tests/regress/d3d8-up-draw-speed the cost shows with
+ software vertex processing only; with hardware vertex processing UP draws
+ took the same time on 11.21 and 11.22. Buffers without a parent are the
+ internal ones (every d3d8, d3d9, d3d11 and ddraw application buffer has
+ one), so the whole-buffer rule now skips them; application buffers keep it.
+Programs: Iji: its menu loop runs about 3x slower on 11.22 than on 11.21
+ (software vertex processing)
+Uncertain: whether every parentless buffer's writer stays inside its mapped
+ range (wined3d's streaming buffers and push constants, ddraw's execute
+ buffer copies were read and do).
+Status: 2026-11-17 in a quick build of macfixes 11.22 (VM, not for release).
+ Iji on kiya (macOS 26, interleaved, 3 rounds): median main-loop gap
+ 74-79 ms, the same as 11.21-build8 (77-85 ms); 11.22-build7 219-259 ms.
+ F12 quit Iji in 3 of 3 (2.7-2.9 s). d3d8-up-draw-speed on meeka (M1 Max,
+ macOS 26.7): passes 3 of 3 (1.4-1.5x), fails 3 of 3 on 11.22-build7 and
+ on plain 11.22-build1 (about 40x).
+ 2026-11-17 in wine-macfixes-11.22-build8 (draft): d3d8-up-draw-speed passes
+ on meeka (1.6x). On a test Mac (macOS 26): Iji runs and quits from its
+ menu; White Wolf passes from disc and in 4 of 5 Big Fish trial runs (the
+ fifth failed in the test harness, not Wine); Bioscopia passes; nothing
+ worse than build7. Second Chance's full set on build8 (kiya, macOS 26,
+ muted): 36 of 36 disc games, 5 of 6 download games (Icy Tower fails in
+ Second Chance's own msvcrt patch, not Wine). Iji's menu loop, 3
+ interleaved rounds: 73-77 ms on build8, 73-74 ms on 11.21-build8, 222 ms
+ on 11.22-build7.
+
+--- a/dlls/wined3d/buffer.c
++++ b/dlls/wined3d/buffer.c
+@@ -581,8 +581,15 @@
+      * and Darkstar One write outside the range they map with DISCARD, and
+      * Pure Pinball maps four bytes of a vertex buffer without flags and
+      * writes all of it. Managed buffers are the exception; native only
+-     * uploads the mapped range for those. */
+-    if ((flags & WINED3D_MAP_WRITE) && !wined3d_resource_access_is_managed(resource->access))
++     * uploads the mapped range for those.
++     *
++     * Buffers without a parent belong to wined3d or the d3d front end
++     * itself (streaming buffers for DrawPrimitiveUP and friends, push
++     * constants, ddraw's internal buffers). Their writers stay inside the
++     * mapped range, and marking the whole buffer dirty there makes every
++     * small streaming write flush the whole buffer. */
++    if ((flags & WINED3D_MAP_WRITE) && !wined3d_resource_access_is_managed(resource->access)
++            && resource->parent)
+     {
+         dirty_offset = 0;
+         dirty_size = 0;

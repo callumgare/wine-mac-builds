@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0033 apps-kernelbase-cef-append-flags
+ * Guards: kernelbase-cef-append-flags
  *
  * The Chromium (CEF) user interfaces of Steam, Battle.net, the EA app, GOG
  * Galaxy and Rockstar's Social Club render blank or crash in Wine unless

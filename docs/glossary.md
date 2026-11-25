@@ -19,13 +19,36 @@ source tarball such as `wine-11.21.tar.xz`.
 - **development:** `X.Y`
 - **release candidate:** `X.0-rcN`
 
-**Patch.** One `.patch` file with a header in the format of
-[patches/README.md](../patches/README.md). It says what the patch changes,
-what kind of change it is and where it came from.
+**Patch.** One change to Wine, identified by its **patch name**
+(`ntdll-rosetta-mxcsr`: the module, then what it does). A name is unique
+within its base and never changes once a published build has applied the
+patch. A patch has one or more copies.
 
-**Patch set.** A named group of patches with one purpose, applied as a
-whole. A patch set can be part of more than one flavour. A patch set
-never has the same name as a flavour.
+**Copy.** One `.patch` file of a patch, for the Wine versions in its file
+name: `ntdll-rosetta-mxcsr@11.21,11.22.patch`. Each starts with a header in
+the format of [patches/README.md](../patches/README.md), saying what the
+patch changes, what kind of change it is and where it came from. A patch
+has a separate copy wherever its diff differs between versions.
+
+**Order number.** The four digits before a patch's name in its folder
+(`2006-ntdll-rosetta-mxcsr`). A build applies its patches in number order.
+Numbers order patches; they don't identify them.
+
+**Base.** The source a patch applies to: `winehq` (WineHQ's releases) or,
+later, `crossover` (CodeWeavers' tree). Each base has its own patch sets,
+numbers and pinned versions, under `patches/<base>/` and
+`inputs/<base>/`.
+
+**Patch set.** A named group of patches taken for the same reason, applied
+as a whole: a flavour takes all of a set's patches or none. A patch set can
+be part of more than one flavour, and never has the same name as one. Sets
+are grouped by why a flavour takes them, not by which part of Wine they
+change (that's a patch's `Category`).
+
+**Layer.** A range of order numbers (`0001-0999`, `1000-1999`, ...) that
+holds sets taken by the same flavours. Sets taken by more flavours are in
+lower layers, so a patch never depends on one that some of its flavours
+lack.
 
 **Flavour.** A source plus the patch sets applied to it. Flavours built
 from the same source are configured and packaged the same way, so their
@@ -88,8 +111,9 @@ and Wine version after it.
 
 ## How builds are made
 
-**Inputs.** The pinned sources and ordered patch list for one flavour and
-Wine version: `inputs/<flavour>/<version>.sh`.
+**Inputs.** The pinned sources for one Wine version of a base, shared by
+every flavour built on it: `inputs/<base>/<version>.sh`. Which patches a
+build applies comes from its flavour's patch sets.
 
 **Toolchain.** The compilers and libraries a build is made with,
 identified by a date-based ID (`20261115`) and defined in

@@ -1,10 +1,9 @@
 #!/bin/bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Flavours: macfixes
 # Versions: 11.22
 # Timeout: 180
-# Guards: 0063 winemac-activation-policy
+# Guards: winemac-activation-policy
 #
 # A program run as a helper of an app that embeds Wine shouldn't get a Dock
 # icon or take focus. The Mac Driver "ActivationPolicy" value set to

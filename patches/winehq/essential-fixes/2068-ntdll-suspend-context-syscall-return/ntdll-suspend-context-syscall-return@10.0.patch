@@ -1,0 +1,101 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Report the user's registers for a thread suspended on its way out of a syscall
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/ntdll/unix/signal_x86_64.c (usr1_handler); written for
+ wine-mac-builds.
+Source: none published
+Upstream: no
+Why: SuspendThread reaches the thread as SIGUSR1, and usr1_handler saves
+ the context that GetThreadContext later returns. If the thread is in a
+ syscall it saves the user's registers from the syscall frame; otherwise it
+ takes the signal context as user code. It decides with is_inside_syscall,
+ which only covers the kernel stack up to the frame. On its way out of a
+ syscall, though, __wine_syscall_dispatcher points rsp into the frame
+ (frame+0x70, to load the user's rsp or for iretq). A suspend landing
+ there saved the dispatcher's own registers as the thread's context: rsp
+ on Wine's kernel stack, just below the thread's stack, and rip in the
+ dispatcher. Now a thread whose sp
+ is in the frame is treated as in the syscall too: its context is built
+ below the frame, not over it. (On 11.x the dispatcher also restores the
+ user's gs base from there, and the 11.22 patch runs leave_handler
+ afterwards; 10.0's dispatcher keeps gs on the TEB on macOS.) Other users
+ of is_inside_syscall are unchanged.
+Programs: Steam's client (64-bit, its Chromium/CEF), since the client update
+ of 2026-11-21: Chromium's stack sampling profiler suspends a thread,
+ copies its stack from the reported rsp up to the stack base, and faulted
+ at the thread stack's guard page (libcef.dll+0x922cc1a); the game
+ started from Steam quit with it
+Uncertain: Linux has the same window (frame+0x70 before iretq) without the
+ extra system call, so there it should be rare; not tested there.
+Evidence: Two minidumps (both 11.22-build0): the faulting loop is
+ Chromium's CopyStackContentsAndRewritePointers, copying from 0x410 below a
+ thread's stack reservation (the dispatcher's kernel rsp) to its stack
+ base, and it faults on reaching the reservation's first page. A probe that
+ suspends a thread making syscalls and reads its context saw rsp at that
+ same place, with rip at __wine_syscall_dispatcher+432 (the gs-base
+ syscall), in 86135 of 287461 contexts on plain wine 11.22 and in 81608 of
+ 253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
+ 234757.
+Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
+ published):
+ suspend-context-syscall-return passes (1 run).
+ The build's full suite: 51 passed, 0 failed, 0 skipped.
+ 2026-11-22 (evening): in a local test build (macfixes-10.0-build0,
+ not published): suspend-context-syscall-return passes 5 of 6 (25817 to
+ 43160 contexts, all within the stack); the other run crashed in the test
+ itself (it read the thread's TEB before the thread had started, on a
+ heavily loaded Mac; the test now waits for it).
+ 2026-11-22: ported from 11.22, rewritten for 10.0, whose syscall
+ dispatcher doesn't switch the gs base on macOS (no leave_handler call);
+ not yet in a build.
+ suspend-context-syscall-return fails on macfixes-10.0-build7 (3
+ runs: 838 of 159544 contexts with rsp outside the stack once, and a page
+ fault in the test program twice).
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2605,6 +2605,24 @@
+ 
+ 
+ /**********************************************************************
++ *		is_inside_syscall_frame
++ *
++ * On the way out of a syscall, the dispatcher points rsp into the syscall
++ * frame (to load the user's rsp, or for iretq). The thread is still in the
++ * syscall, but is_inside_syscall() only covers the kernel stack below the
++ * frame.
++ */
++static BOOL is_inside_syscall_frame( const ucontext_t *sigcontext )
++{
++    struct syscall_frame *frame = amd64_thread_data()->syscall_frame;
++    char *sp = (char *)RSP_sig(sigcontext);
++
++    return frame && sp > (char *)frame &&
++           sp < (char *)ntdll_get_thread_data()->kernel_stack + kernel_stack_size;
++}
++
++
++/**********************************************************************
+  *		usr1_handler
+  *
+  * Handler for SIGUSR1, used to signal a thread that it got suspended.
+@@ -2613,13 +2631,14 @@
+ {
+     ucontext_t *ucontext = init_handler( sigcontext );
+ 
+-    if (is_inside_syscall( ucontext ))
++    if (is_inside_syscall( ucontext ) || is_inside_syscall_frame( ucontext ))
+     {
+         struct syscall_frame *frame = amd64_thread_data()->syscall_frame;
++        ULONG_PTR sp = is_inside_syscall_frame( ucontext ) ? (ULONG_PTR)frame : RSP_sig(ucontext);
+         ULONG64 saved_compaction = 0;
+         struct xcontext *context;
+ 
+-        context = (struct xcontext *)(((ULONG_PTR)RSP_sig(ucontext) - 128 /* red zone */ - sizeof(*context)) & ~15);
++        context = (struct xcontext *)((sp - 128 /* red zone */ - sizeof(*context)) & ~15);
+         if ((char *)context < (char *)ntdll_get_thread_data()->kernel_stack)
+         {
+             ERR_(seh)( "kernel stack overflow.\n" );

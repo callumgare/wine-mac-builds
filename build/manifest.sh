@@ -31,6 +31,7 @@ export MACPORTS_PORT_PATCHES_LIST="${MACPORTS_PORT_PATCHES[*]+${MACPORTS_PORT_PA
 # A string copy: bash can't export an array, and assigning to PATCHES itself
 # only replaced its first element, so the list never reached manifest.py.
 export PATCH_LIST="${PATCHES[*]}"
+export PATCH_BASE PATCH_SETS_LIST="${PATCH_SETS[*]}"
 export WMB_REPO_URL="${WMB_REPO_URL:-$(git -C "$WMB_ROOT" remote get-url origin 2>/dev/null | sed 's|\.git$||; s|^git@github.com:|https://github.com/|' || true)}"
 
 group_start "Manifest"

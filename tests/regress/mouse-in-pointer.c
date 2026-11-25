@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0051 win32u-enable-mouse-in-pointer-semi-stub (10.0; Wine 11.3 has it)
+ * Guards: win32u-enable-mouse-in-pointer
  *
  * Programs that handle pointer input call EnableMouseInPointer(TRUE) so
  * that the mouse sends WM_POINTER* messages too; in Wine 10.0 it was a stub

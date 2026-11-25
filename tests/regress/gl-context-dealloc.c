@@ -1,12 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Versions: 10.0 11.21 11.22
  * Timeout: 300
  * Libs: -mwindows -ld3d8 -luser32
  * Wrapper: needs-opengl
- * Guards: 0066 winemac-gl-context-dealloc-off-main-thread
+ * Guards: winemac-gl-context-dealloc-off-main-thread
  *
  * When a GL thread drops the last reference to one of winemac's OpenGL
  * contexts, -[NSOpenGLContext dealloc] calls winemac's -clearDrawable,

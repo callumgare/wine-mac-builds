@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
- * Guards: 0068 ntdll-suspend-context-syscall-return
+ * Guards: ntdll-suspend-context-syscall-return
  *
  * SuspendThread followed by GetThreadContext must give the thread's own
  * registers. On its way out of a syscall, Wine's dispatcher points rsp into

@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0045 cx-ntdll-export-wine-unix-call, 0021 gfx-winemetal-stub-dll, 0050 cx-wine-inf-d3dmetal-fake-dlls
+ * Guards: ntdll-export-wine-unix-call winemetal-stub wine-inf-d3dmetal-stub-dlls
  *
  * What D3DMetal's and DXMT's own DLLs, dropped into a prefix, need from
  * Wine before they can load:

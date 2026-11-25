@@ -1,0 +1,67 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Keep a click in a fullscreen Space from reaching the window's frame view
+Category: input
+Kind: fix
+Origin: wine-mac-builds
+From: dlls/winemac.drv/cocoa_window.m (WineContentView); written for
+ wine-mac-builds after Second Chance's workaround (it swizzles the same
+ method).
+Source: none published
+Upstream: no
+Why: Wine takes a click in -[WineApplicationController handleEvent:], before
+ AppKit dispatches it, and then lets NSApplication deliver it as well. It
+ goes to the window's WineContentView, which had no mouseDown:, so it went
+ on up the responder chain to the window's frame view (NSThemeFrame). In a
+ fullscreen Space the frame view starts dragging the fullscreen window from
+ wherever the click is, and that drag sets the arrow cursor in place of the
+ program's own. WineContentView now takes mouseDown: and, while the window
+ is in a fullscreen Space, drops it; otherwise it passes it on as before.
+ mouseDownCanMoveWindow (already NO for every Wine view) doesn't help: the
+ frame view only asks it for drags from the title bar or a textured
+ background.
+Programs: Webmaster (Tivola; cnc-ddraw, its own glove cursor), plain Wine
+ with EmulateModeset in a fullscreen Space: a click anywhere in the picture
+ turned the glove into the Mac's arrow until the game next set its cursor
+ (Second Chance, 2026-11-12)
+Uncertain: The arrow itself hasn't been seen here: a Screen Slots slot (a
+ background login) has no live cursor to look at. Other buttons
+ (rightMouseDown:, otherMouseDown:) still go up the chain.
+Evidence: In a slot on meeka (macOS 26.7.2), with a debug build: in a
+ fullscreen Space the click reaches -[WineContentView mouseDown:] and its
+ next responder is the window's NSThemeFrame (1 run, with the click
+ passed on). With this change the program still gets the press, 10 moves
+ and the release of a drag (1 run), as without it.
+Status: 2026-11-22 (evening): confirmed on meeka's console with host14 by
+ Second Chance, watched by the user: Webmaster in a fullscreen Space,
+ plain driver (not hosted), Second Chance's mouseDown workaround off: the
+ glove cursor stayed through clicks (1 session).
+ 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
+ hosted integration run on meeka passed every source: disc 36/36, download
+ 6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
+ Can Kill Remastered's trial needed reruns (its DRM ended without starting
+ the game, no Wine errors), as on host8 and host10 before these patches.
+ 2026-11-22: not yet in a build (in Second Chance's host13 test
+ tarball). Tested only as in Evidence, and winemac-activation-policy and
+ winemac-plugins pass on that tree; not yet with Webmaster or on a
+ console, where the cursor can be seen.
+
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -354,6 +354,16 @@
+ @implementation WineContentView
+ 
+ @synthesize everHadGLContext = _everHadGLContext;
++
++    - (void) mouseDown:(NSEvent*)theEvent
++    {
++        /* Wine has already taken the click, in -[WineApplicationController
++         * handleEvent:]. Passed on up the responder chain, in a fullscreen Space
++         * it reaches the window's frame view, which starts dragging the window
++         * from wherever the click was and sets the arrow cursor. */
++        if (!([[self window] styleMask] & NSWindowStyleMaskFullScreen))
++            [super mouseDown:theEvent];
++    }
+ 
+     - (instancetype) initWithFrame:(NSRect)frame
+     {

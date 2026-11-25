@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+"""Work with patch sets' patches (patches/README.md).
+
+    tools/patch new <set> <name> <version> [--base winehq]
+        Make patches/<base>/<set>/<NNNN>-<name>/<name>@<version>.patch with
+        the next free order number in the set's range and a header to fill
+        in. Write the diff below the header's blank line.
+    tools/patch split <name> <version> [--base winehq]
+        Give <version> its own copy of the patch, so a fix can be changed on
+        one version first (AGENTS.md, "Fixing a bug"). The new copy starts as
+        a duplicate of the one that covered <version>.
+    tools/patch renumber-versions <base> <new version>
+        After inputs/<base>/<new version>.sh is written: rename every copy
+        so it still covers exactly the versions it did. A run such as
+        11.21-11.23 covers the pinned versions between its ends, so a newly
+        pinned version inside it would otherwise be covered silently.
+        tools/pin runs this.
+    tools/patch extend <flavour> <version> <wine source dir>
+        Carry the flavour's patches into a newly pinned version: in order,
+        each patch whose copy for the flavour's previous version applies to
+        <version> without fuzz gets <version> added to that copy (git mv).
+        Patches that don't apply are listed: port them by hand (AGENTS.md).
+        The source directory is changed: pass a scratch copy. tools/pin
+        runs this.
+"""
+
+import pathlib
+import shutil
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "build"))
+import patches as P  # noqa: E402
+
+SKELETON = """SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: TODO one line, what the patch does, no full stop
+Category: TODO
+Kind: TODO
+Origin: wine-mac-builds
+From: TODO
+Source: none published
+Upstream: no
+Why: TODO what problem it fixes, and how
+Programs: TODO the programs that led to it, each with what went wrong
+Status: {date}: written; not yet in a build.
+
+"""
+
+
+def opt(argv, name, default):
+    if name in argv:
+        i = argv.index(name)
+        value = argv[i + 1]
+        del argv[i:i + 2]
+        return value
+    return default
+
+
+def git_mv(src, dst):
+    if src == dst:
+        return
+    r = subprocess.run(["git", "-C", str(ROOT), "mv", str(src), str(dst)], capture_output=True)
+    if r.returncode:  # not tracked yet
+        src.rename(dst)
+
+
+def find(base, name):
+    for p in P.load(base):
+        if p.name == name:
+            return p
+    sys.exit(f"no patch named {name} under patches/{base}/")
+
+
+def cmd_new(argv):
+    base = opt(argv, "--base", "winehq")
+    set_name, name, version = argv
+    if not P.DIR_RE.match(f"0000-{name}"):
+        sys.exit(f"{name}: names are lower-case letters, digits, '.' and '-' (<module>-<what it does>)")
+    info = P.set_info(base, set_name)
+    if not info.get("range"):
+        sys.exit(f"no set {set_name} under patches/{base}/ (or its README has no Range)")
+    if version not in P.base_versions(base):
+        sys.exit(f"{version} isn't pinned (inputs/{base}/{version}.sh)")
+    existing = P.load(base)
+    if any(p.name == name for p in existing):
+        sys.exit(f"{name} already exists")
+    lo, hi = info["range"]
+    used = {int(p.number) for p in existing}
+    free = [n for n in range(lo, hi + 1) if n not in used and n > max([u for u in used if lo <= u <= hi] or [lo - 1])]
+    if not free:
+        sys.exit(f"no free number left above the last one in {set_name}'s range {lo:04d}-{hi:04d}")
+    d = P.PATCHES / base / set_name / f"{free[0]:04d}-{name}"
+    d.mkdir()
+    f = d / f"{name}@{version}.patch"
+    import datetime
+    f.write_text(SKELETON.format(date=datetime.date.today().isoformat()))
+    print(f.relative_to(ROOT))
+
+
+def cmd_split(argv):
+    base = opt(argv, "--base", "winehq")
+    name, version = argv
+    p = find(base, name)
+    pinned = P.base_versions(base)
+    for c in p.copies:
+        if c.versions and version in c.versions:
+            rest = [v for v in c.versions if v != version]
+            if not rest:
+                sys.exit(f"{c.path.name} already covers only {version}")
+            new = c.path.with_name(f"{name}@{version}.patch")
+            shutil.copyfile(c.path, new)
+            git_mv(c.path, c.path.with_name(f"{name}@{P.format_versions(rest, pinned)}.patch"))
+            print(new.relative_to(ROOT))
+            return
+    sys.exit(f"no copy of {name} covers {version}")
+
+
+def cmd_renumber_versions(argv):
+    base, new_version = argv
+    pinned = P.base_versions(base)
+    if new_version not in pinned:
+        sys.exit(f"inputs/{base}/{new_version}.sh doesn't exist yet")
+    old_pinned = [v for v in pinned if v != new_version]
+    for p in P.load(base):
+        for c in p.copies:
+            try:
+                versions = P.parse_versions(c.versions_text, old_pinned)
+            except ValueError as e:
+                sys.exit(f"{c.file}: {e}")
+            dst = c.path.with_name(f"{p.name}@{P.format_versions(versions, pinned)}.patch")
+            if dst != c.path:
+                git_mv(c.path, dst)
+                print(f"{c.path.name} -> {dst.name} (coverage unchanged)")
+
+
+def apply(copy, src, dry):
+    args = ["patch", "-d", str(src), "-p1", "--forward", "--batch", "--fuzz=0", "-s"]
+    if dry:
+        args.append("--dry-run")
+    with open(copy.path, "rb") as f:
+        return subprocess.run(args, stdin=f, capture_output=True).returncode == 0
+
+
+def cmd_extend(argv):
+    flavour, version, src = argv
+    src = pathlib.Path(src)
+    fl = P.flavour(flavour)
+    base, sets = fl["base"], fl["sets"]
+    pinned = P.base_versions(base)
+    earlier = [v for v in fl["versions"] if P.version_key(v) < P.version_key(version)]
+    if not earlier:
+        sys.exit(f"{flavour} has no version before {version} to carry patches from")
+    prev = max(earlier, key=P.version_key)
+    have = {c.patch.name: c for c in P.resolve(base, sets, version)}
+    carried, missing = [], []
+    for c in P.resolve(base, sets, prev):
+        name = c.patch.name
+        use = have.get(name)
+        if use is None and apply(c, src, dry=True):
+            use = c
+            dst = c.path.with_name(
+                f"{name}@{P.format_versions(c.versions + [version], pinned)}.patch")
+            git_mv(c.path, dst)
+            c.path = dst
+            carried.append(name)
+        if use is None:
+            missing.append(name)
+            continue
+        if not apply(use, src, dry=False):
+            sys.exit(f"{use.file} passed its dry run but didn't apply")
+    print(f"{flavour} {version}: carried {len(carried)} patches from {prev}; "
+          f"{len(have)} already had a copy for {version}")
+    if missing:
+        print("Not carried (doesn't apply without fuzz; port by hand, then tools/patch split "
+              "or add a copy):")
+        for n in missing:
+            print(f"  {n}")
+
+
+def main(argv):
+    cmds = {"new": cmd_new, "split": cmd_split, "renumber-versions": cmd_renumber_versions,
+            "extend": cmd_extend}
+    if not argv or argv[0] not in cmds:
+        print(__doc__, file=sys.stderr)
+        return 2
+    try:
+        cmds[argv[0]](argv[1:])
+    except ValueError:
+        print(__doc__, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Timeout: 60
  * Libs: -mwindows -lopengl32 -lgdi32 -luser32
  * Wrapper: needs-opengl
- * Guards: 0046 cx-winemac-bc7-texture-decode
+ * Guards: winemac-bc7-texture-decode
  *
  * macOS's OpenGL has no BC7 (BPTC) textures. Tomb Raider I-III Remastered
  * uploads its textures as BC7 2D arrays with glCompressedTexImage3D; without

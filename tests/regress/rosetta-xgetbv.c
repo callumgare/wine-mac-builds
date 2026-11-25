@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0007 cpu-rosetta-xgetbv
+ * Guards: ntdll-rosetta-xgetbv
  *
  * XGETBV reads an extended control register; with ECX = 0 it returns XCR0,
  * the state components the OS saves (bit 0 x87, bit 1 SSE, bit 2 AVX).

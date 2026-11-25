@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
  * Libs: -luser32 -lgdi32
- * Guards: 0044 cx-win32u-composited-paint
+ * Guards: win32u-composited-paint
  *
  * Some programs pump messages with PeekMessage(PM_REMOVE | PM_QS_INPUT |
  * PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE). CrossOver found

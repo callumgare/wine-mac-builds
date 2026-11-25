@@ -33,11 +33,16 @@ projects.
   is how CI makes releases; byte-identical to a VM build apart from
   `BUILD-INFO.json`), `./wmb vm quick …` (a test build; see below),
   `./wmb regress --tree <dir>`.
-- `flavours/` defines each flavour, and `inputs/<flavour>/<version>.sh` pins
-  a version's inputs, including its patch list in order.
-- `patches/<flavour>/<version>/`: each patch has a header in the format of
-  [patches/README.md](patches/README.md). `build/patch_header.py` checks it,
-  and builds fail without a valid one.
+- `flavours/` defines each flavour: its base, its patch sets
+  (`PATCH_SETS`) and the Wine versions it's built for (`VERSIONS`).
+  `inputs/<base>/<version>.sh` pins a version's sources. `tools/pin
+  <flavour> <version>` adds a version.
+- `patches/<base>/<set>/<NNNN>-<name>/<name>@<versions>.patch`: each patch,
+  one file per copy, in patch sets. The layout, the header format and the
+  rules are in [patches/README.md](patches/README.md).
+  `build/patch_header.py` checks them, and builds fail without valid ones.
+  `build/patches.py` lists the copies a build applies. Refer to patches by
+  name (`ntdll-rosetta-mxcsr`), not by number.
 - `tests/regress/`: one small program per bug a fix guards against. See
   [tests/regress/README.md](tests/regress/README.md).
 - `build/`: the build steps (compile, package, smoke, regress, manifest,
@@ -49,6 +54,12 @@ projects.
    tarball into a temporary folder and use a throwaway `WINEPREFIX` there.
    For a quiet run, set `WINEDLLOVERRIDES="winedbg.exe=d;mscoree=;mshtml="`.
 2. Write the patch for the version where the bug was seen, and only that one.
+   A new patch: `tools/patch new <set> <name> <version>` makes its folder,
+   with the next free number in the set's range, and a header to fill in.
+   Pick the set by why a flavour would take the patch (each set's README
+   says what qualifies). A change to an existing patch that covers several
+   versions: `tools/patch split <name> <version>` first gives that version
+   its own copy.
    Port it to the other versions once it's confirmed (the regression suite
    plus the run that showed the bug). A port that applies can still fail to
    compile: Wine's own APIs change between versions (10.0's
@@ -157,7 +168,7 @@ projects.
   thread) has no TEB. On 10.0, `MESSAGE`/`TRACE` from it
   (`wine_dbg_printf`) hang; 11.x copes. Use `write(2, ...)` there. Found
   with `sample <pid>` on a process that should have exited: the thread
-  sat in `wine_dbg_printf` (0071's 10.0 port).
+  sat in `wine_dbg_printf` (`ntdll-exit-with-server`'s 10.0 copy).
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS
@@ -168,7 +179,7 @@ projects.
   pointer and name each with `dladdr`. For a block being released, read
   callee-saved registers as block pointers (with `mach_vm_read_overwrite`)
   and name the block's invoke function: that names the code that made it.
-  This is how 0066's crash was found.
+  This is how `winemac-gl-context-dealloc-off-main-thread`'s crash was found.
 - A GUI program started straight from an SSH session can't reach the
   window server (Wine logs "no driver could be loaded"). Start it as a
   one-off LaunchAgent in the user's GUI session instead: a plist with
@@ -187,7 +198,7 @@ projects.
   Found this way (macOS 26.7): an accessory-policy app's windows show over
   another app's fullscreen Space even while it's inactive, which a
   regular app's don't. Only `NSWindowCollectionBehaviorFullScreenNone`
-  keeps them out (0063).
+  keeps them out (`winemac-activation-policy`).
 - For a crash someone else hits rarely, have them set AeDebug in the prefix
   (`HKLM\Software\Microsoft\Windows NT\CurrentVersion\AeDebug`:
   `Debugger` = `winedbg --minidump C:\users\Public\x.mdmp %ld %ld`,
@@ -195,10 +206,10 @@ projects.
   window. The module list, exception record, thread contexts and stack
   memory in it can be read with a short Python script (stream types 3, 4,
   5 and 6). A few code bytes around the faulting rip are often in the
-  memory list, enough to recognise the loop. 0068 was found this way: the
+  memory list, enough to recognise the loop. `ntdll-suspend-context-syscall-return` was found this way: the
   faulting loop was Chromium's stack copier, copying from a suspended
   thread's reported rsp.
-- Host mode (0069, docs/app-embedded-protocol.md) can be tested without a
+- Host mode (`winemac-host-windows`, docs/app-embedded-protocol.md) can be tested without a
   real host and without the screen: `tools/wmh-testhost` checks in a Mach
   service, logs the driver's messages, saves each window's picture as a
   PNG, and asks the windows to close after a while. Run it as a one-off

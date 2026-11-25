@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0011 cpu-rosetta-wx-write-fault
+ * Guards: ntdll-write-fault-wx-retry
  *
  * Self-modifying code in a page that is writable and executable at once
  * (PAGE_EXECUTE_READWRITE), as JITs, packers and DRM stubs use: write some

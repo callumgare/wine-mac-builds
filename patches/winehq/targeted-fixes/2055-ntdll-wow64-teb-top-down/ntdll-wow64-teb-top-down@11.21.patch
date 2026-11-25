@@ -1,0 +1,103 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Keep wow64 TEBs and the PEB high in memory, as before Wine 11.18 (Armadillo DRM)
+Category: cpu
+Kind: fix
+Origin: wine-mac-builds
+From: written for wine-mac-builds
+Source: none published
+Upstream: no (the placement changed upstream in Wine 11.18, f0bd9046)
+Why: Wine 11.18 (upstream f0bd9046, "Allocate initial TEB and process
+ parameters in high memory on 64-bit") stopped reserving the TEB block
+ top-down. In wow64 that moved the 32-bit TEBs and the PEB from just under
+ 2G to the bottom of the address space, next to the main stack. Armadillo,
+ the DRM in Big Fish games, then fails to unpack in its child process
+ ("General extraction error", hidden behind the activator), so games can't
+ be activated. 10.0 and 11.0-11.17 put them high, as Windows 7's wow64
+ does. In wow64 only, reserve TEB blocks top-down below 2G again; 64-bit
+ processes keep upstream's placement.
+Programs: Big Fish games (Armadillo DRM), White Wolf and Waverly Academy
+ among them: activation fails with "General extraction error" on Wine 11.18
+ and later
+Evidence: gmActivator ("###SENDER#BFG_Client_test#GET#PROPERTY_HARDWAREID")
+ in a fresh prefix: macfixes 11.22 shows the error and writes no licence;
+ 10.0 writes 4 HKLM\Software\Licenses values. Its child process makes the
+ same calls on both up to the unpack. Either moving the TEB block high or
+ not reserving the DOS area (both of which put the TEB and PEB at 0x7ffdx000)
+ fixes it on 11.22; the stack stays low in both, so the TEB/PEB is what
+ matters.
+Port: 11.21 still sets a 4G low limit for 64-bit processes with ASLR in
+ the same two places; the helper keeps that.
+Status: 2026-11-16: built in wine-macfixes-11.21-build4; the activator writes
+ its licence (4 values) in a fresh prefix, with no error box.
+
+diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
+index 46e761e..ee83fc9 100644
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -3718,6 +3718,27 @@ struct thread_data *virtual_alloc_first_thread_data(void)
+ }
+ 
+ 
++/***********************************************************************
++ *           get_teb_block_placement
++ *
++ * In wow64, reserve TEB blocks top-down below 2G, where Wine 11.17 and
++ * earlier put them (Windows 7's wow64 has them there too). Bottom-up, the
++ * 32-bit TEB and PEB land in low memory next to the stack, and Armadillo's
++ * unpacker then fails with "General extraction error".
++ */
++static unsigned int get_teb_block_placement( ULONG_PTR *limit_low, ULONG_PTR *limit_high )
++{
++    *limit_low = *limit_high = 0;
++    if (user_space_wow_limit)
++    {
++        *limit_high = min( user_space_wow_limit, limit_2g - 1 ) & ~granularity_mask;
++        return MEM_TOP_DOWN;
++    }
++    if (use_aslr()) *limit_low = limit_4g;
++    return 0;
++}
++
++
+ /***********************************************************************
+  *           virtual_alloc_first_teb
+  */
+@@ -3727,7 +3748,8 @@ void virtual_alloc_first_teb(void)
+     unsigned int status;
+     struct file_view *view;
+     struct thread_data *data = get_thread_data();
+-    ULONG_PTR limit_low = 0, limit_high = 0;
++    ULONG_PTR limit_low, limit_high;
++    unsigned int alloc_type;
+ 
+     set_large_address_space();
+ 
+@@ -3735,10 +3757,8 @@ void virtual_alloc_first_teb(void)
+     if (is_wow64()) teb_block_size += ROUND_SIZE( 0, sizeof(WOW_TEB), page_mask );
+     teb_block_size += page_size;  /* for debug info */
+ 
+-    if (user_space_wow_limit) limit_high = user_space_wow_limit & ~granularity_mask;
+-    else if (use_aslr()) limit_low = limit_4g;
+-
+-    status = map_view( &view, NULL, 16 * teb_block_size, 0,
++    alloc_type = get_teb_block_placement( &limit_low, &limit_high );
++    status = map_view( &view, NULL, 16 * teb_block_size, alloc_type,
+                        VPROT_READ | VPROT_WRITE, limit_low, limit_high, 0 );
+     assert( !status );
+     teb_block = view->base;
+@@ -3784,12 +3804,10 @@ NTSTATUS virtual_alloc_teb( struct thread_data *data )
+         if (!teb_block_pos)
+         {
+             struct file_view *view;
+-            ULONG_PTR limit_low = 0, limit_high = 0;
+-
+-            if (user_space_wow_limit) limit_high = user_space_wow_limit & ~granularity_mask;
+-            else if (use_aslr()) limit_low = limit_4g;
++            ULONG_PTR limit_low, limit_high;
++            unsigned int alloc_type = get_teb_block_placement( &limit_low, &limit_high );
+ 
+-            if ((status = map_view( &view, NULL, 32 * teb_block_size, 0,
++            if ((status = map_view( &view, NULL, 32 * teb_block_size, alloc_type,
+                                     VPROT_READ | VPROT_WRITE, limit_low, limit_high, 0 )))
+             {
+                 server_leave_uninterrupted_section( &virtual_mutex, &sigset );

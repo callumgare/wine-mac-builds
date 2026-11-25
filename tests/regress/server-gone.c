@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
- * Flavours: macfixes
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Wrapper: kill-server server-gone
- * Guards: 0071 ntdll-exit-with-server
+ * Guards: ntdll-exit-with-server
  *
  * A Wine thread only notices that its wineserver is gone on its next
  * request. A program whose threads only sleep, render or wait in a macOS

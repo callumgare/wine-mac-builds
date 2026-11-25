@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0040 cpu-rosetta-fs-addr32
+ * Guards: ntdll-rosetta-fs-addr32
  *
  * 32-bit code can address the TEB through %fs with 16-bit addressing (the
  * 0x67 prefix): "pop dword fs:[0000]" is 64 67 8F 06 00 00. Armadillo, the

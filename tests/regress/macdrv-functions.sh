@@ -1,9 +1,8 @@
 #!/bin/bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Flavours: macfixes
 # Timeout: 30
-# Guards: 0020 gfx-winemac-d3dmetal-macdrv-functions
+# Guards: winemac-export-macdrv-functions
 #
 # D3DMetal and DXMT draw into Wine's windows through winemac's Metal views:
 # they look up the table of functions winemac.so exports as
