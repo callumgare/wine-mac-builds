@@ -4,7 +4,12 @@
   markup.py        escaping helpers and the inline copy markup
   frame.py         head, header, navigation and footer of every page
   output.py        Site: static files with hashed names, page writing, _headers
-  parts.py         pieces several pages share
+  parts.py         pieces several pages share, and formatting
+  data.py          reading the releases and shaping them into builds
+  legacy.py        builds from before patch sets, in the patch-set shape
+  buildpage.py     build pages, latest-build pages, pasted-name stubs,
+                   and the buildless download redirects
+  buildlist.py     /builds/
   placeholders.py  stand-ins for pages not built yet
   notfound.py      /404.html
   static/          site.css, site.js, favicon.svg and fonts/

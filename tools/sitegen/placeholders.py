@@ -8,7 +8,6 @@ from .parts import hero
 PAGES = [
     ("/", "home", "Stable and comprehensive builds of Wine for macOS"),
     ("/flavours/", "flavours", "Flavours"),
-    ("/builds/", "builds", "Builds"),
     ("/packaging/", "packaging", "Packaging"),
     ("/patches/", "patches", "Patches"),
 ]
@@ -17,6 +16,6 @@ PAGES = [
 def render(site):
     for path, nav, title in PAGES:
         note = el("p", "This page isn't built yet. Its data is in ",
-                  el("a", el("code", "/v1/index.json"), href="/v1/index.json"), ".")
+                  el("a", el("code", "/v1/builds.json"), href="/v1/builds.json"), ".")
         body = [hero(title), el("div", el("div", note, class_="block tight prose"), class_="wrap")]
         site.page(path, title=title, body=body, nav=nav)

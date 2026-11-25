@@ -77,7 +77,7 @@ header.top .wrap { display: flex; align-items: center; gap: .75rem 1.5rem; flex-
 nav.views { display: flex; gap: .15rem; flex-wrap: wrap; margin-left: auto; }
 nav.views a { font-size: .92rem; color: var(--muted); text-decoration: none; padding: .32rem .75rem; border-radius: 999px; transition: background .2s, color .2s; }
 nav.views a:hover { color: var(--fg); background: var(--sunk); }
-nav.views a[aria-current="page"] { color: var(--fg); background: var(--surface); box-shadow: 0 0 0 1px var(--line); font-weight: 550; }
+nav.views a[aria-current] { color: var(--fg); background: var(--surface); box-shadow: 0 0 0 1px var(--line); font-weight: 550; }
 
 /* Views */
 .block { padding-block: clamp(3rem, 7vw, 5rem); display: flex; flex-direction: column; gap: 1.75rem; }
@@ -318,7 +318,7 @@ pre.json.swap .s, pre.json.swap .n { animation: swap .25s var(--ease); }
 
 /* Build page */
 .bhero { padding-block: clamp(3rem, 7vw, 5rem) 2rem; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1rem 2.5rem; align-items: end; }
-.bigv { font: 600 clamp(4.5rem, 14vw, 8.5rem)/.85 var(--f-display); letter-spacing: .035em; color: var(--mac); font-variant-numeric: proportional-nums lining-nums; font-feature-settings: "kern" 1; }
+.bigv { font: 600 clamp(4.5rem, 14vw, 8.5rem)/.85 var(--f-display); letter-spacing: .035em; color: var(--c, var(--mac)); font-variant-numeric: proportional-nums lining-nums; font-feature-settings: "kern" 1; }
 .bigv .dot { margin-inline: -.01em; }
 .bhero .id { display: flex; flex-direction: column; gap: .8rem; min-width: 0; padding-bottom: .4rem; }
 .bhero .id h1 { font: 500 clamp(1.05rem, 2.6vw, 1.45rem)/1.3 var(--f-mono); letter-spacing: -.01em; overflow-wrap: anywhere; }
@@ -434,4 +434,41 @@ details.conf pre { margin: .6rem 0 0; font: .8rem/1.7 var(--f-mono); white-space
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Added for the generated pages (not in the mockup) */
+.oc-crossover { --oc: var(--mac); }
+.oc-wine-mac-builds { --oc: var(--wine); }
+.oc-reconstructed { --oc: var(--warn); }
+.oc-wine-staging { --oc: color-mix(in srgb, var(--wine) 50%, var(--mac)); }
+.oc-gcenx { --oc: color-mix(in srgb, var(--wine) 45%, var(--fg)); }
+.oc-winehq { --oc: color-mix(in srgb, var(--wine) 60%, var(--bg)); }
+.oc-other { --oc: var(--plan); }
+.tag.warn { color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); }
+.notice { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.2rem; border-radius: var(--r); background: var(--sunk); max-width: 46rem; }
+.notice strong { font-weight: 600; }
+h3.plat { font: 500 1rem var(--f-mono); margin-top: .5rem; }
+.cmdbox { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.frow2 .hash { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .6rem; align-items: start; }
+.frow2 .hashtext { min-width: 0; overflow-wrap: anywhere; }
+.frow2 .hash .cmdtext { color: var(--muted); font-size: 1em; overflow-wrap: anywhere; }
+.frow2 .hash .sha { font-size: 1em; color: var(--faint); overflow-wrap: anywhere; }
+.frow2 .hash .arrow { color: var(--faint); }
+.pcat h3 code { font-size: .95em; }
+.pcat > p { margin: .4rem 0 .2rem; }
+.odetail { display: inline-block; }
+.blinks { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; }
+.blinks .tag { margin-left: .3rem; }
+.issues { margin: 0; padding-left: 1.1rem; }
+.prose h2 + p, .prose h2 + ul { margin-top: .75rem; }
+.prose p + h2, .prose ul + h2 { margin-top: 2rem; }
+.jhint { margin-top: .5rem; }
+.brow .dlc { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+.btn svg { flex: none; }
+@media (max-width: 720px) {
+  .facts { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1.25rem 1.5rem; }
+  .frow2 { grid-template-columns: minmax(0, 1fr) auto; }
+  .frow2 .fn { grid-column: 1 / -1; }
+  .frow2 .sz { text-align: left; }
 }

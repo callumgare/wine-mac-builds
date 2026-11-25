@@ -126,9 +126,13 @@ projects.
 - The website: `python3 tests/site/check.py` generates it from made-up
   releases (`tests/site/releases.json`, no network) and checks the HTML,
   links, assets, `_headers` and `_redirects`; `--keep <dir>` leaves the
-  site there, and `--site <dir>` checks one generated already. Preview with
-  `python3 tools/site.py --out site --releases tests/site/releases.json
-  --include-drafts` and `npx wrangler dev`, which applies `_headers`,
+  site there, and `--site <dir>` checks one generated already. The made-up
+  releases come from `tests/site/make-releases.py`; after changing it, run
+  it, and add any new builds.json keys with `check.py --write-keys`. Preview
+  with `python3 tools/site.py --out site --releases tests/site/releases.json
+  --metadata tests/site/metadata --include-drafts` (or the real drafts:
+  `GH_TOKEN=… python3 tools/site.py --out site --include-drafts`) and
+  `npx wrangler dev`, which applies `_headers`,
   `_redirects`, the trailing-slash handling and the 404 page as Cloudflare
   does (`python3 -m http.server` does none of these). Headless Chrome's
   window can't be narrower than about 500 px, so for phone-width

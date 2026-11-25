@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 """Pieces shared by several pages."""
 
-from .markup import Markup, el
+from .markup import Markup, el, esc, inline
 
 _COPY_ICONS = Markup(
     '<svg class="cp" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">'
@@ -32,3 +32,52 @@ def copy_button(target_id, label):
     needs JavaScript, so it stays hidden without it (site.js shows it)."""
     return el("button", _COPY_ICONS, el("span", "Copy", class_="cl"), type="button", class_="copy",
               data_copy=f"#{target_id}", aria_label=label, hidden=True)
+
+
+# --- Formatting ----------------------------------------------------------------------
+
+CHANNELS = {"stable": "stable", "development": "development", "release-candidate": "release candidate"}
+KIND_NAMES = {"fix": "Fix", "workaround": "Workaround", "feature": "Feature", "performance": "Performance",
+              "tests": "Tests"}
+CATEGORIES = {"cpu": "CPU, Rosetta 2 and memory", "sync": "Thread synchronisation",
+              "graphics": "Direct3D, D3DMetal, OpenGL and Vulkan", "input": "Windows, focus, mouse and keyboard",
+              "system": "Files, network, processes and version", "apps": "Specific programs",
+              "build": "How Wine builds, and its tests"}
+ORIGINS = {"winehq": "WineHQ", "wine-staging": "wine-staging", "crossover": "CrossOver", "gcenx": "Gcenx",
+           "reconstructed": "Reconstructed", "wine-mac-builds": "This project", "other": "Other project"}
+FILE_KINDS = {"build": "Wine itself, ready to run", "debug": "Debug symbols", "tests": "winetest",
+              "sources": "Corresponding source", "build_info": "BUILD-INFO", "sbom": "Software Bill of Materials (SBOM)",
+              "sha256sums": "Checksums", "test_results": "Test results"}
+FILE_ORDER = list(FILE_KINDS)
+
+
+def size(n):
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1000 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1000
+
+
+def date(iso):
+    return iso[:10] if iso else None
+
+
+def flavour_class(f):
+    return {"wine": "fl-wine", "macfixes": "fl-macfixes"}.get(f, "fl-plan")
+
+
+def chip(flavour):
+    return el("span", flavour, class_=f"chip {flavour_class(flavour)}")
+
+
+def origin_class(project):
+    return "oc-" + (project if project in ORIGINS else "other")
+
+
+def text(s):
+    """Header text from a build (a patch's summary): the inline copy markup
+    where it parses, plain text where it doesn't."""
+    try:
+        return inline(s)
+    except ValueError:
+        return esc(s)

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 //
 // The website's one script. Every page is complete without it; it only adds
-// what needs a script: copy buttons and clickable build rows, for now.
-// Later pages add their filters, the Flavours version switcher and the set
-// popovers here. It loads nothing and talks to no other site.
+// what needs a script: copy buttons, clickable build rows, the Builds
+// page's filters and the build page's category filter. Controls that need
+// it are hidden in the HTML (hidden, data-js) and shown here. It loads
+// nothing and talks to no other site.
 (() => {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s);
@@ -50,6 +51,67 @@
     if (getSelection().toString()) return;
     const a = $('.bn a', row);
     if (a) location.href = a.href;
+  });
+
+  /* Builds: filter the list by flavour, channel and Wine version. */
+  $$('.filters[data-list]').forEach(bar => {
+    const list = document.getElementById(bar.dataset.list);
+    if (!list) return;
+    bar.hidden = false;
+    const f = { f: '', ch: '', v: '' };
+    const rows = $$('.rw', list);
+    const apply = () => {
+      let n = 0;
+      rows.forEach(rw => {
+        const ok = (!f.f || rw.dataset.f === f.f) && (!f.ch || rw.dataset.ch === f.ch) &&
+          (!f.v || rw.dataset.v.startsWith(f.v));
+        rw.hidden = !ok;
+        n += ok;
+      });
+      $('[data-count]', bar).textContent = n === rows.length ? `${n} builds` : `${n} of ${rows.length} builds`;
+      const empty = $('[data-empty]', list);
+      if (empty) empty.hidden = n > 0;
+    };
+    $$('.seg[data-filter]', bar).forEach(seg => seg.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      $$('button', seg).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      f[seg.dataset.filter] = b.dataset.v;
+      apply();
+    }));
+    const input = $('input[data-filter]', bar);
+    if (input) input.addEventListener('input', () => { f.v = input.value.trim(); apply(); });
+    apply();
+  });
+
+  /* Build page: show only the patches of the chosen categories. */
+  $$('.pfilters[data-js]').forEach(bar => {
+    const root = bar.parentElement;
+    bar.hidden = false;
+    const on = new Set();
+    const rows = $$('.prow[data-cat]', root);
+    const apply = () => {
+      let shown = 0;
+      $$('.pcat', root).forEach(sec => {
+        const rs = $$('.prow[data-cat]', sec);
+        let n = 0;
+        rs.forEach(r => { const ok = !on.size || on.has(r.dataset.cat); r.hidden = !ok; n += ok; });
+        const c = $('[data-n]', sec);
+        if (c) c.textContent = n === rs.length ? `${rs.length}` : `${n} of ${rs.length}`;
+        sec.hidden = n === 0;
+        shown += n;
+      });
+      $('[data-count]', bar).textContent = shown === rows.length ? `${shown} patches` : `${shown} of ${rows.length} patches`;
+      const empty = $('[data-empty]', root);
+      if (empty) empty.hidden = shown > 0;
+    };
+    bar.addEventListener('click', e => {
+      const b = e.target.closest('button[data-cat]');
+      if (!b) return;
+      on.has(b.dataset.cat) ? on.delete(b.dataset.cat) : on.add(b.dataset.cat);
+      b.setAttribute('aria-pressed', String(on.has(b.dataset.cat)));
+      apply();
+    });
   });
 
   wireCopy();
