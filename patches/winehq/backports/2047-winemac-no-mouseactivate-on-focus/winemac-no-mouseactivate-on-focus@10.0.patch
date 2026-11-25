@@ -1,0 +1,48 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Activate a focused window without a simulated WM_MOUSEACTIVATE (backport from Wine 10.6)
+Category: input
+Kind: fix
+Origin: winehq
+  Commit: b568eaac4aeb
+  Bugs: 48121
+  Authors: Rémi Bernon
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/b568eaac4aeb
+  Note: also CrossOver's hack 18896 (window.c part), which Sikarugir 10.0_8 carries
+Origin: crossover
+  Version: 25.1.1
+  CW-Hacks: 18896
+  Note: CX's hack also changed cocoa_window.m (WINDOW_GOT_FOCUS for focus
+    changes Wine makes itself); that part was dropped on 2026-11-26 (patch
+    review: no program known, WineHQ never took it, and WineHQ master removes
+    that event).
+Upstream: yes, b568eaac4aeb (in Wine 10.6)
+Why: When a Mac window gains focus, winemac sent the window a simulated
+ WM_MOUSEACTIVATE (a click on its menu) to ask whether it wants to be
+ activated. Unity games lose input after alt-tab because of it (WineHQ bug
+ 48121). It now activates the window without asking, as WineHQ does from
+ 10.6. Wine 11.x has this upstream, so there is only a 10.0 copy.
+Programs: Unity games that lose input after alt-tab, such as MTG Arena and
+ Subnautica: Below Zero (WineHQ bug 48121)
+Evidence: Sikarugir 10.0_8: its macdrv_window_got_focus makes no
+ NtUserGetAncestor or NtUserMessageCall call (125 vs 142 instructions,
+ function comparison 2026-11-15).
+Status: 2026-11-26: reduced to the window.c hunk; not yet in a build.
+
+diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+index 115820e..7223389 100644
+--- a/dlls/winemac.drv/window.c
++++ b/dlls/winemac.drv/window.c
+@@ -1899,12 +1899,7 @@ void macdrv_window_got_focus(HWND hwnd, const macdrv_event *event)
+ 
+     if (can_window_become_foreground(hwnd) && !(style & WS_MINIMIZE))
+     {
+-        /* simulate a mouse click on the menu to find out
+-         * whether the window wants to be activated */
+-        LRESULT ma = send_message(hwnd, WM_MOUSEACTIVATE,
+-                                  (WPARAM)NtUserGetAncestor(hwnd, GA_ROOT),
+-                                  MAKELONG(HTMENU, WM_LBUTTONDOWN));
+-        if (ma != MA_NOACTIVATEANDEAT && ma != MA_NOACTIVATE)
++        /* CrossOver Hack #18896: don't send WM_MOUSEACTIVATE, it breaks Unity games */
+         {
+             TRACE("setting foreground window to %p\n", hwnd);
+             NtUserSetForegroundWindow(hwnd);

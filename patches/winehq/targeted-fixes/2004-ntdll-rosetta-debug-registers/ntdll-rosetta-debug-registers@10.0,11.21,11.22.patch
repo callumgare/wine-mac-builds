@@ -8,7 +8,7 @@ Origin: crossover
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
     Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
-Upstream: partly (the wineserver half)
+Upstream: partly: WineHQ already fakes zeroed debug registers in wineserver (is_rosetta() in server/mach.c, 10.0 included); this ntdll half isn't upstream
 Why: Rosetta 2 cannot set or read x86 debug registers; report success from NtSetContextThread / the wow64 set-context path instead of failing, so anti-debug/DRM checks and debuggers don't abort.
 Programs: Big Fish games (Armadillo DRM): setting debug registers fails
  under Rosetta (Armadillo's parent relies on the faked success)
