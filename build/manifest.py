@@ -108,7 +108,7 @@ def patch_entry(f):
         "name": c.patch.name, "set": c.patch.set, "number": c.patch.number, "file": f,
         "versions": c.versions, "sha256": sha256(ROOT / f), "diff_sha256": diff_sha256(f),
         "summary": header.get("summary"), "category": header.get("category"),
-        "kind": header.get("kinds"),
+        "kinds": header.get("kinds"),
         # One entry per source the patch comes from (the header's Origin
         # blocks): project, ported_here, and its sub-keys in snake_case.
         "origins": header.get("origins", []),
