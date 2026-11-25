@@ -106,6 +106,13 @@ projects.
    `lib/wine/x86_64-unix/*.so`, through which Wine finds the bundled
    libraries by leaf name: add it with `install_name_tool -add_rpath
    @loader_path/../../ <file>`, or a swapped win32u.so can't find FreeType.
+   Run that make with `MACOSX_DEPLOYMENT_TARGET` set as the build sets it
+   (the toolchain's `DEPLOYMENT_TARGET`, 10.15). Without it the objects
+   target the running macOS (`minos 26.0`), and if the tree is a quick
+   build's (`work-quick`), they stay there: the next quick build links
+   them in and fails its static checks ("minimum macOS 26.0, newer than
+   10.15"). `otool -l <file.o> | grep minos` finds them; delete those
+   objects so make rebuilds them.
 4. Write a regression test that fails without the fix. Run it with
    `WMB_REGRESS_ALL=1` on the plain build of the same version. Check it
    compiles with llvm-mingw as well as Homebrew's mingw, since their headers
