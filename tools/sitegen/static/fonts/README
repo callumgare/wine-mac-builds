@@ -1,0 +1,43 @@
+Fonts for the website, self-hosted so that nothing loads from other sites.
+
+Each is a Latin subset in WOFF2, taken prebuilt from Fontsource's npm
+packages (version 5.3.0) through jsDelivr on 2026-11-25, and committed
+unchanged. The generator (tools/site.py) only copies them, adding a content
+hash to each name. Each family is under the SIL Open Font License 1.1; its
+licence text, with the family's copyright line, is the -OFL.txt file
+beside it (the package's LICENSE file).
+
+Bricolage Grotesque (headings): variable, axes opsz 12-96 and wght 200-800.
+  bricolage-grotesque-latin-opsz-normal.woff2
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/bricolage-grotesque@5.3.0/files/bricolage-grotesque-latin-opsz-normal.woff2
+    sha256 a79fdb52d4a5c76552452f69202add96e287401fff03d3e8c0e38b4dcb5a99cd
+  bricolage-grotesque-OFL.txt
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/bricolage-grotesque@5.3.0/LICENSE
+    sha256 923f4ddf0fd39f9b7794ab0df7332f3d95dc43e8ad7ec2289d6d9e8491177f51
+
+Instrument Sans (body text): variable, axis wght 400-700, roman and italic.
+  instrument-sans-latin-wght-normal.woff2
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/instrument-sans@5.3.0/files/instrument-sans-latin-wght-normal.woff2
+    sha256 2ee17598a98d8a59e4df8152d015bec9ab8e4d5672cc0ab42bef806b568e3971
+  instrument-sans-latin-wght-italic.woff2
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/instrument-sans@5.3.0/files/instrument-sans-latin-wght-italic.woff2
+    sha256 77210cdde0281b5ecb0d592e063a98656f1bc36993a3b98f506eb91ff4a433a5
+  instrument-sans-OFL.txt
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/instrument-sans@5.3.0/LICENSE
+    sha256 c27a3c53c3beed7f5c26853afa15991478ff7145d3754a36b0382f84e10c0d03
+
+JetBrains Mono (code): variable, axis wght 100-800.
+  jetbrains-mono-latin-wght-normal.woff2
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-wght-normal.woff2
+    sha256 18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e
+  jetbrains-mono-OFL.txt
+    https://cdn.jsdelivr.net/npm/@fontsource-variable/jetbrains-mono@5.3.0/LICENSE
+    sha256 403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b
+
+The Latin subset's unicode-range (the same for all three, as Fontsource
+declares it) is in site.css's @font-face rules. Characters outside it, such
+as arrows and box-drawing marks, come from the system's fonts.
+
+To check a file: shasum -a 256 <file>. To list a font's axes:
+  uvx --from 'fonttools[woff]' python -c "from fontTools.ttLib import TTFont; \
+    print([(a.axisTag, a.minValue, a.maxValue) for a in TTFont('<file>')['fvar'].axes])"
