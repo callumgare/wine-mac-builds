@@ -14,7 +14,7 @@ Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
  the game crashes. Emulate pop/push/mov fs:[disp16] and mov eax<->fs:[moffs16]
  against the 32-bit TEB, for 32-bit code only, on general-protection and
  page faults, and step over the instruction. Part 2 of Second Chance's patch
- (skipping int 68h/41h) is ntdll-rosetta-skip-9x-debugger-probes.
+ (skipping int 68h/41h) is ntdll-skip-9x-debugger-probes.
 Programs: Big Fish games (Armadillo DRM), White Wolf among them: crash with
  a stack overflow, as Armadillo's exception handlers stay linked
 Port: to 11.21: uses the handler's thread_data->teb (11.x switches %gs inside signal handlers, so NtCurrentTeb() isn't the TEB there) and leave_handler(data, ...).

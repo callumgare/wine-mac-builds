@@ -2,7 +2,7 @@
  *
  * Arch: i686 x86_64
  * Timeout: 30
- * Guards: ntdll-export-wine-unix-call winemetal-stub wine-inf-d3dmetal-stub-dlls
+ * Guards: ntdll-export-wine-unix-call winemetal-stub wine-inf-d3dmetal-placeholder-dlls
  *
  * What D3DMetal's and DXMT's own DLLs, dropped into a prefix, need from
  * Wine before they can load:

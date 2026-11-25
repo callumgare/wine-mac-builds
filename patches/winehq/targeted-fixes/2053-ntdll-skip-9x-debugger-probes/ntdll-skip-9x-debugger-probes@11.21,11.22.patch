@@ -5,7 +5,7 @@ Kind: workaround
 Origin: wine-mac-builds
   Note: written for wine-mac-builds. Behaviour of Second Chance's binary patch
     of 32-bit ntdll (RosettaFaultFix, part 2), done in the Unix-side fault
-    handler beside ntdll-rosetta-fs-addr32 (which is part 1).
+    handler beside ntdll-rosetta-fs-addr16 (which is part 1).
 Upstream: no
 Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  NT's 0x23. Armadillo, the DRM in Big Fish games, tells Windows 9x from NT
@@ -20,7 +20,7 @@ Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
 Programs: Big Fish games (Armadillo DRM), White Wolf's launcher wqxgxgg.exe:
  stalls and the game never starts; Iji: launched on 10.0 only with this or
  Second Chance's binary patch
-Expects before it: ntdll-rosetta-fs-addr32; context only
+Expects before it: ntdll-rosetta-fs-addr16; context only
 Status: 11.22: built in macfixes-11.22-build1; not yet tested there. Confirmed on 10.0
  (macfixes-10.0-build4, 2026-11-16): without Second Chance's binary patch,
  White Wolf's launcher (wqxgxgg.exe) starts the game and Iji launches.

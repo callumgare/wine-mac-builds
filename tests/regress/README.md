@@ -32,12 +32,12 @@ All guard patches in macfixes' patch sets, named as in
 | `cross-process-code-write` | `ntdll-rosetta-cross-process-code-writes` | Rosetta keeps running old code after another process rewrites it (Armadillo, Big Fish games) |
 | `debug-registers` | `ntdll-rosetta-debug-registers` | a thread setting its own debug registers fails under Rosetta (Armadillo) |
 | `exception-ports` | `ntdll-clear-inherited-exception-ports` | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
-| `fs-addr16` | `ntdll-rosetta-fs-addr32` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
+| `fs-addr16` | `ntdll-rosetta-fs-addr16` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
 | `ldt-program-selector` | `ntdll-rosetta-refuse-ldt-entries` | a program's own LDT entry stops the process under Rosetta (Bioscopia) |
 | `peb-at-gs-0x60` | `ntdll-peb-at-gs-0x60` | in Wine 10.0 %gs:0x60 isn't the PEB, which 64-bit Windows code (D3DMetal) reads |
 | `rosetta-xgetbv` | `ntdll-rosetta-xgetbv` | Rosetta rejects XGETBV, so a program checking for AVX gets an illegal-instruction exception |
 | `smc-rwx` | `ntdll-write-fault-wx-retry` | rewriting code in a PAGE_EXECUTE_READWRITE page after running it crashes or hangs a 32-bit program |
-| `softice-probe` | `ntdll-rosetta-skip-9x-debugger-probes` | Armadillo's 9x SoftICE probes (int 68h, int 41h) fault, and its debugged child stalls (Big Fish games) |
+| `softice-probe` | `ntdll-skip-9x-debugger-probes` | Armadillo's 9x SoftICE probes (int 68h, int 41h) fault, and its debugged child stalls (Big Fish games) |
 | `tls-expansion-gs` | `ntdll-preallocate-tls-expansion` | %gs:0x1780 (TLS expansion slots) is NULL, unlike CrossOver, for code that reads TLS through %gs |
 | `wow64-teb-peb-high` | `ntdll-wow64-teb-top-down` | Wine 11.18+ puts a 32-bit process's TEB and PEB low in memory; Armadillo can't unpack |
 | **System and programs** | | |
@@ -46,7 +46,7 @@ All guard patches in macfixes' patch sets, named as in
 | `commandline-append` | `kernelbase-commandline-append` | the registry's `CommandLineAppend` for an exe isn't added to its command line |
 | `composited-paint` | `win32u-composited-paint` | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
 | `desktop-wait` | `win32u-desktop-wait` | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
-| `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `winemetal-stub`, `wine-inf-d3dmetal-stub-dlls` | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
+| `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `winemetal-stub`, `wine-inf-d3dmetal-placeholder-dlls` | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
 | `exe-base-taken` | `ntdll-exe-entry-after-base-taken` | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
 | `gl-context-dealloc` | `winemac-gl-context-dealloc-off-main-thread` | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
 | `hung-ll-hook` | `server-disable-hung-hooks` | a low-level keyboard hook that stops answering delays every key press by 2 s |
@@ -102,7 +102,7 @@ that Wine 11's own fix still holds.
 - **Needs something we can't ship or reproduce.**
   - `ntdll-d3dmetal-code-regions`, `ntdll-d3dmetal-ms-abi-thunks` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
   - `ntdll-cef-binary-patches`: specific CEF and Qt builds.
-  - `advapi32-battlenet-acls`: Battle.net.
+  - `advapi32-launcher-acls`: Battle.net.
   - `winemac-force-opengl-backing-store`: flicker.
   - `nsiproxy-macos-change-notifications`, `winhttp-cache-autoproxy`: need a network change.
   - `ntdll-important-free-space`: Finder's free-space figure isn't visible to a program.
@@ -120,7 +120,7 @@ that Wine 11's own fix still holds.
   a GL thread can release the same view twice when two threads draw to one
   window): a stress program shows the two overlapping, but the crash needs
   a narrower interleaving than it reaches.
-- **Not behaviour.** `ntdll-version-label` (version string; the smoke test checks it) and `kernel32-tests-esync` (tests only).
+- **Not behaviour.** `ntdll-version-label` (version string; the smoke test checks it) and `kernel32-tests-sync` (tests only).
 
 ## Helpers
 

@@ -23,6 +23,19 @@
         Patches that don't apply are listed: port them by hand (AGENTS.md).
         The source directory is changed: pass a scratch copy. tools/pin
         runs this.
+    tools/patch rename <old name> <new name> [--base winehq]
+        Rename a patch: its folder, every copy's file name, other patches'
+        Expects before it, and regression tests' Guards. Names are frozen
+        once a published build has applied the patch; before that, this is
+        how a name is corrected.
+    tools/patch refresh <flavour> <version> [<name> ...]
+        Regenerate copies' diffs against the patches now applied before
+        them, so they apply at fuzz 0: after an earlier patch is dropped or
+        changed, or when the checker reports a copy that needs fuzz. Only
+        the diff changes, not the header, and the patched tree stays the
+        same. With no names, every copy the flavour applies at <version>
+        that needs it. Needs WineHQ's tarball for <version> in the
+        download cache (WMB_CACHE_DIR, default .cache).
 """
 
 import pathlib
@@ -179,16 +192,101 @@ def cmd_extend(argv):
             print(f"  {n}")
 
 
+def cmd_rename(argv):
+    import re
+    base = opt(argv, "--base", "winehq")
+    old, new = argv
+    if not P.DIR_RE.match(f"0000-{new}"):
+        sys.exit(f"{new}: names are lower-case letters, digits, '.' and '-'")
+    if any(p.name == new for p in P.load(base)):
+        sys.exit(f"{new} already exists")
+    p = find(base, old)
+    for c in p.copies:
+        git_mv(c.path, c.path.with_name(c.path.name.replace(f"{old}@", f"{new}@", 1)))
+    git_mv(p.path, p.path.with_name(f"{p.number}-{new}"))
+    word = re.compile(r"(?<![a-z0-9.-])" + re.escape(old) + r"(?![a-z0-9-])")
+    touched = []
+    for f in list((P.PATCHES / base).rglob("*.patch")) + \
+            [t for t in (ROOT / "tests" / "regress").glob("*") if t.suffix in (".c", ".sh")] + \
+            [ROOT / "tests" / "regress" / "README.md"]:
+        text = f.read_text()
+        head, sep, body = text.partition("\n\n") if f.suffix == ".patch" else (text, "", "")
+        new_head = word.sub(new, head)
+        if new_head != head:
+            f.write_text(new_head + sep + body)
+            touched.append(str(f.relative_to(ROOT)))
+    print(f"renamed {old} -> {new}; references updated in {len(touched)} files")
+    for t in touched:
+        print(f"  {t}")
+
+
+def cmd_refresh(argv):
+    import os
+    import tempfile
+    flavour, version, *names = argv
+    fl = P.flavour(flavour)
+    copies = P.resolve(fl["base"], fl["sets"], version)
+    inputs = (ROOT / "inputs" / fl["base"] / f"{version}.sh").read_text()
+    sha = next(l.split('"')[1] for l in inputs.splitlines() if l.startswith("WINE_SHA256="))
+    cache = pathlib.Path(os.environ.get("WMB_CACHE_DIR", ROOT / ".cache"))
+    tarball = next((cache / sha).glob("wine-*.tar.xz"), None) if (cache / sha).is_dir() else None
+    if tarball is None:
+        sys.exit(f"WineHQ's {version} tarball isn't in {cache}/{sha}/ (set WMB_CACHE_DIR)")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        subprocess.run(["tar", "-xf", str(tarball), "-C", str(tmp)], check=True)
+        src = tmp / f"wine-{version}"
+        refreshed = []
+        for c in copies:
+            wanted = not names or c.patch.name in names
+            if apply(c, src, dry=True):
+                apply(c, src, dry=False)
+                continue
+            if not wanted:
+                sys.exit(f"{c.file} doesn't apply at fuzz 0 at {version}; refresh it too "
+                         f"(or name no patches to refresh all)")
+            text = c.path.read_text()
+            head, _, body = text.partition("\n\n")
+            files = sorted({l.split(" b/", 1)[1] for l in body.splitlines() if l.startswith("diff --git ")})
+            before = tmp / "before"
+            shutil.rmtree(before, ignore_errors=True)
+            for f in files:
+                (before / f).parent.mkdir(parents=True, exist_ok=True)
+                if (src / f).exists():
+                    shutil.copy2(src / f, before / f)
+            r = subprocess.run(["patch", "-d", str(src), "-p1", "--forward", "--batch", "-s"],
+                               input=body, text=True, capture_output=True)
+            if r.returncode:
+                sys.exit(f"{c.file} doesn't apply at {version} even with fuzz:\n{r.stdout}{r.stderr}"
+                         "Port it by hand.")
+            for junk in list(src.rglob("*.orig")):
+                junk.unlink()
+            diff = []
+            for f in files:
+                a = before / f if (before / f).exists() else pathlib.Path("/dev/null")
+                b = src / f if (src / f).exists() else pathlib.Path("/dev/null")
+                d = subprocess.run(["diff", "-u", "--label", f"a/{f}", "--label", f"b/{f}", str(a), str(b)],
+                                   capture_output=True, text=True).stdout
+                if d:
+                    diff.append(f"diff --git a/{f} b/{f}\n{d}")
+            c.path.write_text(head + "\n\n" + "".join(diff))
+            refreshed.append(c.file)
+    for f in refreshed:
+        print(f"refreshed {f}")
+    if not refreshed:
+        print(f"every copy applies at fuzz 0 at {version}")
+
+
 def main(argv):
     cmds = {"new": cmd_new, "split": cmd_split, "renumber-versions": cmd_renumber_versions,
-            "extend": cmd_extend}
+            "extend": cmd_extend, "rename": cmd_rename, "refresh": cmd_refresh}
     if not argv or argv[0] not in cmds:
         print(__doc__, file=sys.stderr)
         return 2
     try:
         cmds[argv[0]](argv[1:])
-    except ValueError:
-        print(__doc__, file=sys.stderr)
+    except ValueError as e:
+        print(f"tools/patch {argv[0]}: {e} (usage below)\n\n{__doc__}", file=sys.stderr)
         return 2
     return 0
 

@@ -2,7 +2,7 @@
  *
  * Arch: i686
  * Timeout: 30
- * Guards: ntdll-rosetta-fs-addr32
+ * Guards: ntdll-rosetta-fs-addr16
  *
  * 32-bit code can address the TEB through %fs with 16-bit addressing (the
  * 0x67 prefix): "pop dword fs:[0000]" is 64 67 8F 06 00 00. Armadillo, the
