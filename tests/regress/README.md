@@ -30,6 +30,7 @@ All guard patches in macfixes' patch sets, named as in
 |---|---|---|
 | **CPU and Rosetta** | | |
 | `cross-process-code-write` | `ntdll-rosetta-cross-process-code-writes` | Rosetta keeps running old code after another process rewrites it (Armadillo, Big Fish games) |
+| `cross-process-data-write` | `ntdll-rosetta-cross-process-code-writes` | the fix for the above makes a written page of an image `PAGE_NOACCESS` for a moment, even a data page, so a program whose `.data` another process writes (trainers, mod loaders, DRM parents) dies when its threads read it |
 | `debug-registers` | `ntdll-rosetta-debug-registers` | a thread setting its own debug registers fails under Rosetta (Armadillo) |
 | `exception-ports` | `ntdll-clear-inherited-exception-ports` | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
 | `fs-addr16` | `ntdll-rosetta-fs-addr16` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
