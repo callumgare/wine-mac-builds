@@ -67,8 +67,12 @@ step() { log "smoke: $*"; }
 
 step "wine --version"
 run 60 version "$T/bin/wine" --version || fail "wine --version failed (see $LOG/version.log)"
-grep -q -x "wine-$WINE_VERSION.*" <(grep -v '^dyld' "$LOG/version.log") ||
-    fail "wine --version says '$(grep -v '^dyld' "$LOG/version.log")', expected wine-$WINE_VERSION"
+# Plain WineHQ's version, plus " (<flavour>)" for flavours that take the
+# version-label patch set (build/compile.sh).
+want="wine-$WINE_VERSION"
+for set_name in "${PATCH_SETS[@]}"; do [[ $set_name == version-label ]] && want+=" ($FLAVOUR)"; done
+grep -q -x -F "$want" <(grep -v '^dyld' "$LOG/version.log") ||
+    fail "wine --version says '$(grep -v '^dyld' "$LOG/version.log")', expected '$want'"
 
 step "wineboot (new prefix)"
 run 600 wineboot "$T/bin/wine" wineboot -u || fail "wineboot failed or timed out (see $LOG/wineboot.log)"
