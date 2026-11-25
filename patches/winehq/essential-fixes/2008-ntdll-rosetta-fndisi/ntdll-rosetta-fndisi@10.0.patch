@@ -19,6 +19,7 @@ Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs tre
 Programs: DSDPlus 1.101 (32-bit): "Unhandled illegal instruction" at
  start on macOS 14 (WineHQ bug 56441)
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks
+Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-xgetbv; context only
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 27d9555..05773fd 100644

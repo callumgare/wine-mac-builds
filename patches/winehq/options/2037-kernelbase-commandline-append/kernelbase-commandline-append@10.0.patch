@@ -19,6 +19,7 @@ Why: Per-application extra command-line arguments set from the registry, so user
  text.
 Programs: none known
 Uncertain: limits copied from 10.0_8: exe names of 260+ characters are skipped and values over 2048 bytes (1023 characters) are ignored (the query fails). REG_EXPAND_SZ values are ignored, as in 10.0_8.
+Expects before it: kernelbase-cef-append-flags; context only
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index f1cfe72..4994814 100644

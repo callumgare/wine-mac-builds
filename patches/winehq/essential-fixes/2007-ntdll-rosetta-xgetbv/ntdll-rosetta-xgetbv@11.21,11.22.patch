@@ -19,6 +19,7 @@ Upstream: no
 Why: Rosetta raises #UD for XGETBV; emulate it for XCR0 (0xe7 with AVX on macOS 15+, else 0x07).
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "emulate_xgetbv", "emulated an XGETBV instruction"; disassembly matches (0f 01 d0 check, ecx==0, cmov between 0xe7 and 0x07, rip += 3)
+Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-mxcsr; context only
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644

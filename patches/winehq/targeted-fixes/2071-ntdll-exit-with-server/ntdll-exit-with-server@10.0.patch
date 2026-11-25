@@ -28,6 +28,8 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  running nearly two hours later. On Second Chance's slot-1, a steam.exe
  whose wineserver had gone spun at 96% CPU for about six hours with its
  services and explorer, slowing the other tests on that Mac.
+Expects before it: ntdll-msync, ntdll-async-iosb-unwritable, ntdll-d3dmetal-ms-abi-thunks;
+ context only
 Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
  published): server-gone
  passes (the program exited after its wineserver was killed; 1 run).

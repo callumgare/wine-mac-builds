@@ -14,7 +14,8 @@ Programs: Diablo II: Resurrected (D2R.exe): presumably because it uses
 Uncertain: SIKARUGIR_D2R_FORCE_VKD3D is tested for presence only (any value, even "0", counts), as in 10.0_8. The DXVK/DXMT exclusion for D2R is unconditional in 10.0_8 and is kept that way.
 Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are
  unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
-Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud
+Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud;
+ ntdll-launcher-metal-hud only as context
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index b3ab993..33689ad 100644

@@ -22,6 +22,7 @@ Programs: Battle.net launcher: installation hung (WineHQ bug 55979, 2023);
  the bug names this variable as the workaround
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
 Port: to 11.21: code unchanged (CX 26.3.0's is the same as 25.1.1's); hacks_init() is called right after 11.21's server_init_process( data ) in start_main_thread(), before msync_init(), as CX 26.3.0 orders them.
+Expects before it: ntdll-msync; context only
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 7215322..3150a09 100644

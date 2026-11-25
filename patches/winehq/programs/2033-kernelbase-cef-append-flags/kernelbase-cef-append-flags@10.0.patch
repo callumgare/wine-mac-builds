@@ -22,6 +22,7 @@ Why: CEF-based launchers (Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social
 Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their
  CEF UIs render blank or crash
 Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64 file offset 0x9c1a0) with exactly these strings and NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
+Expects before it: kernelbase-replace-launchers; context only
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index af44f50..f1cfe72 100644

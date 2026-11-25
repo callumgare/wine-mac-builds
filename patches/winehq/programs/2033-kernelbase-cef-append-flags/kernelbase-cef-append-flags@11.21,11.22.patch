@@ -26,6 +26,7 @@ Port: same code as the 10.0 patch, re-placed by hand: 11.21's CreateProcessInter
  lost the parent/machine locals the 10.0 hunk used as context, so the 'append' local now
  follows nt_flags. CX 26 no longer carries hack_append_command_line and wine-staging has
  none, so the 10.0 form is kept.
+Expects before it: kernelbase-replace-launchers; context only
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index baa4c08..ef5e986 100644

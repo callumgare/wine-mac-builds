@@ -21,6 +21,8 @@ Evidence: Sikarugir 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtRe
  NtCreateEvent, NtSetEvent, NtResetEvent, NtClearEvent, NtPulseEvent and NtCreateThreadEx
  (and no other Nt* export) start with the wrapper: push %rax; push %rcx; compare the return
  address against two globals; jmp to one of two bodies
+Expects before it: ntdll-d3dmetal-code-regions; libd3dshared_load_addr is defined only
+ there
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 index a6b4743..73331f9 100644

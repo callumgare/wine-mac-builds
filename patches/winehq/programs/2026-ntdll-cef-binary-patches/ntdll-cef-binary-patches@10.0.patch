@@ -17,6 +17,7 @@ Programs: Rockstar Games Launcher/Social Club (CEF 85.3.9, 85.3.11),
  command-line switches; Cities: Skylines II (cohtml): what goes wrong isn't
  stated (CW HACK 22901)
 Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has apply_binary_patches, apply_fuzzy_binary_patches, 'Found %s %s byte pattern at %p; applying patch', cohtml_v1, every 'CEF %gs 85.3.11-0/1, 85.3.9.0, 72.0.3626.121-0..2, 72.0.3626.96-0..2', 'CEF/Qt5WebEngineCore %gs 5.15.2.0-0/1', 'CEF cmd_line_args_disabled 90.6.7'; i386 ntdll.dll has 'CEF cmd_line_args_disabled x86 111.2.7' and 'x86 135.0.20'.
+Expects before it: ntdll-d3dmetal-code-regions; context only
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 index 6fd0ec9..74546db 100644

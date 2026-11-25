@@ -18,6 +18,7 @@ Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
 Programs: Big Fish games (Armadillo DRM), White Wolf among them: crash with
  a stack overflow, as Armadillo's exception handlers stay linked
 Port: to 11.21: uses the handler's thread_data->teb (11.x switches %gs inside signal handlers, so NtCurrentTeb() isn't the TEB there) and leave_handler(data, ...).
+Expects before it: ntdll-rosetta-xgetbv; context only
 Status: built in macfixes-10.0-build2 and macfixes-11.21-build1. Confirmed 2026-11-15: removes Armadillo's stack overflow in Big Fish games (traces show "emulated an fs: addr32 instruction (8f)").
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c

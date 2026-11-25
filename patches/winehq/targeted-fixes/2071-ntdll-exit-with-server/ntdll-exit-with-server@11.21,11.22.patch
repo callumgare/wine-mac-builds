@@ -28,6 +28,8 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  running nearly two hours later. On Second Chance's slot-1, a steam.exe
  whose wineserver had gone spun at 96% CPU for about six hours with its
  services and explorer, slowing the other tests on that Mac.
+Expects before it: ntdll-async-iosb-unwritable, ntdll-d3dmetal-ms-abi-thunks;
+ context only (dlls/ntdll/unix/server.c)
 Status: 11.22: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
  hosted integration run on meeka passed every source: disc 36/36, download
  6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets

@@ -38,6 +38,8 @@ Uncertain: macOS can still activate an accessory process when its window is
  an accessory process's windows can't use macOS's own fullscreen (a Space
  of their own); Wine's usual fullscreen (a window covering the display)
  isn't affected, but this hasn't been tested with a game run as accessory.
+Expects before it: winemac-cocoa-start-wait, winemac-force-opengl-backing-store;
+ context only
 Status: 2026-11-20: in 11.22-build0 (a local host build of this commit
  on meeka; suite 51 passed, 2 skipped, 0 failed). Second Chance's
  integration run on meeka, its installer wizards (ten different ones,

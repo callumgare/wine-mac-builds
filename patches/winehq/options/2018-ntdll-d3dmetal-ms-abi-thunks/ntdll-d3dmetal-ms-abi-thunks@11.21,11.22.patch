@@ -27,6 +27,8 @@ Port: to 11.21: GPT_ABI_WRAPPER is CX 26.3.0's: a plain asm() block with only .g
  with TEB fields poked into it). If D3DMetal's PE side calls into libd3dshared, and so into
  these ntdll.so functions, directly rather than through a syscall, that Unix code would run
  with %gs = TEB and libc's TSD accesses would break. Untested; D3DMetal on 11.21 needs a run.
+Expects before it: ntdll-d3dmetal-code-regions; libd3dshared_load_addr is defined only
+ there
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 index c80226f..4815226 100644

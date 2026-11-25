@@ -20,6 +20,7 @@ Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
 Programs: Big Fish games (Armadillo DRM), White Wolf's launcher wqxgxgg.exe:
  stalls and the game never starts; Iji: launched on 10.0 only with this or
  Second Chance's binary patch
+Expects before it: ntdll-rosetta-fs-addr32; context only
 Status: built in macfixes-10.0-build4. Confirmed 2026-11-16: without
  Second Chance's binary patch, White Wolf's launcher (wqxgxgg.exe) starts
  the game and Iji launches; on build3 the launcher stalled every time.

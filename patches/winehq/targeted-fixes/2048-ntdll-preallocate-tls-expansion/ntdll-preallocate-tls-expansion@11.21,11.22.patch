@@ -26,6 +26,9 @@ Port: 11.22: to 11.22: as for 10.0, placed after 0001's testing-version warning,
  before FlsSlots is set up; CX 26.3's code is unchanged from 25.1.1.
  11.21: to 11.21: as for 10.0, placed after 0001's testing-version warning, just
  before FlsSlots is set up; CX 26.3's code is unchanged from 25.1.1.
+Expects before it: ntdll-cef-binary-patches, ntdll-export-wine-unix-call, ntdll-d3dmetal-code-regions;
+ context only (ntdll-export-wine-unix-call on 11.22,
+ ntdll-d3dmetal-code-regions on 11.21)
 Status: not yet built (2026-11-15).
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c

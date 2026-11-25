@@ -19,6 +19,8 @@ Programs: Steam: calls WinHttpGetProxyForUrl before pinging its WebSocket
  servers and includes it in the timing, so slow auto-detection made the
  pings time out (WineHQ MR 8049)
 Evidence: Sikarugir 10.0_8: winhttp.dll (both arches): 'network config changed, invalidating cache'.
+Expects before it: nsiproxy-macos-change-notifications; needed at run time
+ (without it the cache is never dropped on macOS), not as context
 
 diff --git a/dlls/winhttp/session.c b/dlls/winhttp/session.c
 index e8e2861..e26fdd0 100644

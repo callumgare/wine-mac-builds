@@ -50,6 +50,9 @@ Programs: Second Chance (an app that embeds Wine): shows a program inside
  its own window
 Uncertain: each present waits for glFinish. Windows of other processes as
  owners aren't supported (v1).
+Expects before it: winemac-centre-fullscreen-gdi, winemac-export-macdrv-functions, winemac-plugins, winemac-activation-policy;
+ centre-fullscreen-gdi for the surface offset it extends, the others
+ context only
 Status: 2026-11-22 (focus activation): window_focus carries
  WMH_FOCUS_ACTIVATE when the plain driver would activate the app (within
  2 s of a global hotkey or a tray icon click), so a host needn't activate

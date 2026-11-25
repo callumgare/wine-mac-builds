@@ -21,6 +21,7 @@ Why: With WINE_SIMULATE_WRITECOPY=1, pages changed away from PAGE_(EXECUTE_)WRIT
 Programs: Battle.net launcher: installation hung (WineHQ bug 55979, 2023);
  the bug names this variable as the workaround
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
+Expects before it: ntdll-msync; context only
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 0ac5de0..3681f42 100644
