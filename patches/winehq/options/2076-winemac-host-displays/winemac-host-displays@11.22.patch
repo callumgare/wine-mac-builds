@@ -7,7 +7,7 @@ Origin: wine-mac-builds
     wine-mac-builds, implementing displays_get from
     docs/app-embedded-protocol.md.
 Upstream: no
-Why: With HostWindows (0069) the host shows the program's windows, and it
+Why: With HostWindows (winemac-host-windows) the host shows the program's windows, and it
  may show them on less than the whole screen: Second Chance keeps them
  below a MacBook's notch. Until now the driver still took its monitors from
  NSScreen and its current mode from CGDisplayCopyDisplayMode, so Wine

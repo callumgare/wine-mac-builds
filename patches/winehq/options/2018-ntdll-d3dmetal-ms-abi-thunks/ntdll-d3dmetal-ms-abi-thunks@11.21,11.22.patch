@@ -12,7 +12,7 @@ Upstream: no
 Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
  ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an
  ms_abi thunk when the caller's return address is inside libd3dshared, and to the normal
- (renamed sysv_*) function otherwise. Needs 0017 (libd3dshared_load_addr/_code_end).
+ (renamed sysv_*) function otherwise. Needs ntdll-d3dmetal-code-regions (libd3dshared_load_addr/_code_end).
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
  NtCreateEvent, NtSetEvent, NtResetEvent, NtClearEvent, NtPulseEvent and NtCreateThreadEx

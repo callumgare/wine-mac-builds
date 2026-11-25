@@ -9,7 +9,7 @@ Origin: crossover
 Upstream: no
 Why: The kernel32 sync tests that come with esync: more mutex/event/semaphore/wait/APC coverage, and todo_wine_if(getenv("WINEESYNC")) for two known differences. Tests only; nothing in the shipped binaries changes.
 Programs: none (build)
-Evidence: Sikarugir 10.0_8: none possible (10.0_8 ships no tests); taken because CX ships it alongside 0001 and we build a -tests asset. Drop it if only binary-verified changes are wanted.
+Evidence: Sikarugir 10.0_8: none possible (10.0_8 ships no tests); taken because CX ships it alongside ntdll-msync and we build a -tests asset. Drop it if only binary-verified changes are wanted.
 
 diff --git a/dlls/kernel32/tests/sync.c b/dlls/kernel32/tests/sync.c
 index 49420e4..f2e1e13 100644

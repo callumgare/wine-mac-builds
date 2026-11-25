@@ -12,7 +12,7 @@ Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  DLL that imports any of them makes the loader load krnl386.exe16 and run
  its attach, even if it never calls one. The attach loads the 16-bit
  KERNEL, which needs LDT entries for its segments. Under Rosetta 2,
- NtSetLdtEntries refuses them (0057), krnl386 ignored that, and the load
+ NtSetLdtEntries refuses them (ntdll-rosetta-refuse-ldt-entries), krnl386 ignored that, and the load
  faulted on a segment that was never set up (Wine 11.22: a write to address
  0xc22). The attach failed, and with it the importing DLL. Now the attach
  first checks that LDT entries can be set, and if not, succeeds without

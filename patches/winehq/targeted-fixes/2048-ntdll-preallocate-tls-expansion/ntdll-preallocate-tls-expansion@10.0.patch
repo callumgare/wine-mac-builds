@@ -22,9 +22,9 @@ Why: On x86_64 macOS, allocate the thread's TLS expansion slots
 Programs: none known
 Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
  movq %rax, %gs:0x1780; ours had neither.
-Port: to 10.0: placed after 0001's testing-version warning, just before
- FlsSlots is set up (in CX it sits right after the else block above
- that warning).
+Port: to 10.0: placed just before FlsSlots is set up. Its context was
+ version-label's testing-version warning, since dropped, so it now applies
+ only with fuzz.
 Expects before it: ntdll-cef-binary-patches, ntdll-export-wine-unix-call;
  context only
 Status: not yet built (2026-11-15).

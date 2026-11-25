@@ -12,7 +12,7 @@ Upstream: no
 Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
  ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an
  ms_abi thunk when the caller's return address is inside libd3dshared, and to the normal
- (renamed sysv_*) function otherwise. Needs 0001 (libd3dshared_load_addr/_code_end).
+ (renamed sysv_*) function otherwise. Needs ntdll-d3dmetal-code-regions (libd3dshared_load_addr/_code_end).
  (On 10.0: CrossOver's esync/msync changes edit the bodies of the same
  functions in sync.c and server.c; this patch only renames them and adds
  code after them.)

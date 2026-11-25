@@ -37,7 +37,7 @@ Evidence: An ntdll that prints the native stack of a crashing system thread
 Status: 11.22: 2026-11-18 not yet in a build. Tested by swapping a winemac.so
  built with it into 11.22-build12 on meeka (macOS 26.7.2): d3d8-up-draw-speed
  passed 200 of 200 runs, against 4 crashes in 115 runs without it;
- gl-context-dealloc (2000 devices a run) passed 5 of 5, against 5 of 5
+ gl-context-dealloc (2000 devices a run then; the test now runs 1000) passed 5 of 5, against 5 of 5
  crashing at objc_release+34 without it.
  11.21: 2026-11-18: ported from 11.22 (applies unchanged); not yet in a build.
  Upstream 10.0 and 11.21 have the same code; Pattern A was seen on

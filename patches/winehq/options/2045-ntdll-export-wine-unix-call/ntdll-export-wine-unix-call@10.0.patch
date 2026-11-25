@@ -10,7 +10,7 @@ Origin: crossover
     Source: (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
 Upstream: no
 Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it
- as a wrapper of the inline __wine_unix_call. 0020 carries the winemac part
+ as a wrapper of the inline __wine_unix_call. winemac-export-macdrv-functions carries the winemac part
  of the same hack.
 Programs: none known
 Evidence: Sikarugir 10.0_8: its x86_64 and i386 ntdll.dll export __wine_unix_call;

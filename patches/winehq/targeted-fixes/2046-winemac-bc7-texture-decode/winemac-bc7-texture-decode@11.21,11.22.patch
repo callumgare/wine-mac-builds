@@ -25,8 +25,8 @@ Programs: Tomb Raider I-III Remastered: its BC7 textures upload as nothing,
 Evidence: Sikarugir 10.0_8: winemac.so's init_opengl looks up both functions, and
  it has the bcdec BC7 decoder and two wrappers ours lacked (found by
  comparing functions, 2026-11-15).
-Port: 11.22: to 11.22: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
- 11.21: to 11.21: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
+Port: 11.22: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
+ 11.21: CX 26.3's code as is; glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
 Status: not yet built (2026-11-15).
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c

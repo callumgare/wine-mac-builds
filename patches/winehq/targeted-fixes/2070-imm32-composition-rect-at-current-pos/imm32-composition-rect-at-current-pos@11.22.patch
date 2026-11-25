@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: imm32: report the composition position, not the whole CFS_RECT area, to the driver
+Summary: Report the composition position, not the whole CFS_RECT area, to the display driver
 Category: input
 Kind: fix
 Origin: wine-mac-builds
