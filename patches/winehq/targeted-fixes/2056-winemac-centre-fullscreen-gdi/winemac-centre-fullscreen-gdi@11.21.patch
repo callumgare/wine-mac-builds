@@ -3,7 +3,10 @@ Summary: Centre a fullscreen GDI picture under an emulated display mode, instead
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds
+  Version: 11.22
+  Changes: 11.21's winemac draws the window surface as a CGImage cropped to
+    the layer's bounds rather than an IOSurface; the sublayer gets the
+    whole image, sized from it
 Upstream: no (candidate; draft in .local/bug-reports/). WineHQ master has
  the same code, checked 2026-11-16.
 Why: under EmulateModeset, when a program switches to a mode whose shape
@@ -31,8 +34,6 @@ Evidence: test program switching to 960x540 on a 1024x768 screen and
  a white band below it; after, it fills rows 96-672 with black bars above
  and below. The flag fix plus the offset alone (without the sublayer) left
  it at the top.
-Port: 11.21's winemac draws the window surface as a CGImage cropped to the
- layer's bounds rather than an IOSurface; the sublayer gets the whole image.
 Status: 2026-11-16: built in wine-macfixes-11.21-build5. Same change as the
  11.22 patch, which was tested with Bioscopia; tests/regress
  fullscreen-gdi-centred guards it.

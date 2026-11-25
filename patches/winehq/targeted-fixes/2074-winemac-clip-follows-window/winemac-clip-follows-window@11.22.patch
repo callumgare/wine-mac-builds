@@ -3,9 +3,8 @@ Summary: Keep the cursor clip in step when the clipping window moves or resizes
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/cocoa_cursorclipping.m, cocoa_app.m, cocoa_window.m;
-    written for wine-mac-builds after Second Chance's workaround (it re-clips
-    on NSWindowDidResize and NSWindowDidMove).
+  Note: after Second Chance's workaround (it re-clips on NSWindowDidResize
+    and NSWindowDidMove)
 Upstream: no (candidate; draft in .local/bug-reports/)
 Why: The Mac driver clips the cursor with -[NSWindow
  setMouseConfinementRect:] on the front Wine window. That rect is in the

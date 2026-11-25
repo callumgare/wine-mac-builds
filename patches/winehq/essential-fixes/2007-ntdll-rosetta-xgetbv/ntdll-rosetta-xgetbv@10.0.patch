@@ -6,8 +6,13 @@ Origin: crossover
   Version: 26.0.0
   CW-Hacks: 23427
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
-  Note: CrossOver 26.0.0 CW HACK 23427 (identical code in dblark/macos-wine-build commit 3d842d1, patches/0002-macos-hacks.patch)
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c); https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Changes: verbatim; placed in 10.0's segv_handler after the CET and FNDISI checks
+Origin: other
+  Name: dblark/macos-wine-build
+  Version: 3d842d1
+  URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
+  Note: the same code, in patches/0002-macos-hacks.patch
 Upstream: no
 Why: Rosetta raises #UD for XGETBV; emulate it for XCR0 (0xe7 with AVX on macOS 15+, else 0x07).
 Programs: none known

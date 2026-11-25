@@ -3,7 +3,6 @@ Summary: Don't deadlock when a window's OpenGL context is updated from the main 
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds
 Upstream: no (candidate; draft in .local/bug-reports/). The code is the same
  in WineHQ 10.0 to master and in CrossOver 26.3.0 (checked 2026-11-25).
 Why: macdrv_update_opengl_context updates the context through

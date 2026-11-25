@@ -3,7 +3,6 @@ Summary: Don't overrun the stack opening a database by a path without a backslas
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/msi/database.c (MSI_OpenDatabaseW); written for wine-mac-builds.
 Upstream: no (candidate; draft in .local/bug-reports/)
 Why: MSI_OpenDatabaseW takes a path with no backslash as relative to the
  current directory and built "<current directory>\<path>" with lstrcatW in

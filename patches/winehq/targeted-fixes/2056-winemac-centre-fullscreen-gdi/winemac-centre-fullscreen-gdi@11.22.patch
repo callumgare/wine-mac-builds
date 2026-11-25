@@ -3,7 +3,6 @@ Summary: Centre a fullscreen GDI picture under an emulated display mode, instead
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds
 Upstream: no (candidate; draft in .local/bug-reports/). WineHQ master has
  the same code, checked 2026-11-16.
 Why: under EmulateModeset, when a program switches to a mode whose shape

@@ -5,11 +5,15 @@ Kind: feature
 Origin: crossover
   Version: 26.3.0
   CW-Hacks: 18311
-  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz, https://github.com/dblark/macos-wine-build)
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CW HACK 18311 (dlls/wined3d/adapter_vk.c, directx.c, swapchain.c,
     wined3d_vk.h), without the hunks 10.0_8 lacks: GTA IV/V (CW 19355/19356), multithread_safe,
     MoltenVK multiple-viewport disable, render-area trim (CX 20098), zero-size swapchain (CX 23854)
-    Source: (similar: dblark 0006-wined3d-moltenvk-hacks.patch at a6e452f
+Origin: other
+  Name: dblark/macos-wine-build
+  Version: a6e452f
+  URL: https://github.com/dblark/macos-wine-build
+  Note: similar code in 0006-wined3d-moltenvk-hacks.patch
 Upstream: no
 Why: with renderer=auto, d3d10/11 apps get wined3d's Vulkan renderer when the Vulkan
  driver is MoltenVK (else OpenGL as before); Vulkan swapchains on MoltenVK get 3 images

@@ -3,10 +3,8 @@ Summary: gdi32: per-program ColorDepth: the screen depth one program sees, and i
 Category: graphics
 Kind: feature
 Origin: wine-mac-builds
-  Note: dlls/gdi32/dc.c (GetDeviceCaps, SelectPalette) and dlls/gdi32/objects.c
-    (GetSystemPaletteEntries); written for wine-mac-builds after Second
-    Chance's screen_depth.m helper, which does the same by replacing win32u's
-    system-call table entries. None of its code is used.
+  Note: after Second Chance's screen_depth.m helper, which does the same by
+    replacing win32u's system-call table entries. None of its code is used.
 Upstream: no
 Why: Some old programs (Director projectors among them) refuse to start, or
  draw wrongly, unless the screen is 8 or 16 bits, and a Mac display is

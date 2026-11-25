@@ -3,9 +3,7 @@ Summary: Keep a click in a fullscreen Space from reaching the window's frame vie
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/cocoa_window.m (WineContentView); written for
-    wine-mac-builds after Second Chance's workaround (it swizzles the same
-    method).
+  Note: after Second Chance's workaround (it swizzles the same method)
 Upstream: no (candidate; draft in .local/bug-reports/)
 Why: Wine takes a click in -[WineApplicationController handleEvent:], before
  AppKit dispatches it, and then lets NSApplication deliver it as well. It

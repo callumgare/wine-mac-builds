@@ -1,7 +1,7 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: msync (and esync on 11.22): waits without wineserver round trips, off unless enabled
+Summary: msync and, on 10.0, esync: waits without wineserver round trips, off unless enabled
 Category: sync
-Kind: performance
+Kind: feature, performance
 Origin: crossover
   Version: 26.3.0
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz

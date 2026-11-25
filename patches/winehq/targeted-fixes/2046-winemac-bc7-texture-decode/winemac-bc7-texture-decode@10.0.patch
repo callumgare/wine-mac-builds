@@ -7,7 +7,13 @@ Origin: crossover (ported here)
   CW-Hacks: 23422
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CX HACK 23422 (dlls/winemac.drv/opengl.c, opengl_bcdec.h)
-    Source: (sources/wine/dlls/winemac.drv/)
+  Files: dlls/winemac.drv/opengl.c, dlls/winemac.drv/opengl_bcdec.h
+Origin: other
+  Name: bcdec
+  Version: 0.96
+  Authors: Sergii Kudlai
+  URL: https://github.com/iOrange/bcdec
+  Note: opengl_bcdec.h, unchanged; MIT or Unlicense (text at its end)
 Upstream: no
 Why: macOS OpenGL has no BC7 (BPTC). Tomb Raider I-III Remastered upload
  BC7 2D-array textures; decode them on the CPU (bcdec) and upload RGBA8.

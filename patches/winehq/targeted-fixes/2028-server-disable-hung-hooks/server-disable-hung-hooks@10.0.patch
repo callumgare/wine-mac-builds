@@ -5,11 +5,13 @@ Kind: fix
 Origin: crossover
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (server/queue.c, server/hook.c, server/user.h; no CW number)
-    Source: (sources/wine/server/)
+  Files: server/hook.c, server/queue.c, server/user.h
+  Changes: the hung-hook hunks only; CX's esync/msync hunks of queue.c are
+    left out
 Upstream: no
 Why: When a global low-level hook's thread doesn't answer within the 2 s timeout, clear that hook's proc so one stuck hook can't stall input for every app. Only the hung-hook hunks of CX's queue.c are taken; its esync/msync hunks are not.
-Programs: none known
+Programs: none known; programs that set a low-level hook and then stop
+ reading messages (launchers, overlays, hotkey tools)
 Evidence: Sikarugir 10.0_8: wineserver: 'disabling hung hook: tid %04x, proc %#lx'.
 
 diff --git a/server/hook.c b/server/hook.c

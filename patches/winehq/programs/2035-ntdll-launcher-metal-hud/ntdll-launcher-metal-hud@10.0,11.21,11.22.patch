@@ -3,8 +3,9 @@ Summary: Hide the Metal performance HUD over launcher windows
 Category: graphics
 Kind: workaround
 Origin: reconstructed
-  Note: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so launcher check at 0x21900
-    Source: none published; behaviour read from the compiled 10.0_8 binary
+  Binary: Sikarugir WS12WineSikarugir10.0_8 ntdll.so
+  Functions: the launcher check at 0x21900
+  Note: no published source; behaviour read from the compiled binary
 Upstream: no
 Why: When a launcher/overlay process (the list from the previous patch) is kept off a renderer DLL path, unset MTL_HUD_ENABLED so the Metal performance HUD doesn't show over the launcher window, unless SIKARUGIR_KEEP_METAL_HUD is set (to anything). Because this happens in init_paths, before the Windows environment is built, the variable is also gone for the launcher's children.
 Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar

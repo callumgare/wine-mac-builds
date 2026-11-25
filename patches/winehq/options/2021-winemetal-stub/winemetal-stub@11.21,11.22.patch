@@ -3,9 +3,11 @@ Summary: Add a winemetal.dll stub so DXMT's DLLs can load
 Category: graphics
 Kind: feature
 Origin: other
+  Name: dblark/macos-wine-build
+  Version: 71877c1
   URL: https://github.com/dblark/macos-wine-build/blob/71877c1/patches/0004-add-winemetal-stub.patch
-  Note: dblark 0004-add-winemetal-stub.patch (configure regenerated with autoconf 2.72
-    via tools/make_makefiles, as WineHQ's own new-DLL commits do)
+  Changes: configure regenerated with autoconf 2.72 (tools/make_makefiles),
+    as WineHQ's own new-DLL commits do
 Upstream: no
 Why: DXMT's d3d11/dxgi import winemetal.dll; the stub lets the builtin load until the
  user drops in DXMT's own winemetal.dll/.so.

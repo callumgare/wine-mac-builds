@@ -3,7 +3,9 @@ Summary: Don't let the main thread and a GL thread change an OpenGL context's vi
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds
+  Version: 11.22
+  Changes: 10.0 passes opaque macdrv_opengl_context and macdrv_view handles,
+    cast inside each function
 Upstream: no
 Why: A WineOpenGLContext's view, latent view and update flags are changed
  by the GL threads (macdrv_make_context_current, macdrv_update_opengl_context)
@@ -23,9 +25,7 @@ Why: A WineOpenGLContext's view, latent view and update flags are changed
  ("Pattern A"), but it isn't that crash: an instrumented build logged no
  pending-context update and no overlap in any of the games' launches,
  crashed or not.
-Programs: Nancy Drew games (Shadow Ranch, Old Clock, Crystal Skull, Castle
- Malloy): a crash at objc_release+34 ("Pattern A") led to this patch, but
- the race it fixes isn't shown to be that crash
+Programs: none known
 Evidence: A winemac instrumented to count threads inside each context's
  functions reported about 40 overlaps in 15 s of a stress program (one
  context per render thread, two render threads switching between two

@@ -2,11 +2,16 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Point the Vulkan loader at the bundled MoltenVK driver
 Category: graphics
 Kind: fix
-Origin: wine-mac-builds
-  Note: patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers.patch,
-    rebased for wine-mac-builds onto Wine 10.0's init_paths (same function, called
-    after bin_dir and data_dir are set).
-    Source: none published; see the 11.x patch's header.
+Origin: reconstructed
+  Binary: Gcenx's wine-devel 11.21 lib/wine/x86_64-unix/ntdll.so
+  Functions: init_paths
+  Note: no published source: not in his macports-wine overlay (any
+    commit), WineHQ 11.21 or master, or wine-staging (checked 2026-11-12).
+    Our code, written from what the disassembly does: check the three
+    variables, then set VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d
+    if that's a directory.
+  Changes: rebased onto Wine 10.0's init_paths (same function, called after
+    bin_dir and data_dir are set)
 Upstream: no
 Why: as the 11.x patch: without it the bundled Vulkan loader finds no driver
  manifest, so no MoltenVK.

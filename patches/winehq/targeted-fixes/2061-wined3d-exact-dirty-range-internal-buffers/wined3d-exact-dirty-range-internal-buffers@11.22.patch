@@ -3,7 +3,6 @@ Summary: wined3d: keep the mapped range for Wine's own buffers, so streamed draw
 Category: graphics
 Kind: performance, fix
 Origin: wine-mac-builds
-  Note: dlls/wined3d/buffer.c, buffer_resource_sub_resource_map()
 Upstream: no (candidate; draft in .local/bug-reports/). Master still marks
  the whole buffer (checked 2026-11-25). Bug 60690 is the same commit's
  rendering regression; its comment 2 reports a slowdown (Treasure Adventure
@@ -21,7 +20,9 @@ Why: WineHQ b6810e41 (11.22) marks the whole buffer dirty on every write map
  internal ones (every d3d8, d3d9, d3d11 and ddraw application buffer has
  one), so the whole-buffer rule now skips them; application buffers keep it.
 Programs: Iji: its menu loop runs about 3x slower on 11.22 than on 11.21
- (software vertex processing)
+ (software vertex processing). Treasure Adventure Game (Multimedia Fusion):
+ reported upstream as much slower since b6810e41 (bug 60690 comment 2); not
+ tested here.
 Uncertain: whether every parentless buffer's writer stays inside its mapped
  range (wined3d's streaming buffers and push constants, ddraw's execute
  buffer copies were read and do).

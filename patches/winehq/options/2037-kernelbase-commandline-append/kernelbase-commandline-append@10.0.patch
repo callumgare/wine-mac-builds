@@ -3,8 +3,13 @@ Summary: Per-program extra command-line arguments from the registry (CommandLine
 Category: system
 Kind: feature
 Origin: reconstructed
-  Note: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): kernelbase.dll sikarugir_append_command_line (inlined into CreateProcessInternalW; x86_64 0x174015cc8-0x174015ed6)
-    Source: none published; behaviour read from the compiled 10.0_8 binary
+  Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64)
+  Functions: sikarugir_append_command_line, inlined into
+    CreateProcessInternalW (x86_64 0x174015cc8-0x174015ed6)
+  Note: no published source; behaviour read from the compiled binary.
+    As in 10.0_8 the lookup runs before CrossOver's
+    hack_append_command_line and hack_replace_command_line, so the key is
+    looked up by the name before any replacement
 Upstream: no
 Why: Per-application extra command-line arguments set from the registry, so users and the Sikarugir app can add game options without editing shortcuts: when a process is created, the REG_SZ value HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend (if non-empty) is appended to its command line after a space. A FIXME is logged when it happens.
  In 10.0_8 the lookup runs right after the tidy command line is built,

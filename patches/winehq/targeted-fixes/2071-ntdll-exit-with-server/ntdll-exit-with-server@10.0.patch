@@ -3,7 +3,6 @@ Summary: Exit a process when its wineserver is gone
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/ntdll/unix/server.c; written for wine-mac-builds.
 Upstream: no
 Why: A Wine thread only finds out that the wineserver has gone when its
  next request fails (abort_thread), and the process ends with its last

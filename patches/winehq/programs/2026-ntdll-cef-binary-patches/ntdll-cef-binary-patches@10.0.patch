@@ -10,7 +10,12 @@ Origin: crossover
     Source: (sources/wine/dlls/ntdll/loader.c)
 Upstream: no
 Why: On macOS %gs doesn't hold the TEB, so old libcef/Qt5WebEngineCore builds that read the stack base straight from %gs:0x8 crash; rewrite those reads to go through the TEB self pointer at %gs:0x30, and force CEF's command_line_args_disabled off, at load time (fixed offsets for libcef/Qt, a byte pattern for cohtml_Unity3DPlugin.dll). CX's CW HACK 22434 (D3DMetal pe_module_loaded unix call) in the same function is left out.
-Programs: none known
+Programs: Rockstar Games Launcher/Social Club (CEF 85.3.9, 85.3.11),
+ BeamNG.drive (CEF 72.0.3626.121), Wizard101 (CEF 72.0.3626.96), EA
+ app/Origin (Qt WebEngine 5.15.2): crash at start; Epic Games Launcher (CEF
+ 90.6.7), Ubisoft Connect (32-bit CEF 111.2.7, 135.0.20): ignore
+ command-line switches; Cities: Skylines II (cohtml): what goes wrong isn't
+ stated (CW HACK 22901)
 Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has apply_binary_patches, apply_fuzzy_binary_patches, 'Found %s %s byte pattern at %p; applying patch', cohtml_v1, every 'CEF %gs 85.3.11-0/1, 85.3.9.0, 72.0.3626.121-0..2, 72.0.3626.96-0..2', 'CEF/Qt5WebEngineCore %gs 5.15.2.0-0/1', 'CEF cmd_line_args_disabled 90.6.7'; i386 ntdll.dll has 'CEF cmd_line_args_disabled x86 111.2.7' and 'x86 135.0.20'.
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c

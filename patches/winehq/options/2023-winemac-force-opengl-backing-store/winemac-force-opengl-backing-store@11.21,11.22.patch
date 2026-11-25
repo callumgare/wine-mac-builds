@@ -3,14 +3,21 @@ Summary: ForceOpenGLBackingStore registry option, against flicker in some OpenGL
 Category: graphics
 Kind: feature
 Origin: wine-staging
+  Version: v11.21
+  Authors: Ken Thomases
   URL: https://github.com/wine-staging/wine-staging/blob/v11.21/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
-  Note: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases; CrossOver Hack 14364)
-Origin: crossover
-  CW-Hacks: 14364
+  Patchset: winemac.drv-no-flicker-patch
+Origin: winehq
+  Bugs: 34166
+  URL: https://bugs.winehq.org/show_bug.cgi?id=34166
+  Note: Ken Thomases' patch, attachment 61513 (2018-05-29); never merged
 Upstream: no (bug 34166 is RESOLVED NOTOURBUG)
 Why: adds the Mac Driver registry option ForceOpenGLBackingStore, which requests a
  backing store for every GL context and stops flicker in some GL games.
-Programs: none known
+Programs: Black & White, Jedi Knight: Dark Forces II demo: fullscreen flicker
+ (bug 34166, on macOS 10.12 and older)
+Uncertain: the CW hack number 14364 in older notes isn't in CrossOver
+ 26.3.0's source.
 Evidence: Sikarugir 10.0_8: winemac.so contains L"ForceOpenGLBackingStore"
 Port: taken verbatim from wine-staging v11.21's version of the same patch (staging
  commit 7426bb2f), which already carries the Wine 11 form: bool option, set in the new

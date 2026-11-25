@@ -6,7 +6,8 @@ Origin: crossover
   Version: 26.3.0
   CW-Hacks: 23560
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 23560 (dlls/setupapi/devinst.c)
+  Files: dlls/setupapi/devinst.c
+  Changes: verbatim
 Upstream: no
 Why: Diablo IV reads the GPU LUID through setupapi and needs it to match the LUID that
  D3DMetal's dxgi reports. Only when the process is "Diablo IV.exe" and dxgi.dll has no
@@ -15,8 +16,6 @@ Programs: Diablo IV: needs the GPU LUID it reads through setupapi to match
  D3DMetal's
 Evidence: Sikarugir 10.0_8: setupapi.dll strings "Using LUID %08lx:%08lx from D3DMetal dxgi",
  get_luid_from_d3dmetal, CreateDXGIFactory, L"Diablo IV.exe"
-Port: CX 26.3.0's form of the hack (same code as 25.1.1, but dxgi.h is included at
- the top of the file, before initguid.h, instead of mid-file after it); otherwise unchanged.
 
 diff --git a/dlls/setupapi/devinst.c b/dlls/setupapi/devinst.c
 index bbfe19c..0b0feaa 100644

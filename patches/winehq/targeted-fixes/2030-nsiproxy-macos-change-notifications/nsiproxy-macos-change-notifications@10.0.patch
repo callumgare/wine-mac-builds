@@ -2,14 +2,22 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Report network address changes on macOS
 Category: system
 Kind: fix
+Origin: winehq
+  Version: 10.8
+  Commit: 343954a86d5ab5f7a094a48d9d75128fe734d88d, 84deba0d1a3e5e15ba4803d3001f80900d5d9aa4
+  MR: 8048
+  Authors: Brendan Shanks
+  Changes: verbatim (same code as WineHQ 11.22)
 Origin: crossover
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1
-    Source: (sources/wine/dlls/nsiproxy.sys/{nsi.c,device.c})
+  Files: dlls/nsiproxy.sys/nsi.c, dlls/nsiproxy.sys/device.c
+  Note: taken from CX 25.1.1, which carries the WineHQ change; CX's wow64
+    unix-call thunks for nsiproxy are left out (not in 10.0_8)
 Upstream: yes (Wine 10.8)
 Why: Wine 10.0 only reports IP address changes through netlink on Linux; on macOS NotifyAddrChange/NotifyIpInterfaceChange never fire. Watch a PF_SYSTEM kernel event socket instead, and name nsiproxy's threads. CX's wow64 unix-call thunks for nsiproxy are not in 10.0_8 and are left out.
-Programs: none known
+Programs: none known; needed by winhttp-cache-autoproxy to notice network
+ changes (Steam)
 Evidence: Sikarugir 10.0_8: nsiproxy.so: 'PF_SYSTEM socket creation failed', 'SIOCSKEVFILT failed', 'error receiving, len %d'; nsiproxy.sys: UTF-16 wine_nsi_request, wine_nsi_notification; nsiproxy.so has no __wine_unix_call_wow64_funcs.
 
 diff --git a/dlls/nsiproxy.sys/device.c b/dlls/nsiproxy.sys/device.c

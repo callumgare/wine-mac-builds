@@ -5,14 +5,19 @@ Kind: fix
 Origin: winehq
   Commit: b93bee1a8748c178a5acb0b220de6f7d62ad807d
   URL: https://gitlab.winehq.org/wine/wine/-/commit/b93bee1a8748c178a5acb0b220de6f7d62ad807d
-  Note: upstream commit b93bee1a8748c178a5acb0b220de6f7d62ad807d (Hans Leidekker)
+  Authors: Hans Leidekker
+  Bugs: 56859
+  Changes: verbatim; applies to 10.0 with a line offset in builtin.c. Five of
+    the six files it touches are identical in 10.0 and in its upstream
+    parent (50b1a253d6); builtin.c differs only in code unrelated to the
+    tables' lock.
 Upstream: yes, commit b93bee1a87 in Wine 10.5 (bug 56859, Photoshop CS6's
  installer; closed as fixed in 10.9)
 Why: On 10.0, Big Fish trial games' WMI queries hang on "dlls\wbemprox\builtin.c: table.cs"; RtlpWaitForCriticalSection logs 60-second timeouts until it recovers.
 Programs: Big Fish trial games (White Wolf, Waverly Academy, Deadly Device):
- WMI queries hang on wbemprox's table lock (60-second timeouts) on 10.0
+ WMI queries hang on wbemprox's table lock (60-second timeouts) on 10.0;
+ Adobe Photoshop CS6's installer (WineHQ bug 56859)
 Evidence: second-chance-78's Big Fish trials (White Wolf, Waverly Academy) on macfixes-10.0-build4 logged six such timeouts.
-Port: Upstream's patch, unchanged; it applies to 10.0 with only a line offset in builtin.c. Five of the six files it touches are identical in 10.0 and in its upstream parent (50b1a253d6). builtin.c differs only in code unrelated to the tables' lock.
 Status: built in macfixes-10.0-build5. 2026-11-16: no table.cs timeouts in
  10 Big Fish trial launches (White Wolf, Waverly Academy, Deadly Device), all passing.
 

@@ -2,17 +2,23 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: emulate XGETBV, which it rejects
 Category: cpu
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 23427
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 23427 (identical code in dblark/macos-wine-build commit 3d842d1, patches/0002-macos-hacks.patch)
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c); https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Changes: emulate_xgetbv() and the macOS 15 check verbatim; the call in
+    segv_handler passes sigcontext and goes through leave_handler(), as
+    WineHQ 11.x's segv_handler requires
+Origin: other
+  Name: dblark/macos-wine-build
+  Version: 3d842d1
+  URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
+  Note: the same code, in patches/0002-macos-hacks.patch
 Upstream: no
 Why: Rosetta raises #UD for XGETBV; emulate it for XCR0 (0xe7 with AVX on macOS 15+, else 0x07).
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "emulate_xgetbv", "emulated an XGETBV instruction"; disassembly matches (0f 01 d0 check, ecx==0, cmov between 0xe7 and 0x07, rip += 3)
-Port: to 11.21: emulate_xgetbv() and the sequoia_or_later check are CX 26.3.0's code; the segv_handler call goes through leave_handler() before returning, as in 0005.
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644

@@ -3,9 +3,6 @@ Summary: krnl386: when LDT entries are refused, load without 16-bit support and 
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
-    (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
-    wine-mac-builds.
 Upstream: no
 Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  FreeLibrary16 and the like) are forwarded to krnl386.exe16, so a 32-bit

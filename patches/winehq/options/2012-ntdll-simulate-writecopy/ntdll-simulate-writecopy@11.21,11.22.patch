@@ -7,12 +7,19 @@ Origin: crossover
   CW-Hacks: 22996
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CW HACK 22996 (without CW HACK 24067's default-visibility export, which 10.0_8 does not have)
-    Source: (sources/wine/dlls/ntdll/unix/loader.c
-    Source: virtual.c
-    Source: unix_private.h)
+  Files: dlls/ntdll/unix/loader.c, dlls/ntdll/unix/unix_private.h, dlls/ntdll/unix/virtual.c
+Origin: other
+  Name: Proton
+  Version: 98bce52ddf46
+  Authors: Paul Gofman
+  URL: https://github.com/ValveSoftware/wine/commit/98bce52ddf46c0c8c6be57c27d4aa9c48303798b
+  Note: the original (CW-Bug-Id 22034); it relies on wine-staging's
+    ntdll-WRITECOPY for VPROT_COPIED, which CX's version adds itself, and
+    also turns on for Steam app 1608730
 Upstream: no
 Why: With WINE_SIMULATE_WRITECOPY=1, pages changed away from PAGE_(EXECUTE_)WRITECOPY report the old protection as PAGE_(EXECUTE_)READWRITE, as on Windows after a copy-on-write.
-Programs: none known
+Programs: Battle.net launcher: installation hung (WineHQ bug 55979, 2023);
+ the bug names this variable as the workaround
 Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
 Port: to 11.21: code unchanged (CX 26.3.0's is the same as 25.1.1's); hacks_init() is called right after 11.21's server_init_process( data ) in start_main_thread(), before msync_init(), as CX 26.3.0 orders them.
 

@@ -5,10 +5,13 @@ Kind: feature
 Origin: crossover
   Version: 25.1.1
   CW-Hacks: 22435
-  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz, https://github.com/dblark/macos-wine-build)
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Note: CrossOver 25.1.1 CW HACK 22435 (dlls/winemac.drv/d3dmetal.c and the registry
     callbacks in dllmain.c, macdrv.h, macdrv_main.c, unixlib.h, Makefile.in)
-    Source: (same code: dblark 0003-d3dmetal-hacks.patch
+Origin: other
+  Name: dblark/macos-wine-build
+  URL: https://github.com/dblark/macos-wine-build
+  Note: the same code, in 0003-d3dmetal-hacks.patch
 Upstream: no
 Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so to get
  at the window's Cocoa view and create Metal views/layers, and call a few user32/advapi32

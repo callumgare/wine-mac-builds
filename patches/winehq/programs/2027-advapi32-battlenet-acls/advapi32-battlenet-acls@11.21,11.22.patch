@@ -2,19 +2,20 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Battle.net: give its Agent the directory permissions it checks for
 Category: system
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 23881, 27245
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 23881 & 27245
-    Source: (sources/wine/dlls/advapi32/security.c)
+  Files: dlls/advapi32/security.c
+  Changes: hack_launcher_sd made static (CX leaves it extern without a
+    prototype). CX's GetUserName 'crossover' hack and crypt32 is_bnet()
+    CertDeleteCertificateFromStore hack are left out (not in 10.0_8)
 Upstream: no
 Why: Battle.net's Agent.exe refuses to run unless its directories report Administrators as owner and specific inheritable ACEs; GetNamedSecurityInfoW returns such a descriptor for those paths when called from Agent.exe. hack_battle_net_sd made static (CX leaves it extern without a prototype). CX's GetUserName 'crossover' hack and crypt32 is_bnet() CertDeleteCertificateFromStore hack are not in 10.0_8 and are left out.
 Programs: Battle.net: its Agent.exe refuses to run unless its directories
  report Administrators as owner and specific inheritable ACEs; Epic Games
  Launcher (EpicGamesLauncher.exe, CW HACK 27245, in the 11.21 and 11.22
  copies only): what goes wrong isn't stated
-Evidence: Sikarugir 10.0_8: advapi32.dll (both arches): 'HACK: adjusting owner and ACLs for a Battle.net directory', the five 'HACK: ... error %08lx' strings, function name hack_battle_net_sd, UTF-16 Agent.exe, /ProgramData/Battle.net/Agent, \ProgramData\Battle.net_components, /Program Files (x86)/Battle.net.
 Port: taken from CX 26.3.0, which extends the hack (CW HACK 27245) to
  EpicGamesLauncher.exe for every path and renames hack_battle_net_sd to hack_launcher_sd;
  made static again as in the 10.0 port. The Epic part is new relative to 10.0_8.

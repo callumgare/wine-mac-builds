@@ -3,11 +3,21 @@ Summary: Rosetta 2: skip the obsolete x87 FNDISI instruction (WineHQ bug 56441)
 Category: cpu
 Kind: workaround
 Origin: other
-  URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae, https://bugs.winehq.org/show_bug.cgi?id=56441
-  Note: dblark/macos-wine-build patches/0002-macos-hacks.patch (handle_fndisi), the workaround for WineHQ bug 56441
+  Name: WineHQ bug 56441 attachment
+  Authors: Brendan Shanks
+  URL: https://bugs.winehq.org/show_bug.cgi?id=56441
+  Note: "Patch to ignore FNDISI" (attachment 76358); also shipped by Gcenx
+    (winehq-9.8 packages) and dblark/macos-wine-build
+Origin: other
+  Name: dblark/macos-wine-build
+  Version: 3d842d1
+  URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
+  Note: patches/0002-macos-hacks.patch (handle_fndisi)
+  Changes: comment fixed (dblark's says "RDSSPD/RDSSPQ")
 Upstream: no (bug 56441 closed NOTOURBUG: Apple fixed Rosetta in macOS 15)
 Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy said "RDSSPD/RDSSPQ".)
-Programs: none known
+Programs: DSDPlus 1.101 (32-bit): "Unhandled illegal instruction" at
+ start on macOS 14 (WineHQ bug 56441)
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
