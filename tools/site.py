@@ -12,7 +12,17 @@ workflow deploys it to Cloudflare (a static-assets Worker).
                               Wine version, per platform (wine-11.21.json)
   <out>/_redirects            buildless downloads, e.g.
                               /wine-11.21/macos-x86_64.tar.xz -> the latest
-  <out>/index.html, <out>/<build name>/index.html, <out>/<name>/index.html
+  <out>/index.html, <out>/{flavours,builds,packaging,patches}/index.html
+                              the pages, written by tools/sitegen/ (being
+                              redesigned: these are still placeholders)
+  <out>/404.html              served for any URL with nothing behind it
+  <out>/static/               site.css, site.js and fonts, with a content
+                              hash in each name
+  <out>/_headers              the Content-Security-Policy, and caching for
+                              /static/
+
+<out> is emptied first if it holds an earlier generated site (it has
+static/ or _redirects); any other non-empty folder is refused.
 
 Inputs:
   - GitHub releases whose tag is a build ID (wine-11.21-build1-macos-x86_64):
@@ -36,7 +46,6 @@ meaning does. Python 3.11+, standard library only.
 """
 
 import argparse
-import html
 import json
 import os
 import pathlib
@@ -44,6 +53,10 @@ import re
 import sys
 import tomllib
 import urllib.request
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import sitegen  # noqa: E402
+from sitegen import notfound, placeholders  # noqa: E402
 
 SCHEMA_VERSION = 1
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -210,166 +223,6 @@ def shape(releases):
 
 # --- Writing -----------------------------------------------------------------------
 
-PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title}</title>
-<style>
-:root {{ --fg:#1d1d1f; --muted:#5f6368; --bg:#fff; --line:#d9d9de; --accent:#0b57d0; --warn:#a15c00; }}
-@media (prefers-color-scheme: dark) {{ :root {{ --fg:#e8e8ea; --muted:#a0a0a8; --bg:#141416; --line:#33333a; --accent:#8ab4f8; --warn:#f0b35a; }} }}
-body {{ margin:0 auto; max-width:60rem; padding:1.5rem 1rem 4rem; font:16px/1.5 system-ui,-apple-system,sans-serif; color:var(--fg); background:var(--bg); }}
-a {{ color:var(--accent); }} h1 {{ font-size:1.6rem; margin:.2rem 0 1rem; }} h2 {{ font-size:1.15rem; margin-top:2rem; }}
-table {{ border-collapse:collapse; width:100%; font-size:.92rem; }} th,td {{ text-align:left; padding:.35rem .5rem; border-bottom:1px solid var(--line); vertical-align:top; }}
-.wrap {{ overflow-x:auto; }} code {{ font-size:.85rem; word-break:break-all; }} .muted {{ color:var(--muted); }} .warn {{ color:var(--warn); }}
-nav {{ font-size:.9rem; margin-bottom:1rem; }}
-</style></head><body>
-<nav><a href="/">wine-mac-builds</a></nav>
-{body}
-</body></html>
-"""
-
-
-def esc(s):
-    return html.escape(str(s if s is not None else ""))
-
-
-def size(n):
-    for unit in ("B", "KB", "MB", "GB"):
-        if n < 1000 or unit == "GB":
-            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
-        n /= 1000
-
-
-def downloads_table(e, repo):
-    rows = []
-    for kind in ("build", "debug", "tests", "sources", "sbom", "build_info", "sha256sums"):
-        a = e["assets"].get(kind)
-        if not a:
-            continue
-        rows.append(f"<tr><td><a href=\"{esc(a['urls'][0])}\">{esc(a['name'])}</a></td><td>{size(a['size'])}</td>"
-                    f"<td><code>{esc(a['sha256'] or '')}</code></td></tr>")
-    verify = f"gh attestation verify {e['assets'].get('build', {}).get('name', '')} --repo {repo}"
-    return ("<div class=wrap><table><tr><th>File</th><th>Size</th><th>sha256</th></tr>" + "".join(rows) +
-            f"</table></div><p class=muted>Check where a file came from: <code>{esc(verify)}</code></p>")
-
-
-ORIGINS = {"winehq": "WineHQ", "wine-staging": "wine-staging", "crossover": "CrossOver",
-           "gcenx": "Gcenx", "other": "other project", "reconstructed": "reconstructed",
-           "wine-mac-builds": "this project"}
-
-
-def patch_row(p, rec, commit):
-    # The header fields come from build/patch_header.py via BUILD-INFO.json;
-    # builds made before headers were recorded have only file and sha256.
-    name = p["file"].rsplit("/", 1)[-1]
-    link = f"<a href=\"{esc(rec.get('repository'))}/blob/{esc(commit)}/{esc(p['file'])}\"><code>{esc(name)}</code></a>"
-    what = esc(p.get("summary", ""))
-    if p.get("uncertain"):
-        what += f" <span class=warn title=\"{esc(p['uncertain'])}\">(uncertain)</span>"
-    origin = esc(ORIGINS.get(p.get("origin"), p.get("origin", "")))
-    if p.get("ported"):
-        origin += " <span class=muted>(ported here)</span>"
-    if p.get("cw_hacks"):
-        origin += "<br><span class=muted>hack " + ", ".join(str(n) for n in p["cw_hacks"]) + "</span>"
-    kinds = esc(", ".join(p.get("kinds", [])))
-    return (f"<tr><td>{link}</td><td>{what}</td><td>{kinds}</td><td>{origin}</td>"
-            f"<td>{esc(p.get('upstream_status', ''))}</td></tr>")
-
-
-# build/patch_header.py's categories, in the order the build page shows them.
-CATEGORIES = {"cpu": "CPU, Rosetta 2 and memory", "sync": "Thread synchronisation",
-              "graphics": "Direct3D, D3DMetal, OpenGL and Vulkan", "input": "Windows, focus, mouse and keyboard",
-              "system": "Files, network, processes and version", "apps": "Fixes for specific programs",
-              "build": "How Wine builds, and its tests"}
-
-
-def patches_section(patches, rec, commit):
-    # One table per category, each in the order the patches are applied.
-    # Builds from before headers were recorded have no category: one table.
-    head = ("<div class=wrap><table><tr><th>Patch</th><th>What it does</th><th>Kind</th>"
-            "<th>Origin</th><th>In WineHQ</th></tr>")
-    groups = {}
-    for p in patches:
-        groups.setdefault(p.get("category"), []).append(p)
-    out = [f"<p>{len(patches)} patches, applied in order.</p>"]
-    for cat in [*CATEGORIES, *(c for c in groups if c not in CATEGORIES)]:
-        if cat not in groups:
-            continue
-        if cat is not None:
-            out.append(f"<h3>{esc(CATEGORIES.get(cat, cat))} <span class=muted>({len(groups[cat])})</span></h3>")
-        out += [head, *[patch_row(p, rec, commit) for p in groups[cat]], "</table></div>"]
-    return out
-
-
-def build_page(e, repo):
-    status = []
-    if e["draft"]:
-        status.append("<p class=warn>Draft: not published yet.</p>")
-    if e["experimental"]:
-        status.append("<p class=warn>Experimental: may be removed.</p>")
-    if e["withdrawn"]:
-        status.append(f"<p class=warn>Withdrawn: {esc(e['withdrawn'])} (still downloadable).</p>")
-    if e["superseded_by"]:
-        status.append(f"<p class=warn>Superseded by <a href=\"/{e['superseded_by']}/\">{e['superseded_by']}</a>.</p>")
-    rec = e["recipe"]
-    commit = rec.get("commit") or ""
-    facts = [
-        ("Flavour", e["flavour"]), ("Wine", f"{e['wine_version']} ({e['channel']})"),
-        ("Build number", e["build_number"]), ("Platform", e["platform"]),
-        ("Minimum macOS", e["minimum_macos"]), ("Published", e["published"] or "not yet"),
-        ("Toolchain", e["toolchain"]),
-        ("Recipe", f"<a href=\"{esc(rec.get('repository'))}/tree/{esc(commit)}\">{esc(commit[:12])}</a>"),
-        ("Release", f"<a href=\"{esc(e['release_url'])}\">on GitHub</a>"),
-    ]
-    body = [f"<h1>{esc(e['name'])}</h1>", *status,
-            "<div class=wrap><table>" + "".join(f"<tr><th>{k}</th><td>{v if k in ('Recipe', 'Release') else esc(v)}</td></tr>"
-                                                 for k, v in facts) + "</table></div>",
-            "<h2>Downloads</h2>", downloads_table(e, repo)]
-    if e["changes"]:
-        body += ["<h2>Changes since the previous build</h2>", f"<p>{esc(e['changes'])}</p>"]
-    if e["known_issues"]:
-        body += ["<h2>Known issues</h2><ul>", *[f"<li>{esc(i)}</li>" for i in e["known_issues"]], "</ul>"]
-    if e["patches"]:
-        body += ["<h2>Patches</h2>", *patches_section(e["patches"], rec, commit)]
-    if e["components"]:
-        body += ["<h2>Components</h2><div class=wrap><table><tr><th>Name</th><th>Version</th><th>Licence</th></tr>",
-                 *[f"<tr><td>{esc(c['name'])}</td><td>{esc(c['version'])}</td><td>{esc(c['license'])}</td></tr>"
-                   for c in e["components"]], "</table></div>"]
-    return PAGE.format(title=esc(e["name"]), body="\n".join(body))
-
-
-def buildless_page(b, repo):
-    body = [f"<h1>{esc(b['name'])}</h1>",
-            "<p>The latest build of this Wine version. Its address stays the same when a newer build "
-            "replaces it; to pin one exact build, use that build's page.</p>"]
-    for platform, e in sorted(b["platforms"].items()):
-        body += [f"<h2>{esc(platform)}: <a href=\"/{e['name']}/\">{esc(e['name'])}</a></h2>", downloads_table(e, repo)]
-    body += ["<h2>All builds</h2><ul>", *[f"<li><a href=\"/{n}/\">{n}</a></li>" for n in b["builds"]], "</ul>"]
-    return PAGE.format(title=esc(b["name"]), body="\n".join(body))
-
-
-def home_page(builds, latest):
-    rows = "".join(
-        f"<tr><td><a href=\"/{e['name']}/\">{esc(e['name'])}</a></td><td>{esc(e['flavour'])}</td>"
-        f"<td>{esc(e['wine_version'])}</td><td>{esc(e['channel'])}</td><td>{esc(e['platform'])}</td>"
-        f"<td>{'draft' if e['draft'] else 'experimental' if e['experimental'] else 'withdrawn' if e['withdrawn'] else 'superseded' if e['superseded_by'] else ''}</td></tr>"
-        for e in reversed(builds))
-    lat = "".join(f"<li>{esc(k)}: <a href=\"/{v}/\">{v}</a></li>" for k, v in latest.items())
-    body = ("<h1>Wine builds for macOS</h1>"
-            "<p>Automated builds of Wine for macOS, kept permanently, each with its source, debug symbols, "
-            "tests and provenance. Programs should read <a href=\"/v1/index.json\">/v1/index.json</a>.</p>"
-            f"<h2>Latest</h2><ul>{lat}</ul>"
-            "<h2>Every build</h2><div class=wrap><table><tr><th>Build</th><th>Flavour</th><th>Wine</th>"
-            f"<th>Channel</th><th>Platform</th><th>Status</th></tr>{rows}</table></div>")
-    return PAGE.format(title="wine-mac-builds", body=body)
-
-
-def write(out, rel, text):
-    p = out / rel
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text)
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
@@ -384,30 +237,29 @@ def main():
     else:
         releases = load_releases(args.repo, token, args.include_drafts)
     builds, buildless, latest = shape(releases)
-    out = pathlib.Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
+    site = sitegen.Site(args.out, repo=args.repo, site_url=SITE_URL)
 
     def dump(obj):
         return json.dumps(obj, indent=2, sort_keys=False) + "\n"
 
-    write(out, "v1/index.json", dump({"schema_version": SCHEMA_VERSION, "repository": f"https://github.com/{args.repo}",
-                                      "latest": latest, "builds": builds}))
+    site.text("v1/index.json", dump({"schema_version": SCHEMA_VERSION, "repository": f"https://github.com/{args.repo}",
+                                     "latest": latest, "builds": builds}))
     redirects = []
     for b in buildless.values():
-        write(out, f"v1/{b['name']}.json", dump({"schema_version": SCHEMA_VERSION, **b}))
-        write(out, f"{b['name']}/index.html", buildless_page(b, args.repo))
+        site.text(f"v1/{b['name']}.json", dump({"schema_version": SCHEMA_VERSION, **b}))
         for platform, e in sorted(b["platforms"].items()):
             for kind, suffix in (("build", ".tar.xz"), ("debug", "-debug.tar.xz"),
                                  ("tests", "-tests.tar.xz"), ("sources", "-sources.tar.xz")):
                 if kind in e["assets"]:
                     redirects.append(f"/{b['name']}/{platform}{suffix} {e['assets'][kind]['urls'][0]} 302")
-    for e in builds:
-        write(out, f"{e['name']}/index.html", build_page(e, args.repo))
-    write(out, "index.html", home_page(builds, latest))
+    placeholders.render(site)
+    notfound.render(site)
     if len(redirects) > 1900:
         sys.exit(f"error: {len(redirects)} redirects; Cloudflare allows 2,000 static ones (move to Bulk Redirects or Worker code)")
-    write(out, "_redirects", "\n".join(redirects) + "\n")
-    print(f"{len(builds)} builds, {len(buildless)} buildless names, {len(redirects)} redirects -> {out}", file=sys.stderr)
+    site.text("_redirects", "\n".join(redirects) + "\n")
+    site.finish()
+    print(f"{len(builds)} builds, {len(buildless)} buildless names, {len(redirects)} redirects, "
+          f"{len(site.pages)} pages -> {args.out}", file=sys.stderr)
 
 
 if __name__ == "__main__":
