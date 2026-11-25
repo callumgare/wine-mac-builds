@@ -8,16 +8,20 @@ Origin: wine-mac-builds
 Upstream: no (candidate, kept on Second Chance's list for later)
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,
- Crashpad), faults in the Wine process go to it rather than becoming the
- signals Wine's exception handling is built on, and a Windows program hangs
- at its third fault. ntdll now clears the ports for bad access, bad
- instruction and arithmetic exceptions when it sets up signal handling,
- except under a debugger (P_TRACED), which uses them.
+ KSCrash), faults, bad instructions, breakpoints and software exceptions in
+ the Wine process go to it rather than becoming the signals Wine's
+ exception handling is built on, and a Windows program hangs at its first
+ such exception that goes to the handler. ntdll now clears every task
+ exception port (EXC_MASK_ALL, as Second Chance does before starting Wine)
+ when it sets up signal handling, except under a debugger (P_TRACED),
+ which uses them. It used to clear only bad access, bad instruction and
+ arithmetic, and the first int3 still hung under an inherited breakpoint
+ port (measured on 10.0 and 11.22).
 Programs: none known
-Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+Status: built in macfixes-10.0-build2; behaviour not yet tested on its own (2026-11-15).
+ 10.0: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
-index 8a40639..671ba63 100644
 --- a/dlls/ntdll/unix/signal_x86_64.c
 +++ b/dlls/ntdll/unix/signal_x86_64.c
 @@ -63,6 +63,7 @@
@@ -28,7 +32,7 @@ index 8a40639..671ba63 100644
  #endif
  
  #include "ntstatus.h"
-@@ -2891,6 +2892,35 @@ static void *mac_thread_gsbase(void)
+@@ -2803,6 +2804,34 @@ static void *mac_thread_gsbase(void)
  #endif
  
  
@@ -37,13 +41,13 @@ index 8a40639..671ba63 100644
 + *           clear_inherited_exception_ports
 + *
 + * Task exception ports are inherited across fork and exec. If the program
-+ * that started Wine set some (a crash reporter such as Sentry or
-+ * Crashpad), the Mach exceptions for faults go to that handler instead of
-+ * becoming the signals Wine's fault handling depends on, and a Windows
-+ * program that relies on its own exception handling hangs. Clear them, so
-+ * faults always become signals. Not while a debugger is attached (it
-+ * receives exceptions through these ports).
-+ * Not in Sikarugir; written for wine-mac-builds.
++ * that started Wine set some (a crash reporter such as Sentry or KSCrash,
++ * which take faults, bad instructions, breakpoints and software
++ * exceptions), those Mach exceptions go to that handler instead of becoming
++ * the signals Wine's exception handling depends on, and a Windows program
++ * that relies on its own exception handling hangs. Clear them all, so they
++ * always become signals. Not while a debugger is attached (it receives
++ * exceptions through these ports).
 + */
 +static void clear_inherited_exception_ports(void)
 +{
@@ -54,8 +58,7 @@ index 8a40639..671ba63 100644
 +
 +    info.kp_proc.p_flag = 0;
 +    if (!sysctl( mib, 4, &info, &size, NULL, 0 ) && (info.kp_proc.p_flag & P_TRACED)) return;
-+    kr = task_set_exception_ports( mach_task_self(),
-+                                   EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC,
++    kr = task_set_exception_ports( mach_task_self(), EXC_MASK_ALL,
 +                                   MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE );
 +    if (kr != KERN_SUCCESS) WARN_(seh)( "task_set_exception_ports failed: %d\n", kr );
 +}
@@ -64,7 +67,7 @@ index 8a40639..671ba63 100644
  /**********************************************************************
   *		signal_init_process
   */
-@@ -2900,6 +2930,10 @@ void signal_init_process(void)
+@@ -2812,6 +2841,10 @@ void signal_init_process(void)
      WOW_TEB *wow_teb = get_wow_teb( NtCurrentTeb() );
      void *ptr, *kernel_stack = (char *)ntdll_get_thread_data()->kernel_stack + kernel_stack_size;
  

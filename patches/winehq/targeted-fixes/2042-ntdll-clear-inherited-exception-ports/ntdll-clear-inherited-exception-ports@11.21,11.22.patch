@@ -8,35 +8,43 @@ Origin: wine-mac-builds
 Upstream: no (candidate, kept on Second Chance's list for later)
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,
- Crashpad), faults in the Wine process go to it rather than becoming the
- signals Wine's exception handling is built on, and a Windows program hangs
- at its third fault. ntdll now clears the ports for bad access, bad
- instruction and arithmetic exceptions when it sets up signal handling,
- except under a debugger (P_TRACED), which uses them.
+ KSCrash), faults, bad instructions, breakpoints and software exceptions in
+ the Wine process go to it rather than becoming the signals Wine's
+ exception handling is built on, and a Windows program hangs at its first
+ such exception that goes to the handler. ntdll now clears every task
+ exception port (EXC_MASK_ALL, as Second Chance does before starting Wine)
+ when it sets up signal handling, except under a debugger (P_TRACED),
+ which uses them. It used to clear only bad access, bad instruction and
+ arithmetic, and the first int3 still hung under an inherited breakpoint
+ port (measured on 10.0 and 11.22).
 Programs: none known
 Port: to 11.21: same code; called at the start of signal_init_process( TEB * ), which 11.21 already includes <sys/sysctl.h> for.
-Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+Status: built in macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+ 11.21: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
+ 11.22: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
-index 3a38af0..9553ebf 100644
 --- a/dlls/ntdll/unix/signal_x86_64.c
 +++ b/dlls/ntdll/unix/signal_x86_64.c
-@@ -3096,6 +3096,35 @@ static int libc_addr_cb( struct dl_phdr_info *info, size_t info_size, void *arg
- }
- #endif
- 
+@@ -3093,6 +3093,34 @@ static int libc_addr_cb( struct dl_phdr_info *info, si
+     libc_size = size;
+     TRACE_(seh)( "found signal trampoline in %s\n", info->dlpi_name);
+     return 1;
++}
++#endif
++
 +#ifdef __APPLE__
 +/***********************************************************************
 + *           clear_inherited_exception_ports
 + *
 + * Task exception ports are inherited across fork and exec. If the program
-+ * that started Wine set some (a crash reporter such as Sentry or
-+ * Crashpad), the Mach exceptions for faults go to that handler instead of
-+ * becoming the signals Wine's fault handling depends on, and a Windows
-+ * program that relies on its own exception handling hangs. Clear them, so
-+ * faults always become signals. Not while a debugger is attached (it
-+ * receives exceptions through these ports).
-+ * Not in Sikarugir; written for wine-mac-builds.
++ * that started Wine set some (a crash reporter such as Sentry or KSCrash,
++ * which take faults, bad instructions, breakpoints and software
++ * exceptions), those Mach exceptions go to that handler instead of becoming
++ * the signals Wine's exception handling depends on, and a Windows program
++ * that relies on its own exception handling hangs. Clear them all, so they
++ * always become signals. Not while a debugger is attached (it receives
++ * exceptions through these ports).
 + */
 +static void clear_inherited_exception_ports(void)
 +{
@@ -47,17 +55,13 @@ index 3a38af0..9553ebf 100644
 +
 +    info.kp_proc.p_flag = 0;
 +    if (!sysctl( mib, 4, &info, &size, NULL, 0 ) && (info.kp_proc.p_flag & P_TRACED)) return;
-+    kr = task_set_exception_ports( mach_task_self(),
-+                                   EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC,
++    kr = task_set_exception_ports( mach_task_self(), EXC_MASK_ALL,
 +                                   MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE );
 +    if (kr != KERN_SUCCESS) WARN_(seh)( "task_set_exception_ports failed: %d\n", kr );
-+}
-+#endif
-+
- /**********************************************************************
-  *		signal_init_process
-  */
-@@ -3105,6 +3134,10 @@ void signal_init_process( TEB *teb )
+ }
+ #endif
+ 
+@@ -3105,6 +3133,10 @@ void signal_init_process( TEB *teb )
      WOW_TEB *wow_teb = get_wow_teb( teb );
      void *ptr;
  
