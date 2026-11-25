@@ -4,3 +4,4 @@
 /vm-share/
 __pycache__/
 .local
+/site/

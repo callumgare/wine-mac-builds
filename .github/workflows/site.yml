@@ -15,7 +15,7 @@ name: site
 on:
   push:
     branches: [main]
-    paths: [metadata/**, tools/site.py, .github/workflows/site.yml]
+    paths: [metadata/**, tools/site.py, tools/sitegen/**, wrangler.jsonc, .github/workflows/site.yml]
   release:
     types: [published, edited, deleted]
   workflow_dispatch:

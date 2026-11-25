@@ -2,7 +2,8 @@
 //
 // The website (wine-mac-builds.cals.cafe): a Cloudflare Worker that only
 // serves static files, the folder tools/site.py generates (with its
-// _redirects for buildless downloads). Deployed by .github/workflows/site.yml.
+// _redirects for buildless downloads and _headers for the
+// Content-Security-Policy and caching). Deployed by .github/workflows/site.yml.
 // The custom domain is attached in Cloudflare's dashboard, not here, so the
 // deploy token needs no DNS permission.
 {
@@ -11,7 +12,10 @@
   "workers_dev": false,
   "assets": {
     "directory": "./site",
-    // /wine-11.21 -> /wine-11.21/ (its index.html)
-    "html_handling": "auto-trailing-slash"
+    // /builds -> /builds/ (its index.html)
+    "html_handling": "auto-trailing-slash",
+    // Serve 404.html for a URL with nothing behind it. Without this,
+    // Cloudflare answers with an empty 404 and never serves 404.html.
+    "not_found_handling": "404-page"
   }
 }
