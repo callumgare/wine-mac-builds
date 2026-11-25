@@ -124,6 +124,11 @@ projects.
 ## Testing
 
 - `./wmb regress --tree <unpacked release>` runs the suite on any build.
+  It compiles the tests with the MinGW compilers on PATH; without them every
+  test reports "didn't compile". The toolchain's are in
+  `/opt/wmb/toolchains/<id>/libexec/llvm-mingw/bin`. Tests that open
+  windows need the user's GUI session: from a shell without one, run them
+  through `build/hostgl.sh` with `WMB_REGRESS_ONLY=<name>`.
   Tests with `Screenshot:` take over the screen for a few seconds each.
   `WMB_REGRESS_NO_SCREEN=1` skips them on a Mac someone is using.
 - Build VMs have no accelerated OpenGL, so GL tests skip there: the
