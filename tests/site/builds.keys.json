@@ -1,0 +1,378 @@
+{
+ "builds": [
+  "array"
+ ],
+ "builds[]": [
+  "object"
+ ],
+ "builds[].assets": [
+  "object"
+ ],
+ "builds[].assets.build": [
+  "object"
+ ],
+ "builds[].assets.build.name": [
+  "string"
+ ],
+ "builds[].assets.build.sha256": [
+  "string"
+ ],
+ "builds[].assets.build.size": [
+  "number"
+ ],
+ "builds[].assets.build.urls": [
+  "array"
+ ],
+ "builds[].assets.build.urls[]": [
+  "string"
+ ],
+ "builds[].assets.build_info": [
+  "object"
+ ],
+ "builds[].assets.build_info.name": [
+  "string"
+ ],
+ "builds[].assets.build_info.sha256": [
+  "string"
+ ],
+ "builds[].assets.build_info.size": [
+  "number"
+ ],
+ "builds[].assets.build_info.urls": [
+  "array"
+ ],
+ "builds[].assets.build_info.urls[]": [
+  "string"
+ ],
+ "builds[].assets.debug": [
+  "object"
+ ],
+ "builds[].assets.debug.name": [
+  "string"
+ ],
+ "builds[].assets.debug.sha256": [
+  "string"
+ ],
+ "builds[].assets.debug.size": [
+  "number"
+ ],
+ "builds[].assets.debug.urls": [
+  "array"
+ ],
+ "builds[].assets.debug.urls[]": [
+  "string"
+ ],
+ "builds[].assets.sbom": [
+  "object"
+ ],
+ "builds[].assets.sbom.name": [
+  "string"
+ ],
+ "builds[].assets.sbom.sha256": [
+  "string"
+ ],
+ "builds[].assets.sbom.size": [
+  "number"
+ ],
+ "builds[].assets.sbom.urls": [
+  "array"
+ ],
+ "builds[].assets.sbom.urls[]": [
+  "string"
+ ],
+ "builds[].assets.sha256sums": [
+  "object"
+ ],
+ "builds[].assets.sha256sums.name": [
+  "string"
+ ],
+ "builds[].assets.sha256sums.sha256": [
+  "string"
+ ],
+ "builds[].assets.sha256sums.size": [
+  "number"
+ ],
+ "builds[].assets.sha256sums.urls": [
+  "array"
+ ],
+ "builds[].assets.sha256sums.urls[]": [
+  "string"
+ ],
+ "builds[].assets.sources": [
+  "object"
+ ],
+ "builds[].assets.sources.name": [
+  "string"
+ ],
+ "builds[].assets.sources.sha256": [
+  "string"
+ ],
+ "builds[].assets.sources.size": [
+  "number"
+ ],
+ "builds[].assets.sources.urls": [
+  "array"
+ ],
+ "builds[].assets.sources.urls[]": [
+  "string"
+ ],
+ "builds[].assets.test_results": [
+  "object"
+ ],
+ "builds[].assets.test_results.name": [
+  "string"
+ ],
+ "builds[].assets.test_results.sha256": [
+  "string"
+ ],
+ "builds[].assets.test_results.size": [
+  "number"
+ ],
+ "builds[].assets.test_results.urls": [
+  "array"
+ ],
+ "builds[].assets.test_results.urls[]": [
+  "string"
+ ],
+ "builds[].assets.tests": [
+  "object"
+ ],
+ "builds[].assets.tests.name": [
+  "string"
+ ],
+ "builds[].assets.tests.sha256": [
+  "string"
+ ],
+ "builds[].assets.tests.size": [
+  "number"
+ ],
+ "builds[].assets.tests.urls": [
+  "array"
+ ],
+ "builds[].assets.tests.urls[]": [
+  "string"
+ ],
+ "builds[].build_id": [
+  "string"
+ ],
+ "builds[].build_number": [
+  "number"
+ ],
+ "builds[].buildless_name": [
+  "string"
+ ],
+ "builds[].changes": [
+  "null",
+  "string"
+ ],
+ "builds[].channel": [
+  "string"
+ ],
+ "builds[].ci_run_url": [
+  "null",
+  "string"
+ ],
+ "builds[].components": [
+  "array"
+ ],
+ "builds[].components[]": [
+  "object"
+ ],
+ "builds[].components[].license": [
+  "null",
+  "string"
+ ],
+ "builds[].components[].name": [
+  "string"
+ ],
+ "builds[].components[].version": [
+  "string"
+ ],
+ "builds[].draft": [
+  "boolean"
+ ],
+ "builds[].experimental": [
+  "boolean"
+ ],
+ "builds[].flavour": [
+  "string"
+ ],
+ "builds[].flavour_description": [
+  "null",
+  "string"
+ ],
+ "builds[].known_issues": [
+  "array"
+ ],
+ "builds[].known_issues[]": [
+  "string"
+ ],
+ "builds[].latest": [
+  "boolean"
+ ],
+ "builds[].minimum_macos": [
+  "string"
+ ],
+ "builds[].name": [
+  "string"
+ ],
+ "builds[].page_url": [
+  "string"
+ ],
+ "builds[].patch_base": [
+  "string"
+ ],
+ "builds[].patch_sets": [
+  "array"
+ ],
+ "builds[].patch_sets[]": [
+  "object"
+ ],
+ "builds[].patch_sets[].name": [
+  "string"
+ ],
+ "builds[].patch_sets[].range": [
+  "null",
+  "string"
+ ],
+ "builds[].patch_sets[].summary": [
+  "string"
+ ],
+ "builds[].patches": [
+  "array"
+ ],
+ "builds[].patches[]": [
+  "object"
+ ],
+ "builds[].patches[].category": [
+  "null",
+  "string"
+ ],
+ "builds[].patches[].diff_sha256": [
+  "null",
+  "string"
+ ],
+ "builds[].patches[].file": [
+  "string"
+ ],
+ "builds[].patches[].kind": [
+  "null",
+  "string"
+ ],
+ "builds[].patches[].name": [
+  "string"
+ ],
+ "builds[].patches[].number": [
+  "string"
+ ],
+ "builds[].patches[].origins": [
+  "array"
+ ],
+ "builds[].patches[].origins[]": [
+  "object"
+ ],
+ "builds[].patches[].origins[].binary": [
+  "string"
+ ],
+ "builds[].patches[].origins[].changes": [
+  "string"
+ ],
+ "builds[].patches[].origins[].commit": [
+  "string"
+ ],
+ "builds[].patches[].origins[].cw_hacks": [
+  "array"
+ ],
+ "builds[].patches[].origins[].cw_hacks[]": [
+  "string"
+ ],
+ "builds[].patches[].origins[].functions": [
+  "string"
+ ],
+ "builds[].patches[].origins[].name": [
+  "string"
+ ],
+ "builds[].patches[].origins[].note": [
+  "string"
+ ],
+ "builds[].patches[].origins[].patchset": [
+  "string"
+ ],
+ "builds[].patches[].origins[].ported_here": [
+  "boolean"
+ ],
+ "builds[].patches[].origins[].project": [
+  "string"
+ ],
+ "builds[].patches[].origins[].url": [
+  "string"
+ ],
+ "builds[].patches[].origins[].version": [
+  "string"
+ ],
+ "builds[].patches[].set": [
+  "string"
+ ],
+ "builds[].patches[].sha256": [
+  "string"
+ ],
+ "builds[].patches[].summary": [
+  "null",
+  "string"
+ ],
+ "builds[].patches[].versions": [
+  "array"
+ ],
+ "builds[].patches[].versions[]": [
+  "string"
+ ],
+ "builds[].platform": [
+  "string"
+ ],
+ "builds[].published": [
+  "null",
+  "string"
+ ],
+ "builds[].recipe": [
+  "object"
+ ],
+ "builds[].recipe.commit": [
+  "string"
+ ],
+ "builds[].recipe.repository": [
+  "string"
+ ],
+ "builds[].release_url": [
+  "string"
+ ],
+ "builds[].superseded_by": [
+  "null",
+  "string"
+ ],
+ "builds[].toolchain": [
+  "string"
+ ],
+ "builds[].wine_version": [
+  "string"
+ ],
+ "builds[].wine_version_string": [
+  "null",
+  "string"
+ ],
+ "builds[].withdrawn": [
+  "null",
+  "string"
+ ],
+ "latest": [
+  "object"
+ ],
+ "latest.*": [
+  "string"
+ ],
+ "repository": [
+  "string"
+ ],
+ "schema_version": [
+  "number"
+ ]
+}

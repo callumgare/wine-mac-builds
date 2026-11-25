@@ -4,7 +4,7 @@
 What can change about a build after its release is published, one optional
 file per build: `metadata/<build name>.toml` (e.g. `wine-11.21-build1.toml`).
 A release itself never changes; `tools/site.py` combines the releases with
-these files into the website and `index.json`, and the site workflow
+these files into the website and `/v1/builds.json`, and the site workflow
 publishes them whenever either changes.
 
 ```toml
@@ -16,6 +16,10 @@ withdrawn = "Why this build shouldn't be used. It stays downloadable."
 [mirrors]
 "wine-11.21-build1-macos-x86_64.tar.xz" = ["https://archive.org/download/..."]
 ```
+
+Text values take a small inline markup, rendered after escaping:
+`` `code` ``, `[text](https://…)` (links to http(s), mailto, `/path` or
+`#fragment` only) and `**bold**`. Nothing else.
 
 Builds are never deleted: a bad build
 is marked `withdrawn` here, and a fixed one is published as the next build

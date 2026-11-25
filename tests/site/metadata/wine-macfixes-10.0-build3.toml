@@ -1,0 +1,3 @@
+changes = "Fixes build2's crash on macOS 10.15 (made up for the test)."
+[mirrors]
+"wine-macfixes-10.0-build3-macos-x86_64.tar.xz" = ["https://mirror.example.org/wine-macfixes-10.0-build3-macos-x86_64.tar.xz"]

@@ -1,0 +1,2 @@
+withdrawn = "Crashes on start on macOS 10.15 (made up for the test). It stays downloadable."
+known_issues = ["Made-up issue with `code` and a [link](https://example.org/)."]

@@ -1,278 +1,4081 @@
 [
  {
-  "tag_name": "wine-11.21-build1-macos-x86_64",
+  "tag_name": "wine-10.0-build1-macos-x86_64",
   "draft": false,
-  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-11.21-build1-macos-x86_64",
-  "published_at": "2026-11-14T00:00:00Z",
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-10.0-build1-macos-x86_64",
+  "body": "Built from commit e4d5ceb6c08a9035125f238a0608f3ac54b1217e by run https://github.com/callumgare/wine-mac-builds/actions/runs/13044360.",
+  "published_at": "2026-11-14T10:00:00Z",
   "assets": [
    {
-    "name": "wine-11.21-build1-macos-x86_64.tar.xz",
-    "size": 1000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/10"
+    "id": 130443600,
+    "name": "wine-10.0-build1-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443600",
+    "digest": "sha256:c4f17d926982815328b77d591e30a9942a391511e642b8af1e9f6324e3a5ef56"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64-debug.tar.xz",
-    "size": 32000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-debug.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/11"
+    "id": 130443601,
+    "name": "wine-10.0-build1-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443601",
+    "digest": "sha256:e00fae1b8286596e13ed1558338efc50d11b45dd22b8f30064c2749d29944e52"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64-tests.tar.xz",
-    "size": 243000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-tests.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/12"
+    "id": 130443602,
+    "name": "wine-10.0-build1-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443602",
+    "digest": "sha256:a49c7b4ec290dced46bcdf29f35578d0791008dc4935e4af6d38bfa0a7a28ba3"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64-sources.tar.xz",
-    "size": 1024000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-sources.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/13"
+    "id": 130443603,
+    "name": "wine-10.0-build1-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443603",
+    "digest": "sha256:50f58c227359fb6f7bfbe71b392024ea077e72f4ad0c94c147e7dac9de278f56"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64.build-info.json",
-    "size": 3125000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.build-info.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/14"
+    "id": 130443604,
+    "name": "wine-10.0-build1-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443604",
+    "digest": "sha256:c6e06665e5a4faf55a6707662f189e2250cda7ba3777bacb6769065ea3350da3"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64.spdx.json",
-    "size": 7776000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.spdx.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/15"
+    "id": 130443605,
+    "name": "wine-10.0-build1-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443605",
+    "digest": "sha256:7241220ef083aa00738c684b92971a48f30ceb4252c59e58c21238a733cab071"
    },
    {
-    "name": "wine-11.21-build1-macos-x86_64.SHA256SUMS",
-    "size": 16807000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.SHA256SUMS",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/16"
+    "id": 130443606,
+    "name": "wine-10.0-build1-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-10.0-build1-macos-x86_64/wine-10.0-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/130443606",
+    "digest": "sha256:3b695e2175148e64114a6d9188cad66df1f3a9b5514138fb9f4430f1abad8a25"
    }
   ],
   "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-10.0-build1-macos-x86_64",
+   "build_name": "wine-10.0-build1",
+   "flavour": "wine",
+   "wine_version": "10.0",
+   "build_number": 1,
+   "platform": "macos-x86_64",
    "minimum_macos": "10.15",
    "recipe": {
     "repository": "https://github.com/callumgare/wine-mac-builds",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "e4d5ceb6c08a9035125f238a0608f3ac54b1217e",
+    "uncommitted_changes": false
    },
    "toolchain": {
-    "id": "20261115"
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release, with only what's needed to build and package it.",
+   "wine_version_string": "wine-10.0"
+  },
+  "sha256sums": "c4f17d926982815328b77d591e30a9942a391511e642b8af1e9f6324e3a5ef56  wine-10.0-build1-macos-x86_64.tar.xz\ne00fae1b8286596e13ed1558338efc50d11b45dd22b8f30064c2749d29944e52  wine-10.0-build1-macos-x86_64-debug.tar.xz\na49c7b4ec290dced46bcdf29f35578d0791008dc4935e4af6d38bfa0a7a28ba3  wine-10.0-build1-macos-x86_64-tests.tar.xz\n50f58c227359fb6f7bfbe71b392024ea077e72f4ad0c94c147e7dac9de278f56  wine-10.0-build1-macos-x86_64-sources.tar.xz\nc6e06665e5a4faf55a6707662f189e2250cda7ba3777bacb6769065ea3350da3  wine-10.0-build1-macos-x86_64.build-info.json\n7241220ef083aa00738c684b92971a48f30ceb4252c59e58c21238a733cab071  wine-10.0-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-11.0-rc2-build1-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-11.0-rc2-build1-macos-x86_64",
+  "body": "Built from commit 3579ac4f1b64c83d7c0585e1707f6c7a5b828b66 by run https://github.com/callumgare/wine-mac-builds/actions/runs/9069776.",
+  "published_at": "2026-11-14T11:00:00Z",
+  "assets": [
+   {
+    "id": 90697760,
+    "name": "wine-11.0-rc2-build1-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697760",
+    "digest": "sha256:525e7d78d94dd06d49ac96e5fdee09fffe6df1869c4ac15f9dc722ddd40830e5"
+   },
+   {
+    "id": 90697761,
+    "name": "wine-11.0-rc2-build1-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697761",
+    "digest": "sha256:004524d2b7d27b54b51bb216d9c94b03ac1acc9f8d7f75d8b3724ed2c24403d9"
+   },
+   {
+    "id": 90697762,
+    "name": "wine-11.0-rc2-build1-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697762",
+    "digest": "sha256:cded598b3d114cc833d6aadf54ba6efcd4e00ff424401a5e77aa25de484b1b9b"
+   },
+   {
+    "id": 90697763,
+    "name": "wine-11.0-rc2-build1-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697763",
+    "digest": "sha256:f670d6db6ea69b6ea51f2312d197bba8ff22610dd65f69dd774217fbed040f2a"
+   },
+   {
+    "id": 90697764,
+    "name": "wine-11.0-rc2-build1-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697764",
+    "digest": "sha256:a198c2fa53558d03d073f5607f5a2cb80d3bdd197661d4ca28d1a88fd2d6cc19"
+   },
+   {
+    "id": 90697765,
+    "name": "wine-11.0-rc2-build1-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697765",
+    "digest": "sha256:2bb0dbe51b01a96b01ce9bc770bb0b15152d31b1b31a0f1b55a55cb8cbae0910"
+   },
+   {
+    "id": 90697766,
+    "name": "wine-11.0-rc2-build1-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.0-rc2-build1-macos-x86_64/wine-11.0-rc2-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/90697766",
+    "digest": "sha256:5c1e7a987632fb6c82b2f5bebe254160ccfcb77d0fdc404ba554bc0a658dddac"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-11.0-rc2-build1-macos-x86_64",
+   "build_name": "wine-11.0-rc2-build1",
+   "flavour": "wine",
+   "wine_version": "11.0-rc2",
+   "build_number": 1,
+   "platform": "macos-x86_64",
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "3579ac4f1b64c83d7c0585e1707f6c7a5b828b66",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "11.0-rc2",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/11.x/wine-11.0-rc2.tar.xz",
+      "sha256": "e3284e8f0c24379a4bce4ff912cc68e314b3b52e22f8e9159123f9aaea172a9d",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.0-rc2.patch",
+     "versions": [
+      "11.0-rc2"
+     ],
+     "sha256": "388bb6e8ef9b06b32c6f2858cda1b3e1c8ea9d63fc0779ccf9a53471052bb9d9",
+     "diff_sha256": "4afb472a3262ec499e844fddd557e8a92f10851e478027cbecf9b068b5bb1b53",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@11.0-rc2.patch",
+     "versions": [
+      "11.0-rc2"
+     ],
+     "sha256": "8abdf98bc49490e7f2aa8688b9b5841608a4d43d522389214df44eff05b04398",
+     "diff_sha256": "ce9e9e0f1ad5a8ba9a854fdb86c011451531749d9f6f7326902a12e9e4ced69b",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@11.0-rc2.patch",
+     "versions": [
+      "11.0-rc2"
+     ],
+     "sha256": "76caf28fc13af2605047747abcea5ce85f01f882cba91c5ce6ecbb4ed4494b12",
+     "diff_sha256": "3fa6fed2f930b904f005de96b2a84fcc985379e65fad4754b8af975dcdc653e3",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@11.0-rc2.patch",
+     "versions": [
+      "11.0-rc2"
+     ],
+     "sha256": "da2c1693cc27f32adc28508a346a95b47050efc1ce87312e347270c529716353",
+     "diff_sha256": "214d21fc0939706257a1f83391ab36e34f8ab10ef24bac50f565817df4ff3f6c",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release, with only what's needed to build and package it.",
+   "wine_version_string": "wine-11.0-rc2"
+  },
+  "sha256sums": "525e7d78d94dd06d49ac96e5fdee09fffe6df1869c4ac15f9dc722ddd40830e5  wine-11.0-rc2-build1-macos-x86_64.tar.xz\n004524d2b7d27b54b51bb216d9c94b03ac1acc9f8d7f75d8b3724ed2c24403d9  wine-11.0-rc2-build1-macos-x86_64-debug.tar.xz\ncded598b3d114cc833d6aadf54ba6efcd4e00ff424401a5e77aa25de484b1b9b  wine-11.0-rc2-build1-macos-x86_64-tests.tar.xz\nf670d6db6ea69b6ea51f2312d197bba8ff22610dd65f69dd774217fbed040f2a  wine-11.0-rc2-build1-macos-x86_64-sources.tar.xz\na198c2fa53558d03d073f5607f5a2cb80d3bdd197661d4ca28d1a88fd2d6cc19  wine-11.0-rc2-build1-macos-x86_64.build-info.json\n2bb0dbe51b01a96b01ce9bc770bb0b15152d31b1b31a0f1b55a55cb8cbae0910  wine-11.0-rc2-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-11.21-build1-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-11.21-build1-macos-x86_64",
+  "body": "Built from commit 166903673e2d5cfe006a479b9b40a08aea02f39c by run https://github.com/callumgare/wine-mac-builds/actions/runs/7563105.",
+  "published_at": "2026-11-15T10:00:00Z",
+  "assets": [
+   {
+    "id": 75631050,
+    "name": "wine-11.21-build1-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631050",
+    "digest": "sha256:4e966aaef0c8fdb9da5c0a53556a8e874abd86fda0d6d18c3d03007f97763eb9"
+   },
+   {
+    "id": 75631051,
+    "name": "wine-11.21-build1-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631051",
+    "digest": "sha256:4add2d008a9fad56c485f0ad41482a4fd48e988be4a55692db6a7afcfc56ee1f"
+   },
+   {
+    "id": 75631052,
+    "name": "wine-11.21-build1-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631052",
+    "digest": "sha256:8730bd487c571431a60b01472e78409240a545412c6a0b68fe2b763d8edf4559"
+   },
+   {
+    "id": 75631053,
+    "name": "wine-11.21-build1-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631053",
+    "digest": "sha256:37feed5adf476b4b9604ebd896e05c08904eb34ca1d8089e2af29d3d0b8b561d"
+   },
+   {
+    "id": 75631054,
+    "name": "wine-11.21-build1-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631054",
+    "digest": "sha256:15a2ed7fe5ed0768a648398f3d894cf26edd80070dc50dad0dfc2b2842941256"
+   },
+   {
+    "id": 75631055,
+    "name": "wine-11.21-build1-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631055",
+    "digest": "sha256:8b769104c77fee52256368c5770280b5f2a5c8654c22353bdff450023d8ce853"
+   },
+   {
+    "id": 75631056,
+    "name": "wine-11.21-build1-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631056",
+    "digest": "sha256:5d4d47df50bdef8d1b1765c0ca4c3f2ea29c58a7729e14d34a96a4c782b2838b"
+   },
+   {
+    "id": 75631057,
+    "name": "wine-11.21-build1-macos-x86_64.tests.json",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.tests.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/75631057",
+    "digest": "sha256:257f7bff7463bf7df804d77ae5acf62439ceb9cfab48b3b1877815a20ad7840b"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-11.21-build1-macos-x86_64",
+   "build_name": "wine-11.21-build1",
+   "flavour": "wine",
+   "wine_version": "11.21",
+   "build_number": 1,
+   "platform": "macos-x86_64",
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "166903673e2d5cfe006a479b9b40a08aea02f39c",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
    },
    "components": [
     {
      "name": "wine",
      "version": "11.21",
      "license": "LGPL-2.1-or-later",
-     "patches": []
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/11.x/wine-11.21.tar.xz",
+      "sha256": "eedd0d2c54dcd64e0762c0391f0c66109a1c83944b95a34033d1040ec8887035",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
     }
-   ]
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "0c1f1031e3a95e891f99fc7caa5a8794d9f8bb62c858d873f8b1a850ebc1fb78",
+     "diff_sha256": "4afb472a3262ec499e844fddd557e8a92f10851e478027cbecf9b068b5bb1b53",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "2fe109fe95f8ea944e4d353b6170bf573820336781856714fe50f72b8f8f653a",
+     "diff_sha256": "ce9e9e0f1ad5a8ba9a854fdb86c011451531749d9f6f7326902a12e9e4ced69b",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "9e3da96d1c2947a675b4f406aed67be8fe654daff068c7923067c7b95ef10c0e",
+     "diff_sha256": "3fa6fed2f930b904f005de96b2a84fcc985379e65fad4754b8af975dcdc653e3",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "3a80eb745c12a1792e44d1f8e58ee6fcfc28903d42cc3c73d2228e4bcf6cf239",
+     "diff_sha256": "214d21fc0939706257a1f83391ab36e34f8ab10ef24bac50f565817df4ff3f6c",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release, with only what's needed to build and package it.",
+   "wine_version_string": "wine-11.21"
   },
-  "sha256sums": "4e966aaef0c8fdb9da5c0a53556a8e874abd86fda0d6d18c3d03007f97763eb9  wine-11.21-build1-macos-x86_64.tar.xz\n4add2d008a9fad56c485f0ad41482a4fd48e988be4a55692db6a7afcfc56ee1f  wine-11.21-build1-macos-x86_64-debug.tar.xz\n8730bd487c571431a60b01472e78409240a545412c6a0b68fe2b763d8edf4559  wine-11.21-build1-macos-x86_64-tests.tar.xz\n37feed5adf476b4b9604ebd896e05c08904eb34ca1d8089e2af29d3d0b8b561d  wine-11.21-build1-macos-x86_64-sources.tar.xz\n15a2ed7fe5ed0768a648398f3d894cf26edd80070dc50dad0dfc2b2842941256  wine-11.21-build1-macos-x86_64.build-info.json\n8b769104c77fee52256368c5770280b5f2a5c8654c22353bdff450023d8ce853  wine-11.21-build1-macos-x86_64.spdx.json\n"
+  "sha256sums": "4e966aaef0c8fdb9da5c0a53556a8e874abd86fda0d6d18c3d03007f97763eb9  wine-11.21-build1-macos-x86_64.tar.xz\n4add2d008a9fad56c485f0ad41482a4fd48e988be4a55692db6a7afcfc56ee1f  wine-11.21-build1-macos-x86_64-debug.tar.xz\n8730bd487c571431a60b01472e78409240a545412c6a0b68fe2b763d8edf4559  wine-11.21-build1-macos-x86_64-tests.tar.xz\n37feed5adf476b4b9604ebd896e05c08904eb34ca1d8089e2af29d3d0b8b561d  wine-11.21-build1-macos-x86_64-sources.tar.xz\n15a2ed7fe5ed0768a648398f3d894cf26edd80070dc50dad0dfc2b2842941256  wine-11.21-build1-macos-x86_64.build-info.json\n8b769104c77fee52256368c5770280b5f2a5c8654c22353bdff450023d8ce853  wine-11.21-build1-macos-x86_64.spdx.json\n",
+  "test_results": {
+   "smoke": {
+    "passed": [
+     "launch",
+     "window",
+     "audio"
+    ],
+    "failed": [
+     "media"
+    ]
+   },
+   "regress": {
+    "passed": [
+     "rosetta-mxcsr",
+     "gl-main-thread"
+    ],
+    "failed": [],
+    "skipped": [
+     "fullscreen-space"
+    ]
+   }
+  }
+ },
+ {
+  "tag_name": "wine-11.21-build1-macos-arm64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-11.21-build1-macos-arm64",
+  "body": "Built from commit 166903673e2d5cfe006a479b9b40a08aea02f39c.",
+  "published_at": "2026-11-15T10:30:00Z",
+  "assets": [
+   {
+    "id": 42048320,
+    "name": "wine-11.21-build1-macos-arm64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048320",
+    "digest": "sha256:663ba2802d34ac1620d4c8d5c3517c2756ef82eb4b2955289425a6e32cbbddd4"
+   },
+   {
+    "id": 42048321,
+    "name": "wine-11.21-build1-macos-arm64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048321",
+    "digest": "sha256:38998e9fe92bd68514dacc17765f5dcbf669b46b37c7dea58f301ef600d88c2c"
+   },
+   {
+    "id": 42048322,
+    "name": "wine-11.21-build1-macos-arm64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048322",
+    "digest": "sha256:14446a18792dcfe17664331f8c8db0b897ed283300a566a6a5f19e968cd62f4c"
+   },
+   {
+    "id": 42048323,
+    "name": "wine-11.21-build1-macos-arm64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048323",
+    "digest": "sha256:b79082e40e5ccb39fcc08df600b4bdee30a97e90ffcbf10122e47cb3589c890c"
+   },
+   {
+    "id": 42048324,
+    "name": "wine-11.21-build1-macos-arm64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048324",
+    "digest": "sha256:f564f3deb33a91a9d7acdaa374373536c060d21453619059b52e8d3cee326d52"
+   },
+   {
+    "id": 42048325,
+    "name": "wine-11.21-build1-macos-arm64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048325",
+    "digest": "sha256:8bcb39cf1befaa2df4799087db289f92047d77fb9baa66792ca0c1bd9ce58bc6"
+   },
+   {
+    "id": 42048326,
+    "name": "wine-11.21-build1-macos-arm64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-arm64/wine-11.21-build1-macos-arm64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42048326",
+    "digest": "sha256:a944be0fb01d4aac187f5a8112d07a0eaba354ef60df14a79c2dcada9f4781b6"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-11.21-build1-macos-arm64",
+   "build_name": "wine-11.21-build1",
+   "flavour": "wine",
+   "wine_version": "11.21",
+   "build_number": 1,
+   "platform": "macos-arm64",
+   "minimum_macos": "11.0",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "166903673e2d5cfe006a479b9b40a08aea02f39c",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "11.21",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/11.x/wine-11.21.tar.xz",
+      "sha256": "eedd0d2c54dcd64e0762c0391f0c66109a1c83944b95a34033d1040ec8887035",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "0c1f1031e3a95e891f99fc7caa5a8794d9f8bb62c858d873f8b1a850ebc1fb78",
+     "diff_sha256": "4afb472a3262ec499e844fddd557e8a92f10851e478027cbecf9b068b5bb1b53",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "2fe109fe95f8ea944e4d353b6170bf573820336781856714fe50f72b8f8f653a",
+     "diff_sha256": "ce9e9e0f1ad5a8ba9a854fdb86c011451531749d9f6f7326902a12e9e4ced69b",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "9e3da96d1c2947a675b4f406aed67be8fe654daff068c7923067c7b95ef10c0e",
+     "diff_sha256": "3fa6fed2f930b904f005de96b2a84fcc985379e65fad4754b8af975dcdc653e3",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "3a80eb745c12a1792e44d1f8e58ee6fcfc28903d42cc3c73d2228e4bcf6cf239",
+     "diff_sha256": "214d21fc0939706257a1f83391ab36e34f8ab10ef24bac50f565817df4ff3f6c",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release, with only what's needed to build and package it.",
+   "wine_version_string": "wine-11.21"
+  },
+  "sha256sums": "663ba2802d34ac1620d4c8d5c3517c2756ef82eb4b2955289425a6e32cbbddd4  wine-11.21-build1-macos-arm64.tar.xz\n38998e9fe92bd68514dacc17765f5dcbf669b46b37c7dea58f301ef600d88c2c  wine-11.21-build1-macos-arm64-debug.tar.xz\n14446a18792dcfe17664331f8c8db0b897ed283300a566a6a5f19e968cd62f4c  wine-11.21-build1-macos-arm64-tests.tar.xz\nb79082e40e5ccb39fcc08df600b4bdee30a97e90ffcbf10122e47cb3589c890c  wine-11.21-build1-macos-arm64-sources.tar.xz\nf564f3deb33a91a9d7acdaa374373536c060d21453619059b52e8d3cee326d52  wine-11.21-build1-macos-arm64.build-info.json\n8bcb39cf1befaa2df4799087db289f92047d77fb9baa66792ca0c1bd9ce58bc6  wine-11.21-build1-macos-arm64.spdx.json\n"
  },
  {
   "tag_name": "wine-macfixes-10.0-build1-macos-x86_64",
   "draft": false,
   "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build1-macos-x86_64",
-  "published_at": "2026-11-14T00:00:00Z",
+  "body": "Built from commit f006cf515c9d1042367cac7d65c0f5fae9bfed0f by run https://github.com/callumgare/wine-mac-builds/actions/runs/12894040.",
+  "published_at": "2026-11-14T12:00:00Z",
   "assets": [
    {
+    "id": 128940400,
     "name": "wine-macfixes-10.0-build1-macos-x86_64.tar.xz",
-    "size": 1000,
+    "size": 214350004,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/20"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940400",
+    "digest": "sha256:9f5d2f0b7f30bfc714bab6245a2ed19c5524afd675322969c31bce33b089af4a"
    },
    {
+    "id": 128940401,
     "name": "wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz",
-    "size": 32000,
+    "size": 102800000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/21"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940401",
+    "digest": "sha256:eab7eaa7e530246da040e699a97ef23bb3beedcd8abe197f2abac91652641ffe"
    },
    {
+    "id": 128940402,
     "name": "wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz",
-    "size": 243000,
+    "size": 30700000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/22"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940402",
+    "digest": "sha256:7018834c9430bbbd11de658e42a489e181eb12c3d21362cb50aa8289d29685d0"
    },
    {
+    "id": 128940403,
     "name": "wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz",
-    "size": 1024000,
+    "size": 47100000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/23"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940403",
+    "digest": "sha256:ed473e0f2e493b7f88effbe7e9aed2da6edbc8019bb40a604d171df74c942ee1"
    },
    {
+    "id": 128940404,
     "name": "wine-macfixes-10.0-build1-macos-x86_64.build-info.json",
-    "size": 3125000,
+    "size": 19500,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.build-info.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/24"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940404",
+    "digest": "sha256:223b7f7769a8b7f8263e954fa5cb688fa1f2d1a8f635b87e450774d470108a4a"
    },
    {
+    "id": 128940405,
     "name": "wine-macfixes-10.0-build1-macos-x86_64.spdx.json",
-    "size": 7776000,
+    "size": 12500,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.spdx.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/25"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940405",
+    "digest": "sha256:96e063b53b043be499eee614ab50c589c5f4349986211a3f736f626b63692fc5"
    },
    {
+    "id": 128940406,
     "name": "wine-macfixes-10.0-build1-macos-x86_64.SHA256SUMS",
-    "size": 16807000,
+    "size": 716,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.SHA256SUMS",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/26"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/128940406",
+    "digest": "sha256:ed60a873f1bd2d45c708fdd66623fee99cf7edd0a80a612d6fe5a6723765ae5f"
    }
   ],
   "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-10.0-build1-macos-x86_64",
+   "build_name": "wine-macfixes-10.0-build1",
+   "flavour": "macfixes",
+   "wine_version": "10.0",
+   "build_number": 1,
+   "platform": "macos-x86_64",
    "minimum_macos": "10.15",
    "recipe": {
     "repository": "https://github.com/callumgare/wine-mac-builds",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "f006cf515c9d1042367cac7d65c0f5fae9bfed0f",
+    "uncommitted_changes": false
    },
    "toolchain": {
-    "id": "20261115"
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
    },
    "components": [
     {
      "name": "wine",
      "version": "10.0",
      "license": "LGPL-2.1-or-later",
-     "patches": []
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
     }
-   ]
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c5c0628d4c6c94003bd6797d1fec52fda03d308e0b9016a29f60a3fd60daa6a0",
+     "diff_sha256": "01c17b0acbe24dbe77b60564cfcb9c676e91210d441f08bbec94d5031562cfa3",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c8d1444fe55f8e293508fa187f66d277c6e65e667d847c8e0a90959493e71c1a",
+     "diff_sha256": "6717d8821f5be1d8030f8da153812b2389d98f727160f40f3e485017ab490513",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "ad4f09ac43ec55e01166011aba98a4495f832afbba5cab8afd1a29fa223556e1",
+     "diff_sha256": "313e6280843dc7812ccc6989a42024ebbd0990c35cb1d295ccc2b84581822199",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "8af45e5ebb729ac2738c8b13b0225d08e27784b6d81e87d762306d9d55da68f2",
+     "diff_sha256": "d0f0d4bd92320797c3dcf254c93e838d4ca15de518e13e54c8a35866087860e1",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "6504bb710184b28c362af50d1b9bd15ee40ac1795cf1d583c53f9c0a608f986f",
+     "diff_sha256": "6798351c3593801e82ec555a1d7827ba2baa5da46b2806b553aa463c856aa9df",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "5d714438175afb4b8843eaecd32e74ac432668499c3866d3de07e8590ed50439",
+     "diff_sha256": "c3b8de160e5395f56f0e29fcf660de44cb733a8bcd42bc64f8fa749b61cb3037",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "341d00f67bc597367a7b485b309033289a094aab498fac55392044b407398135",
+     "diff_sha256": "264d40afc3671b1c7e32b3267ab3fb238742838ffef1ad25e3162556a4ff03fb",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-10.0 (macfixes)"
   },
   "sha256sums": "9f5d2f0b7f30bfc714bab6245a2ed19c5524afd675322969c31bce33b089af4a  wine-macfixes-10.0-build1-macos-x86_64.tar.xz\neab7eaa7e530246da040e699a97ef23bb3beedcd8abe197f2abac91652641ffe  wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz\n7018834c9430bbbd11de658e42a489e181eb12c3d21362cb50aa8289d29685d0  wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz\ned473e0f2e493b7f88effbe7e9aed2da6edbc8019bb40a604d171df74c942ee1  wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz\n223b7f7769a8b7f8263e954fa5cb688fa1f2d1a8f635b87e450774d470108a4a  wine-macfixes-10.0-build1-macos-x86_64.build-info.json\n96e063b53b043be499eee614ab50c589c5f4349986211a3f736f626b63692fc5  wine-macfixes-10.0-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-10.0-build1-macos-arm64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build1-macos-arm64",
+  "body": "Built from commit f006cf515c9d1042367cac7d65c0f5fae9bfed0f by run https://github.com/callumgare/wine-mac-builds/actions/runs/15560041.",
+  "published_at": "2026-11-14T12:30:00Z",
+  "assets": [
+   {
+    "id": 155600410,
+    "name": "wine-macfixes-10.0-build1-macos-arm64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600410",
+    "digest": "sha256:b8df90f9e85dd8b9538e0068c274151d5e4241da842a6ac5b4edc3738eb75405"
+   },
+   {
+    "id": 155600411,
+    "name": "wine-macfixes-10.0-build1-macos-arm64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600411",
+    "digest": "sha256:dc8e87ab857b34e7a3c71bd41515c36ff982394f12a40240dda907b3e9f626d5"
+   },
+   {
+    "id": 155600412,
+    "name": "wine-macfixes-10.0-build1-macos-arm64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600412",
+    "digest": "sha256:5eba7e8b17b4c05e9f2872d671820ddd588cddbee231c54bb253b5dcda533990"
+   },
+   {
+    "id": 155600413,
+    "name": "wine-macfixes-10.0-build1-macos-arm64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600413",
+    "digest": "sha256:69027eff3aac3e0795429dd59d33d51969b82cee2fe1b6d14db767405eea58e2"
+   },
+   {
+    "id": 155600414,
+    "name": "wine-macfixes-10.0-build1-macos-arm64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600414",
+    "digest": "sha256:4c21e70228a41cc33b9f349e0699e82d101b500563970333dfec45a566ca4582"
+   },
+   {
+    "id": 155600415,
+    "name": "wine-macfixes-10.0-build1-macos-arm64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600415",
+    "digest": "sha256:5a63578198720f13bb9ed847dd3cc7286505cd6bafd8278df7f8ed47e5c18ef5"
+   },
+   {
+    "id": 155600416,
+    "name": "wine-macfixes-10.0-build1-macos-arm64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-arm64/wine-macfixes-10.0-build1-macos-arm64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/155600416",
+    "digest": "sha256:42cecf827ba193f1a7f4a26afdbe4613ee4f0a3f6d5e8d46983fd07210bb4e0c"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-10.0-build1-macos-arm64",
+   "build_name": "wine-macfixes-10.0-build1",
+   "flavour": "macfixes",
+   "wine_version": "10.0",
+   "build_number": 1,
+   "platform": "macos-arm64",
+   "minimum_macos": "11.0",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "f006cf515c9d1042367cac7d65c0f5fae9bfed0f",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c5c0628d4c6c94003bd6797d1fec52fda03d308e0b9016a29f60a3fd60daa6a0",
+     "diff_sha256": "01c17b0acbe24dbe77b60564cfcb9c676e91210d441f08bbec94d5031562cfa3",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c8d1444fe55f8e293508fa187f66d277c6e65e667d847c8e0a90959493e71c1a",
+     "diff_sha256": "6717d8821f5be1d8030f8da153812b2389d98f727160f40f3e485017ab490513",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "ad4f09ac43ec55e01166011aba98a4495f832afbba5cab8afd1a29fa223556e1",
+     "diff_sha256": "313e6280843dc7812ccc6989a42024ebbd0990c35cb1d295ccc2b84581822199",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "8af45e5ebb729ac2738c8b13b0225d08e27784b6d81e87d762306d9d55da68f2",
+     "diff_sha256": "d0f0d4bd92320797c3dcf254c93e838d4ca15de518e13e54c8a35866087860e1",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "6504bb710184b28c362af50d1b9bd15ee40ac1795cf1d583c53f9c0a608f986f",
+     "diff_sha256": "6798351c3593801e82ec555a1d7827ba2baa5da46b2806b553aa463c856aa9df",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "5d714438175afb4b8843eaecd32e74ac432668499c3866d3de07e8590ed50439",
+     "diff_sha256": "c3b8de160e5395f56f0e29fcf660de44cb733a8bcd42bc64f8fa749b61cb3037",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "341d00f67bc597367a7b485b309033289a094aab498fac55392044b407398135",
+     "diff_sha256": "264d40afc3671b1c7e32b3267ab3fb238742838ffef1ad25e3162556a4ff03fb",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-10.0 (macfixes)"
+  },
+  "sha256sums": "b8df90f9e85dd8b9538e0068c274151d5e4241da842a6ac5b4edc3738eb75405  wine-macfixes-10.0-build1-macos-arm64.tar.xz\ndc8e87ab857b34e7a3c71bd41515c36ff982394f12a40240dda907b3e9f626d5  wine-macfixes-10.0-build1-macos-arm64-debug.tar.xz\n5eba7e8b17b4c05e9f2872d671820ddd588cddbee231c54bb253b5dcda533990  wine-macfixes-10.0-build1-macos-arm64-tests.tar.xz\n69027eff3aac3e0795429dd59d33d51969b82cee2fe1b6d14db767405eea58e2  wine-macfixes-10.0-build1-macos-arm64-sources.tar.xz\n4c21e70228a41cc33b9f349e0699e82d101b500563970333dfec45a566ca4582  wine-macfixes-10.0-build1-macos-arm64.build-info.json\n5a63578198720f13bb9ed847dd3cc7286505cd6bafd8278df7f8ed47e5c18ef5  wine-macfixes-10.0-build1-macos-arm64.spdx.json\n"
  },
  {
   "tag_name": "wine-macfixes-10.0-build2-macos-x86_64",
   "draft": false,
   "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build2-macos-x86_64",
-  "published_at": "2026-11-15T00:00:00Z",
+  "body": "Built from commit efd465afaa9f2ebaa15497c33040e9f17e37d762 by run https://github.com/callumgare/wine-mac-builds/actions/runs/9150183.",
+  "published_at": "2026-11-15T12:00:00Z",
   "assets": [
    {
+    "id": 91501830,
     "name": "wine-macfixes-10.0-build2-macos-x86_64.tar.xz",
-    "size": 1000,
+    "size": 214350004,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/30"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501830",
+    "digest": "sha256:667d0e05931c9c62db648ecb617dfca6be4108069f16aeafa073ed421a5e8f33"
    },
    {
+    "id": 91501831,
     "name": "wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz",
-    "size": 32000,
+    "size": 102800000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/31"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501831",
+    "digest": "sha256:f8b463a74271b65fb41cb48e8871a04fea53f6a57c1f1398ef2c725b29cff115"
    },
    {
+    "id": 91501832,
     "name": "wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz",
-    "size": 243000,
+    "size": 30700000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/32"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501832",
+    "digest": "sha256:c2e0b04b48739471365fdc9c80c2c229cc0118a1a0bf00ed3f446320a4217fdf"
    },
    {
+    "id": 91501833,
     "name": "wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz",
-    "size": 1024000,
+    "size": 47100000,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/33"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501833",
+    "digest": "sha256:ab510b19570b9f8248af0b6e0e46e5aa5414ec7e771016db1b91bee31c4d677d"
    },
    {
+    "id": 91501834,
     "name": "wine-macfixes-10.0-build2-macos-x86_64.build-info.json",
-    "size": 3125000,
+    "size": 19500,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.build-info.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/34"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501834",
+    "digest": "sha256:1ac51e0b0fe137bf4017453fea2f84899c8e14ff5bacd891942f3dad9dcd20bf"
    },
    {
+    "id": 91501835,
     "name": "wine-macfixes-10.0-build2-macos-x86_64.spdx.json",
-    "size": 7776000,
+    "size": 12500,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.spdx.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/35"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501835",
+    "digest": "sha256:96168345beb3e121234d28a67f789b2c1b07f7bdf32116ee7baa0a7267863fac"
    },
    {
+    "id": 91501836,
     "name": "wine-macfixes-10.0-build2-macos-x86_64.SHA256SUMS",
-    "size": 16807000,
+    "size": 716,
     "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.SHA256SUMS",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/36"
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/91501836",
+    "digest": "sha256:253ebbadf8ea479ec182f7ba44919b9bade26cad9336e51c3b2e9091bfa5e5d0"
    }
   ],
   "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-10.0-build2-macos-x86_64",
+   "build_name": "wine-macfixes-10.0-build2",
+   "flavour": "macfixes",
+   "wine_version": "10.0",
+   "build_number": 2,
+   "platform": "macos-x86_64",
    "minimum_macos": "10.15",
    "recipe": {
     "repository": "https://github.com/callumgare/wine-mac-builds",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "efd465afaa9f2ebaa15497c33040e9f17e37d762",
+    "uncommitted_changes": false
    },
    "toolchain": {
-    "id": "20261115"
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
    },
    "components": [
     {
      "name": "wine",
      "version": "10.0",
      "license": "LGPL-2.1-or-later",
-     "patches": []
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
     }
-   ]
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c5c0628d4c6c94003bd6797d1fec52fda03d308e0b9016a29f60a3fd60daa6a0",
+     "diff_sha256": "01c17b0acbe24dbe77b60564cfcb9c676e91210d441f08bbec94d5031562cfa3",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c8d1444fe55f8e293508fa187f66d277c6e65e667d847c8e0a90959493e71c1a",
+     "diff_sha256": "6717d8821f5be1d8030f8da153812b2389d98f727160f40f3e485017ab490513",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "ad4f09ac43ec55e01166011aba98a4495f832afbba5cab8afd1a29fa223556e1",
+     "diff_sha256": "313e6280843dc7812ccc6989a42024ebbd0990c35cb1d295ccc2b84581822199",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "8af45e5ebb729ac2738c8b13b0225d08e27784b6d81e87d762306d9d55da68f2",
+     "diff_sha256": "d0f0d4bd92320797c3dcf254c93e838d4ca15de518e13e54c8a35866087860e1",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "6504bb710184b28c362af50d1b9bd15ee40ac1795cf1d583c53f9c0a608f986f",
+     "diff_sha256": "6798351c3593801e82ec555a1d7827ba2baa5da46b2806b553aa463c856aa9df",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "5d714438175afb4b8843eaecd32e74ac432668499c3866d3de07e8590ed50439",
+     "diff_sha256": "c3b8de160e5395f56f0e29fcf660de44cb733a8bcd42bc64f8fa749b61cb3037",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "341d00f67bc597367a7b485b309033289a094aab498fac55392044b407398135",
+     "diff_sha256": "264d40afc3671b1c7e32b3267ab3fb238742838ffef1ad25e3162556a4ff03fb",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-10.0 (macfixes)"
   },
   "sha256sums": "667d0e05931c9c62db648ecb617dfca6be4108069f16aeafa073ed421a5e8f33  wine-macfixes-10.0-build2-macos-x86_64.tar.xz\nf8b463a74271b65fb41cb48e8871a04fea53f6a57c1f1398ef2c725b29cff115  wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz\nc2e0b04b48739471365fdc9c80c2c229cc0118a1a0bf00ed3f446320a4217fdf  wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz\nab510b19570b9f8248af0b6e0e46e5aa5414ec7e771016db1b91bee31c4d677d  wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz\n1ac51e0b0fe137bf4017453fea2f84899c8e14ff5bacd891942f3dad9dcd20bf  wine-macfixes-10.0-build2-macos-x86_64.build-info.json\n96168345beb3e121234d28a67f789b2c1b07f7bdf32116ee7baa0a7267863fac  wine-macfixes-10.0-build2-macos-x86_64.spdx.json\n"
  },
  {
-  "tag_name": "wine-macfixes-11.21-build1-macos-x86_64",
-  "draft": true,
-  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-11.21-build1-macos-x86_64",
-  "published_at": null,
+  "tag_name": "wine-macfixes-10.0-build3-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build3-macos-x86_64",
+  "body": "Built from commit 119dce9a4bad7714fe478a6fd911f04037103f58 by run https://github.com/callumgare/wine-mac-builds/actions/runs/11103101.",
+  "published_at": "2026-11-16T12:00:00Z",
   "assets": [
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
-    "size": 1000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/40"
+    "id": 111031010,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031010",
+    "digest": "sha256:50de2f01f8384b50a410c48986a9166052a17db9db39f4f206089374e0bca65a"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
-    "size": 32000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/41"
+    "id": 111031011,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031011",
+    "digest": "sha256:edbd51fa1dfe9869069b691986a85254aae28f5ffeb2e4962e4d879e87a23f5e"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
-    "size": 243000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42"
+    "id": 111031012,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031012",
+    "digest": "sha256:21f2b0cc07fe104f0e0dcda1fc6a2600e92be29cfdb2f11abaeee51ff0f9c3f3"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
-    "size": 1024000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/43"
+    "id": 111031013,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031013",
+    "digest": "sha256:0876df9472d8732e03d68e47e22fd00b9753ad034075c77125fb060dc20ff0d2"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
-    "size": 3125000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/44"
+    "id": 111031014,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031014",
+    "digest": "sha256:24c2bf8b191072ef2d9f449c7774937b2cd7054da39ae421843bdefee5902443"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
-    "size": 7776000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/45"
+    "id": 111031015,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031015",
+    "digest": "sha256:c5972c3db03c031824530c099c7ad5c22195db5422e0599f960a51b50afac8af"
    },
    {
-    "name": "wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
-    "size": 16807000,
-    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
-    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/46"
+    "id": 111031016,
+    "name": "wine-macfixes-10.0-build3-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build3-macos-x86_64/wine-macfixes-10.0-build3-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/111031016",
+    "digest": "sha256:8dc713d7ff5a7bb2e4f08d00328d9836b19ec5c34f37c0c7cc19285aa7a5c613"
    }
   ],
   "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-10.0-build3-macos-x86_64",
+   "build_name": "wine-macfixes-10.0-build3",
+   "flavour": "macfixes",
+   "wine_version": "10.0",
+   "build_number": 3,
+   "platform": "macos-x86_64",
    "minimum_macos": "10.15",
    "recipe": {
     "repository": "https://github.com/callumgare/wine-mac-builds",
-    "commit": "0000000000000000000000000000000000000000"
+    "commit": "119dce9a4bad7714fe478a6fd911f04037103f58",
+    "uncommitted_changes": false
    },
    "toolchain": {
-    "id": "20261115"
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c5c0628d4c6c94003bd6797d1fec52fda03d308e0b9016a29f60a3fd60daa6a0",
+     "diff_sha256": "01c17b0acbe24dbe77b60564cfcb9c676e91210d441f08bbec94d5031562cfa3",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c8d1444fe55f8e293508fa187f66d277c6e65e667d847c8e0a90959493e71c1a",
+     "diff_sha256": "6717d8821f5be1d8030f8da153812b2389d98f727160f40f3e485017ab490513",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "ad4f09ac43ec55e01166011aba98a4495f832afbba5cab8afd1a29fa223556e1",
+     "diff_sha256": "313e6280843dc7812ccc6989a42024ebbd0990c35cb1d295ccc2b84581822199",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "8af45e5ebb729ac2738c8b13b0225d08e27784b6d81e87d762306d9d55da68f2",
+     "diff_sha256": "d0f0d4bd92320797c3dcf254c93e838d4ca15de518e13e54c8a35866087860e1",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "6504bb710184b28c362af50d1b9bd15ee40ac1795cf1d583c53f9c0a608f986f",
+     "diff_sha256": "6798351c3593801e82ec555a1d7827ba2baa5da46b2806b553aa463c856aa9df",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "5d714438175afb4b8843eaecd32e74ac432668499c3866d3de07e8590ed50439",
+     "diff_sha256": "c3b8de160e5395f56f0e29fcf660de44cb733a8bcd42bc64f8fa749b61cb3037",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "341d00f67bc597367a7b485b309033289a094aab498fac55392044b407398135",
+     "diff_sha256": "264d40afc3671b1c7e32b3267ab3fb238742838ffef1ad25e3162556a4ff03fb",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-10.0 (macfixes)"
+  },
+  "sha256sums": "50de2f01f8384b50a410c48986a9166052a17db9db39f4f206089374e0bca65a  wine-macfixes-10.0-build3-macos-x86_64.tar.xz\nedbd51fa1dfe9869069b691986a85254aae28f5ffeb2e4962e4d879e87a23f5e  wine-macfixes-10.0-build3-macos-x86_64-debug.tar.xz\n21f2b0cc07fe104f0e0dcda1fc6a2600e92be29cfdb2f11abaeee51ff0f9c3f3  wine-macfixes-10.0-build3-macos-x86_64-tests.tar.xz\n0876df9472d8732e03d68e47e22fd00b9753ad034075c77125fb060dc20ff0d2  wine-macfixes-10.0-build3-macos-x86_64-sources.tar.xz\n24c2bf8b191072ef2d9f449c7774937b2cd7054da39ae421843bdefee5902443  wine-macfixes-10.0-build3-macos-x86_64.build-info.json\nc5972c3db03c031824530c099c7ad5c22195db5422e0599f960a51b50afac8af  wine-macfixes-10.0-build3-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-10.0-build4-experimental-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build4-experimental-macos-x86_64",
+  "body": "Built from commit 4076670ba24faf82e5bbf648ffd16b2c0fd2aa74 by run https://github.com/callumgare/wine-mac-builds/actions/runs/11964969.",
+  "published_at": "2026-11-17T12:00:00Z",
+  "assets": [
+   {
+    "id": 119649690,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649690",
+    "digest": "sha256:4886374636d85d86d48bde81d7f1589dde2345639907b1bf231e994c289024a7"
+   },
+   {
+    "id": 119649691,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649691",
+    "digest": "sha256:23d9b128417a6edff2e6c4083861cec330f43b259c42dabe0fe9c63a4d039623"
+   },
+   {
+    "id": 119649692,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649692",
+    "digest": "sha256:661f9d266518970abb84740307575b70fc5b3c76a4363eb0c30562f875ebed66"
+   },
+   {
+    "id": 119649693,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649693",
+    "digest": "sha256:381517d0ec42d5378822a97d63e416461bc9e75deea8acf0aed23747ce7f371a"
+   },
+   {
+    "id": 119649694,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649694",
+    "digest": "sha256:96e6c0718f4720fe3811d3043e569063dea513b43ecac140cf678def95d771c4"
+   },
+   {
+    "id": 119649695,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649695",
+    "digest": "sha256:252d4ae3f931bb6ae0930c72f145b243d394a89f5f916716962a466251bd8a87"
+   },
+   {
+    "id": 119649696,
+    "name": "wine-macfixes-10.0-build4-experimental-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build4-experimental-macos-x86_64/wine-macfixes-10.0-build4-experimental-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/119649696",
+    "digest": "sha256:15db732f742c07f6c7968cc59496b74ccf1a9d663816716bd47065c94534aae6"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-10.0-build4-experimental-macos-x86_64",
+   "build_name": "wine-macfixes-10.0-build4-experimental",
+   "flavour": "macfixes",
+   "wine_version": "10.0",
+   "build_number": 4,
+   "platform": "macos-x86_64",
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "4076670ba24faf82e5bbf648ffd16b2c0fd2aa74",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/10.x/wine-10.0.tar.xz",
+      "sha256": "f1e42019aecc858ffbcca7fddec511b761b474916fde37b1a6ff321a9b459330",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "df3121772e78f91d9330135fff8c5047900be01a8d4544f21caf67add8a344b5",
+     "diff_sha256": "a0241e96c3251428b0aeafbd384b00d981352f577621ff86c704f518db1b6b24",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "386d3f547ffcd0f1344bb575227594f1bfbb303fbde56e89c2e51ccccbf039e1",
+     "diff_sha256": "66099d54c98491063b0466f54eda759c9a90983c9cfbb8fae30adf44c260ab45",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "bf791cb5d270ecc159e37f51e2c89ba3a5abf9d501d9c0071228e774b476d1fd",
+     "diff_sha256": "c4dc465e84c52a32266442552ca5909210fcc9be85db1c30d59264e508c76c9d",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "3d296b9be41be500461c7c8519b9ccdd0938421160276bdb34e13a10ae165f59",
+     "diff_sha256": "b115f7338fed8cf4a43c0558059e8c8ab704228d15f0a49c8c34c8f5bd242e95",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c5c0628d4c6c94003bd6797d1fec52fda03d308e0b9016a29f60a3fd60daa6a0",
+     "diff_sha256": "01c17b0acbe24dbe77b60564cfcb9c676e91210d441f08bbec94d5031562cfa3",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "c8d1444fe55f8e293508fa187f66d277c6e65e667d847c8e0a90959493e71c1a",
+     "diff_sha256": "6717d8821f5be1d8030f8da153812b2389d98f727160f40f3e485017ab490513",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "ad4f09ac43ec55e01166011aba98a4495f832afbba5cab8afd1a29fa223556e1",
+     "diff_sha256": "313e6280843dc7812ccc6989a42024ebbd0990c35cb1d295ccc2b84581822199",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "8af45e5ebb729ac2738c8b13b0225d08e27784b6d81e87d762306d9d55da68f2",
+     "diff_sha256": "d0f0d4bd92320797c3dcf254c93e838d4ca15de518e13e54c8a35866087860e1",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "6504bb710184b28c362af50d1b9bd15ee40ac1795cf1d583c53f9c0a608f986f",
+     "diff_sha256": "6798351c3593801e82ec555a1d7827ba2baa5da46b2806b553aa463c856aa9df",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "5d714438175afb4b8843eaecd32e74ac432668499c3866d3de07e8590ed50439",
+     "diff_sha256": "c3b8de160e5395f56f0e29fcf660de44cb733a8bcd42bc64f8fa749b61cb3037",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0.patch",
+     "versions": [
+      "10.0"
+     ],
+     "sha256": "341d00f67bc597367a7b485b309033289a094aab498fac55392044b407398135",
+     "diff_sha256": "264d40afc3671b1c7e32b3267ab3fb238742838ffef1ad25e3162556a4ff03fb",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-10.0 (macfixes)"
+  },
+  "sha256sums": "4886374636d85d86d48bde81d7f1589dde2345639907b1bf231e994c289024a7  wine-macfixes-10.0-build4-experimental-macos-x86_64.tar.xz\n23d9b128417a6edff2e6c4083861cec330f43b259c42dabe0fe9c63a4d039623  wine-macfixes-10.0-build4-experimental-macos-x86_64-debug.tar.xz\n661f9d266518970abb84740307575b70fc5b3c76a4363eb0c30562f875ebed66  wine-macfixes-10.0-build4-experimental-macos-x86_64-tests.tar.xz\n381517d0ec42d5378822a97d63e416461bc9e75deea8acf0aed23747ce7f371a  wine-macfixes-10.0-build4-experimental-macos-x86_64-sources.tar.xz\n96e6c0718f4720fe3811d3043e569063dea513b43ecac140cf678def95d771c4  wine-macfixes-10.0-build4-experimental-macos-x86_64.build-info.json\n252d4ae3f931bb6ae0930c72f145b243d394a89f5f916716962a466251bd8a87  wine-macfixes-10.0-build4-experimental-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-11.21-build1-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-11.21-build1-macos-x86_64",
+  "body": "Built from commit 620d69c3f09fa36d56a00e104c1d2b36b4d19fb3 by run https://github.com/callumgare/wine-mac-builds/actions/runs/14104756.",
+  "published_at": "2026-11-15T08:00:00Z",
+  "assets": [
+   {
+    "id": 141047560,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047560",
+    "digest": "sha256:f63a882cf209b8b15fb1af9f4a566e131e6e88d20096868c0112fc3c1ec0d33f"
+   },
+   {
+    "id": 141047561,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047561",
+    "digest": "sha256:d51a61ee2ee85da25403f1ee4b7325b183b2ebc72454df182ab470b152f07eb1"
+   },
+   {
+    "id": 141047562,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047562",
+    "digest": "sha256:08342c4c14472d3f48612ae6a18f83c9524e011dfef73eabe2eecf409bb48106"
+   },
+   {
+    "id": 141047563,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047563",
+    "digest": "sha256:c24bd7c26ac55d174740e618fd265671d7dfa49aee9d438a0aaf8ac73384b9e9"
+   },
+   {
+    "id": 141047564,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047564",
+    "digest": "sha256:aa05819eff804279e729737b67c86d977db652f132d61f37a26366ff18f77371"
+   },
+   {
+    "id": 141047565,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047565",
+    "digest": "sha256:c129dd9e8f0dc93c4e8624c5eaaf1e364be090de3f0bb90df44dbda73f5f53f0"
+   },
+   {
+    "id": 141047566,
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/141047566",
+    "digest": "sha256:81113c5e7d68df23cca74a80820a53755b39d5584ebb34ef9ee3c43cdce8c5c6"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-11.21-build1-macos-x86_64",
+   "build_name": "wine-macfixes-11.21-build1",
+   "flavour": "macfixes",
+   "wine_version": "11.21",
+   "build_number": 1,
+   "platform": "macos-x86_64",
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "620d69c3f09fa36d56a00e104c1d2b36b4d19fb3",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
    },
    "components": [
     {
      "name": "wine",
      "version": "11.21",
      "license": "LGPL-2.1-or-later",
-     "patches": []
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/11.x/wine-11.21.tar.xz",
+      "sha256": "eedd0d2c54dcd64e0762c0391f0c66109a1c83944b95a34033d1040ec8887035",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     },
+     "patches": [
+      {
+       "file": "patches/wine/0003-winegcc-deterministic-temp-dir.patch",
+       "sha256": "55eae50b75e2b2990f2c18be84ca079727a85f61b839c3359249801fe1ab9e9c",
+       "summary": "Name winegcc's temp directory deterministically",
+       "ported": false,
+       "origin": "wine-mac-builds",
+       "from": "written for wine-mac-builds",
+       "source": "none",
+       "category": "build",
+       "kinds": [
+        "fix"
+       ],
+       "upstream": "no",
+       "why": "Reproducible builds.",
+       "programs": "none known",
+       "applies_to": "wine 11.x",
+       "upstream_status": "no"
+      },
+      {
+       "file": "patches/macfixes/11.21/0004-cpu-rosetta-debug-registers.patch",
+       "sha256": "2396a1256ac4b1c6849c931ddb8018bdd984bb2383be21bb819a33b95d8d603f",
+       "summary": "Rosetta 2: report success when setting debug registers instead of failing",
+       "ported": false,
+       "origin": "crossover",
+       "from": "CrossOver 26.3.0 CW HACK 22131, verbatim",
+       "source": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine)",
+       "category": "cpu",
+       "kinds": [
+        "workaround"
+       ],
+       "cw_hacks": [
+        22131
+       ],
+       "upstream": "partly",
+       "why": "Rosetta 2 cannot set or read x86 debug registers.",
+       "programs": "Big Fish games",
+       "applies_to": "wine 11.21",
+       "upstream_status": "partly"
+      },
+      {
+       "file": "patches/macfixes/11.21/0013-cpu-cap-cpu-count.patch",
+       "sha256": "eff39ccb2204a33ff345cb418a4ed45eb15a6bd24c90d09d7f37b68f6e958bf4"
+      },
+      {
+       "file": "patches/macfixes/11.21/0099-sik-something-new.patch",
+       "sha256": "d2b57312a398cade91f87987568b6dab779b81ee413abb224dc5abde69b7bce6",
+       "summary": "A patch that isn't in the classification table",
+       "ported": true,
+       "origin": "reconstructed",
+       "from": "Sikarugir's ntdll.so",
+       "source": "none published",
+       "category": "apps",
+       "kinds": [
+        "workaround",
+        "fix"
+       ],
+       "uncertain": "Rebuilt from compiled code.",
+       "upstream": "no",
+       "why": "Made up for the test.",
+       "programs": "none known",
+       "applies_to": "wine 11.21",
+       "upstream_status": "no"
+      }
+     ]
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
     }
    ]
   },
   "sha256sums": "f63a882cf209b8b15fb1af9f4a566e131e6e88d20096868c0112fc3c1ec0d33f  wine-macfixes-11.21-build1-macos-x86_64.tar.xz\nd51a61ee2ee85da25403f1ee4b7325b183b2ebc72454df182ab470b152f07eb1  wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz\n08342c4c14472d3f48612ae6a18f83c9524e011dfef73eabe2eecf409bb48106  wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz\nc24bd7c26ac55d174740e618fd265671d7dfa49aee9d438a0aaf8ac73384b9e9  wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz\naa05819eff804279e729737b67c86d977db652f132d61f37a26366ff18f77371  wine-macfixes-11.21-build1-macos-x86_64.build-info.json\nc129dd9e8f0dc93c4e8624c5eaaf1e364be090de3f0bb90df44dbda73f5f53f0  wine-macfixes-11.21-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-11.22-build1-macos-x86_64",
+  "draft": true,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-11.22-build1-macos-x86_64",
+  "body": "Built from commit 8025569ada1d3319c16b8cafd98821579e04facf by run https://github.com/callumgare/wine-mac-builds/actions/runs/15473739.",
+  "published_at": null,
+  "assets": [
+   {
+    "id": 154737390,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64.tar.xz",
+    "size": 214350004,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737390",
+    "digest": "sha256:ec3f0da128f236046ca4246badbd48cd22c06f1417f78f72456dfd4fe6cd941c"
+   },
+   {
+    "id": 154737391,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64-debug.tar.xz",
+    "size": 102800000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737391",
+    "digest": "sha256:9729634f85e3276c78a4bac283f49448010b8b25be591a2e55e1b62188d9fda8"
+   },
+   {
+    "id": 154737392,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64-tests.tar.xz",
+    "size": 30700000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737392",
+    "digest": "sha256:12f7e1f5cc7796437018df55014b9e5e863a7bf18b365bf99544a36c072c749e"
+   },
+   {
+    "id": 154737393,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64-sources.tar.xz",
+    "size": 47100000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737393",
+    "digest": "sha256:f83bce9f3ea2d29f93718f051dd9f2a5caf9b69ae87e73b803d0cff17bb7be7d"
+   },
+   {
+    "id": 154737394,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64.build-info.json",
+    "size": 19500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737394",
+    "digest": "sha256:03c8e59893c4c61239591f7b8e5f00a862ac30e16b222348830c069b72732d8d"
+   },
+   {
+    "id": 154737395,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64.spdx.json",
+    "size": 12500,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737395",
+    "digest": "sha256:87e0afd37329cebc391c09a8dac9b20cb333b615d449b136205630c184bf38e7"
+   },
+   {
+    "id": 154737396,
+    "name": "wine-macfixes-11.22-build1-macos-x86_64.SHA256SUMS",
+    "size": 716,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.22-build1-macos-x86_64/wine-macfixes-11.22-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/154737396",
+    "digest": "sha256:246bf7c53e3e7b74824c54716ad5809f199cf313729fa7c866905ca14e8b943e"
+   }
+  ],
+  "build_info": {
+   "schema_version": 1,
+   "build_id": "wine-macfixes-11.22-build1-macos-x86_64",
+   "build_name": "wine-macfixes-11.22-build1",
+   "flavour": "macfixes",
+   "wine_version": "11.22",
+   "build_number": 1,
+   "platform": "macos-x86_64",
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "8025569ada1d3319c16b8cafd98821579e04facf",
+    "uncommitted_changes": false
+   },
+   "toolchain": {
+    "id": "20261115",
+    "xcode": "Xcode 27.2",
+    "clang": "Apple clang version 21.0.0",
+    "llvm_mingw": "20261020 e9c13e4e",
+    "macports": "2.12.7",
+    "deployment_target": "10.15"
+   },
+   "environment": {
+    "lane": "ci",
+    "macos": "26.7.2 (25G332)",
+    "tart_image": "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f"
+   },
+   "configure": {
+    "CONFIGURE_ARGS": "--enable-archs=i386,x86_64 --with-vulkan --without-x",
+    "CFLAGS": "-O2 -g"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "11.22",
+     "license": "LGPL-2.1-or-later",
+     "source": {
+      "url": "https://dl.winehq.org/wine/source/11.x/wine-11.22.tar.xz",
+      "sha256": "e65f3f1940632fa8b1834487f034d6e61fed73090e144327af4d01263fa18023",
+      "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"
+     }
+    },
+    {
+     "name": "MoltenVK",
+     "version": "1.4.0",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "wine-mono",
+     "version": "11.3.0",
+     "license": "MIT AND others"
+    },
+    {
+     "name": "zlib",
+     "version": "1.3.2_0",
+     "license": null
+    }
+   ],
+   "patch_base": "winehq",
+   "patch_sets": [
+    {
+     "name": "build",
+     "summary": "Needed to build with this project's toolchain, or to build reproducibly.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "packaging",
+     "summary": "Needed for Wine to work as this project packages it.",
+     "range": "0001-0999"
+    },
+    {
+     "name": "version-label",
+     "summary": "Adds the flavour's name to Wine's version string.",
+     "range": "1000-1999"
+    },
+    {
+     "name": "essential-fixes",
+     "summary": "Fixes without which Wine is broken for many programs or Macs.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "targeted-fixes",
+     "summary": "Fixes and workarounds for specific situations.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "options",
+     "summary": "Changes that do nothing until enabled.",
+     "range": "2000-2999"
+    },
+    {
+     "name": "programs",
+     "summary": "Changes that act only on named programs.",
+     "range": "2000-2999"
+    }
+   ],
+   "patches": [
+    {
+     "name": "vulkan-portability-enumeration",
+     "set": "packaging",
+     "number": "0001",
+     "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "0c1f1031e3a95e891f99fc7caa5a8794d9f8bb62c858d873f8b1a850ebc1fb78",
+     "diff_sha256": "4afb472a3262ec499e844fddd557e8a92f10851e478027cbecf9b068b5bb1b53",
+     "summary": "Let Wine's Vulkan find MoltenVK (portability enumeration)",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "gcenx",
+       "ported_here": false,
+       "commit": "fc0301b4",
+       "url": "https://github.com/Gcenx/macports-wine"
+      }
+     ],
+     "header": {
+      "why": "MoltenVK is a portability driver; without this the loader hides it.",
+      "programs": "none known",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-vulkan-bundled-driver",
+     "set": "packaging",
+     "number": "0002",
+     "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "2fe109fe95f8ea944e4d353b6170bf573820336781856714fe50f72b8f8f653a",
+     "diff_sha256": "ce9e9e0f1ad5a8ba9a854fdb86c011451531749d9f6f7326902a12e9e4ced69b",
+     "summary": "Point the Vulkan loader at the bundled MoltenVK driver",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "why": "The loader only searches its build prefix for driver manifests.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winegcc-deterministic-temp-dir",
+     "set": "build",
+     "number": "0003",
+     "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "9e3da96d1c2947a675b4f406aed67be8fe654daff068c7923067c7b95ef10c0e",
+     "diff_sha256": "3fa6fed2f930b904f005de96b2a84fcc985379e65fad4754b8af975dcdc653e3",
+     "summary": "Name winegcc's temp directory deterministically, for reproducible builds",
+     "category": "build",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "dwrite-tests-fno-builtin",
+     "set": "build",
+     "number": "0004",
+     "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "3a80eb745c12a1792e44d1f8e58ee6fcfc28903d42cc3c73d2228e4bcf6cf239",
+     "diff_sha256": "214d21fc0939706257a1f83391ab36e34f8ab10ef24bac50f565817df4ff3f6c",
+     "summary": "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
+     "category": "build",
+     "kind": "tests",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-version-label",
+     "set": "version-label",
+     "number": "1001",
+     "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "31f16165441c69cca639b3e22f2d7e9e16bb2c75cda43726d98b371e1089b939",
+     "diff_sha256": "a1e2bf4576238271246cfb9c5f936161ff7691cef20e8da5f2bc646f191bd75b",
+     "summary": "Add the flavour's name to `wine --version`",
+     "category": "system",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "wine-staging",
+       "ported_here": true,
+       "version": "v11.21",
+       "patchset": "Staging",
+       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"
+      }
+     ],
+     "header": {
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-msync",
+     "set": "options",
+     "number": "2002",
+     "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "2211793cf527a17489090ea2347e13f329cfd8c170577488869a14b03f7a3b8f",
+     "diff_sha256": "ec0fc03ac7db11ef5b4ace818dcc9b7dc7b163af9c2096ab49223a34078fa782",
+     "summary": "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
+     "category": "sync",
+     "kind": "feature",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "cw_hacks": [
+        "18947"
+       ]
+      },
+      {
+       "project": "other",
+       "name": "msync by marzent",
+       "url": "https://github.com/marzent/wine-msync"
+      }
+     ],
+     "header": {
+      "why": "Faster than wineserver round trips for programs with many threads.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-debug-registers",
+     "set": "targeted-fixes",
+     "number": "2004",
+     "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "1a08147c5533492ce31d6b0baf043929710e83f7027b1b76fd3916784a47b473",
+     "diff_sha256": "f478f2ad6502183051fee493d76a00b980d64de0717c001af0804088b146c31b",
+     "summary": "Rosetta 2: report success when setting debug registers",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "22131"
+       ]
+      }
+     ],
+     "header": {
+      "why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
+      "programs": "Big Fish games (Armadillo DRM)",
+      "upstream": "partly (the wineserver half)",
+      "upstream_status": "partly"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-mxcsr",
+     "set": "essential-fixes",
+     "number": "2006",
+     "file": "patches/winehq/essential-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "eac30ae967c4f9bacec42ec0cd221805eed7ca26ca498af63fee9872e61e47ce",
+     "diff_sha256": "cc3a50b798cdd4b624fc334343c5ac745d5a1c1fd4a30ecad6f89ad6032564ca",
+     "summary": "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": true,
+       "version": "26.3.0",
+       "cw_hacks": [
+        "24256",
+        "24265"
+       ],
+       "changes": "CX 26.3.0's code at 11.21's locations.",
+       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"
+      }
+     ],
+     "header": {
+      "why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
+      "programs": "Older Unity games",
+      "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "advapi32-battlenet-acls",
+     "set": "programs",
+     "number": "2027",
+     "file": "patches/winehq/programs/2027-advapi32-battlenet-acls/advapi32-battlenet-acls@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "61a6dffa50ef3576db54dbfdc9e2f0bbda9d1498c3d2e745e528df28303d6b30",
+     "diff_sha256": "b747733cfa0da96d83796b981c15ae4f8d30bdfac30d39b0202ba0418c122c57",
+     "summary": "Battle.net: grant the permissions its updater checks for",
+     "category": "system",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "crossover",
+       "ported_here": false,
+       "cw_hacks": [
+        "20891"
+       ]
+      }
+     ],
+     "header": {
+      "programs": "Battle.net",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "ntdll-rosetta-cross-process-code-writes",
+     "set": "targeted-fixes",
+     "number": "2043",
+     "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "c77939644e9ef44dfb292641b2a4d3e823e8b8f933837f7e0bb8b190aea88b86",
+     "diff_sha256": "f51fc3d5e3ee9b291fed520970f63fc55accc7b32d51c0fdc18ba491d5ef9709",
+     "summary": "Rosetta 2: flush translations after another process writes code",
+     "category": "cpu",
+     "kind": "workaround",
+     "origins": [
+      {
+       "project": "reconstructed",
+       "ported_here": false,
+       "binary": "Sikarugir 10.0_8 ntdll.so",
+       "functions": "virtual_flush_cross_process"
+      }
+     ],
+     "header": {
+      "why": "Rosetta caches translated code.",
+      "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
+      "upstream": "no",
+      "upstream_status": "no"
+     }
+    },
+    {
+     "name": "winemac-gl-update-on-main-thread",
+     "set": "essential-fixes",
+     "number": "2058",
+     "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@11.21,11.22.patch",
+     "versions": [
+      "11.21",
+      "11.22"
+     ],
+     "sha256": "da12eb91f07dbf413254c964d8479583333815cd953e99b06396bd4e8b96c614",
+     "diff_sha256": "3171a9d1fae3aaf1f513cdbe0923c948bce65bf6f717cfc4bfc640afef3357f6",
+     "summary": "Update OpenGL contexts on the main thread",
+     "category": "graphics",
+     "kind": "fix",
+     "origins": [
+      {
+       "project": "wine-mac-builds",
+       "ported_here": false
+      },
+      {
+       "project": "crossover",
+       "cw_hacks": [
+        "19005"
+       ]
+      }
+     ],
+     "header": {
+      "why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
+      "upstream": "partly (11.22)",
+      "upstream_status": "partly"
+     }
+    }
+   ],
+   "flavour_description": "WineHQ's release plus fixes for running Windows programs on a Mac.",
+   "wine_version_string": "wine-11.22 (macfixes)"
+  },
+  "sha256sums": "ec3f0da128f236046ca4246badbd48cd22c06f1417f78f72456dfd4fe6cd941c  wine-macfixes-11.22-build1-macos-x86_64.tar.xz\n9729634f85e3276c78a4bac283f49448010b8b25be591a2e55e1b62188d9fda8  wine-macfixes-11.22-build1-macos-x86_64-debug.tar.xz\n12f7e1f5cc7796437018df55014b9e5e863a7bf18b365bf99544a36c072c749e  wine-macfixes-11.22-build1-macos-x86_64-tests.tar.xz\nf83bce9f3ea2d29f93718f051dd9f2a5caf9b69ae87e73b803d0cff17bb7be7d  wine-macfixes-11.22-build1-macos-x86_64-sources.tar.xz\n03c8e59893c4c61239591f7b8e5f00a862ac30e16b222348830c069b72732d8d  wine-macfixes-11.22-build1-macos-x86_64.build-info.json\n87e0afd37329cebc391c09a8dac9b20cb333b615d449b136205630c184bf38e7  wine-macfixes-11.22-build1-macos-x86_64.spdx.json\n"
  }
 ]

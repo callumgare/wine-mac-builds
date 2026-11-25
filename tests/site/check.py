@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
-"""tests/site/check.py [--releases <file>] [--site <dir>] [--keep <dir>]
+"""tests/site/check.py [--releases <file>] [--metadata <dir>] [--site <dir>] [--keep <dir>]
+                    [--write-keys]
 
 Generates the website from made-up releases (tests/site/releases.json, drafts
 included) with tools/site.py, without the network, and checks what it wrote:
@@ -19,13 +20,17 @@ included) with tools/site.py, without the network, and checks what it wrote:
   - _headers keeps default-src 'self' and long caching for /static/, and
     every file under static/ has a content hash in its name
   - _redirects stays under Cloudflare's limits, and the JSON parses
+  - builds.json has every key path in tests/site/builds.keys.json, with
+    the types recorded there (new keys are fine: add them with
+    --write-keys; a removed key or changed type is not)
+  - every build has its page, its pasted-name stub (canonical link, meta
+    refresh, visible link), and every file its SHA256SUMS names is on its
+    page with its sha256
+  - every buildless name's latest files have their download redirects
 
 --site checks a site generated already (say, from the real releases) instead.
---keep writes the generated site there, to look at.
-
-Still to come with the pages that need them (the plan's "Checks"):
-builds.json against tests/site/builds.keys.json, every SHA256SUMS file on its
-build's page, and each build's pasted-name page and download redirects.
+--keep writes the generated site there, to look at. --write-keys rewrites
+builds.keys.json from the generated builds.json.
 
 Python 3.11+, standard library only.
 """
@@ -310,6 +315,116 @@ class Checker:
         return self.problems
 
 
+def json_type(v):
+    return {dict: "object", list: "array", str: "string", bool: "boolean", type(None): "null"}.get(
+        type(v), "number" if isinstance(v, (int, float)) else "?")
+
+
+# Objects whose keys are data, not field names.
+MAPS = {"latest"}
+
+
+def key_paths(obj, path="", out=None):
+    out = {} if out is None else out
+    if path:
+        out.setdefault(path, set()).add(json_type(obj))
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            key = "*" if path in MAPS else k
+            key_paths(v, f"{path}.{key}" if path else key, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            key_paths(v, f"{path}[]", out)
+    return out
+
+
+def check_keys(site, keys_file, write, complete=True):
+    """complete: the site came from the made-up releases, which have every
+    key; a real site needn't have them all, only their types."""
+    got = key_paths(json.loads((site / "v1/builds.json").read_text()))
+    if write:
+        # Types only widen: a type the file allows stays allowed.
+        old = json.loads(keys_file.read_text()) if keys_file.exists() else {}
+        merged = {k: sorted(set(got.get(k, ())) | set(old.get(k, ()))) for k in set(got) | set(old)}
+        keys_file.write_text(json.dumps(dict(sorted(merged.items())), indent=1) + "\n")
+        print(f"wrote {keys_file} ({len(got)} key paths)")
+        return []
+    want = json.loads(keys_file.read_text())
+    problems = []
+    for path, types in want.items():
+        if path not in got:
+            if complete:
+                problems.append(f"v1/builds.json: no {path} (builds.keys.json has it; keys are never removed)")
+        elif not got[path] <= set(types):
+            problems.append(f"v1/builds.json: {path} is {sorted(got[path])}, builds.keys.json says {types}")
+    new = sorted(set(got) - set(want))
+    if new:
+        print(f"note: builds.json has key paths builds.keys.json doesn't: {', '.join(new)} (add them with --write-keys)")
+    return problems
+
+
+def check_builds(site, releases_file):
+    """Pages, stubs and redirects for what builds.json lists."""
+    problems = []
+    index = json.loads((site / "v1/builds.json").read_text())
+    sums = {}
+    if releases_file:
+        for r in json.loads(pathlib.Path(releases_file).read_text()):
+            sums[r["tag_name"]] = [ln.split(maxsplit=1) for ln in r["sha256sums"].splitlines() if ln.strip()]
+    redirects = {}
+    red = site / "_redirects"
+    for ln in red.read_text().splitlines() if red.exists() else []:
+        parts = ln.split()
+        if len(parts) >= 2:
+            redirects[parts[0]] = parts[1]
+    names = {}
+    for e in index["builds"]:
+        names.setdefault(e["name"], e)
+        path = urllib.parse.urlsplit(e["page_url"]).path
+        page = site / path.lstrip("/") / "index.html"
+        where = f"{e['build_id']}"
+        if not page.is_file():
+            problems.append(f"{where}: no page at {path}")
+            continue
+        html_text = page.read_text()
+        files = sums.get(e["build_id"])
+        if files is None:
+            files = [[a["sha256"], a["name"]] for a in e["assets"].values() if a.get("sha256")]
+        for sha, fname in files:
+            fname = fname.lstrip("*")
+            if fname not in html_text:
+                problems.append(f"{where}: {fname} (in SHA256SUMS) isn't on {path}")
+            elif sha not in html_text:
+                problems.append(f"{where}: {fname}'s sha256 isn't on {path}")
+    for name, e in names.items():
+        path = urllib.parse.urlsplit(e["page_url"]).path
+        stub = site / "builds" / name / "index.html"
+        if not stub.is_file():
+            problems.append(f"{name}: no pasted-name page at /builds/{name}/")
+            continue
+        t = stub.read_text()
+        if f'<link rel="canonical" href="{e["page_url"]}">' not in t:
+            problems.append(f"/builds/{name}/: no canonical link to {e['page_url']}")
+        if f'http-equiv="refresh" content="0; url={path}"' not in t:
+            problems.append(f"/builds/{name}/: no meta refresh to {path}")
+        if f'href="{path}"' not in t.split("<main", 1)[-1]:
+            problems.append(f"/builds/{name}/: no visible link to {path}")
+    suffixes = {"build": ".tar.xz", "debug": "-debug.tar.xz", "tests": "-tests.tar.xz", "sources": "-sources.tar.xz"}
+    for f in sorted((site / "v1").glob("*.json")):
+        if f.name == "builds.json":
+            continue
+        bl = json.loads(f.read_text())
+        if bl.get("latest") and not (site / "builds" / bl["name"] / "index.html").is_file():
+            problems.append(f"{bl['name']}: no latest-build page at /builds/{bl['name']}/")
+        for platform, e in bl.get("platforms", {}).items():
+            for kind, suffix in suffixes.items():
+                a = e["assets"].get(kind)
+                src = f"/builds/{bl['name']}/{platform}{suffix}"
+                if a and redirects.get(src) != a["urls"][0]:
+                    problems.append(f"_redirects: {src} should go to {a['urls'][0]}, not {redirects.get(src)}")
+    return problems
+
+
 def check_repo():
     problems = []
     wr = (ROOT / "wrangler.jsonc").read_text()
@@ -351,8 +466,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
     ap.add_argument("--releases", default=str(ROOT / "tests/site/releases.json"),
                     help="made-up releases to generate from (default: tests/site/releases.json)")
+    ap.add_argument("--metadata", default=str(ROOT / "tests/site/metadata"),
+                    help="the metadata folder to generate with (default: tests/site/metadata)")
     ap.add_argument("--site", help="check this generated site instead of generating one")
     ap.add_argument("--keep", help="generate into this folder and leave it there")
+    ap.add_argument("--write-keys", action="store_true", help="rewrite tests/site/builds.keys.json")
     args = ap.parse_args()
     problems = check_markup() + check_repo()
     with tempfile.TemporaryDirectory() as tmp:
@@ -360,11 +478,17 @@ def main():
         if not site:
             site = args.keep or str(pathlib.Path(tmp) / "site")
             r = subprocess.run([sys.executable, str(ROOT / "tools/site.py"), "--out", site,
-                                "--releases", args.releases, "--include-drafts"],
+                                "--releases", args.releases, "--metadata", args.metadata, "--include-drafts"],
                                capture_output=True, text=True)
             if r.returncode:
                 sys.exit(f"tools/site.py failed:\n{r.stdout}{r.stderr}")
         problems += Checker(site).run()
+        if (pathlib.Path(site) / "v1/builds.json").is_file():
+            problems += check_keys(pathlib.Path(site), ROOT / "tests/site/builds.keys.json", args.write_keys,
+                                   complete=not args.site)
+            problems += check_builds(pathlib.Path(site), None if args.site else args.releases)
+        else:
+            problems.append("v1/builds.json: missing")
     for p in problems:
         print(p)
     if problems:
