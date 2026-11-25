@@ -40,6 +40,120 @@ patches/
 - **Which patches a build applies:** `build/patches.py flavour <flavour>
   <version>`.
 
+## Writing a patch
+
+The bug-fixing steps (reproduce, fix one version, quick build, regression
+test, Status) are in [AGENTS.md](../AGENTS.md), "Fixing a bug". This
+section covers what makes a patch good to keep. Each point is something
+the full review of every patch (2026-11-25) found missing at least once.
+
+### Before writing it
+
+- **Is it fixed upstream?** Search WineHQ's history and master for the
+  function and the bug, not only the release you're on. Five patches in
+  the review were WineHQ commits recorded as someone else's, and one bug
+  was fixed upstream after we wrote our own fix. If WineHQ has it, take
+  their commit as a backport (`backports`, `Origin: winehq`) instead of
+  writing your own.
+- **Is it still needed here?** Check that the newer Wine versions you'd
+  copy it to still have the bug. WineHQ changed how `%gs` works on macOS
+  in 10.5, which made several patches unneeded on 11.x and broke one
+  renderer outright. Rosetta changes too: Apple has fixed several of the
+  instructions our handlers emulate. Write down the macOS version, Mac
+  model and Wine version you measured on.
+- **Measure, don't infer.** A cheap probe settles most questions:
+  - a native x86_64 program under Rosetta, for what Rosetta does
+  - a console Wine program on a build archive, with
+    `WINEDLLOVERRIDES="winemac.drv=d"` when no window is needed
+  - a few lines in a regression test.
+
+  The review overturned reasoned claims in about one patch in three.
+- **Where it really comes from.** For someone else's change, find the
+  actual source, and check that version of it:
+  - CrossOver's published tree for the version you cite
+  - wine-staging's patchset
+  - Proton
+  - the binary it was rebuilt from
+
+  Sikarugir's builds mix CrossOver's hacks with their own and with Proton
+  commits. Use one `Origin` block per source.
+
+### Writing it
+
+- **One problem, one patch.** Don't bundle unrelated hacks that share a
+  file or an origin. The review split one patch that held three. Copies
+  that fix the same problem on different Wine versions are one patch, even
+  when they change different files.
+- **The right set.** The set's README says what qualifies. The bar is
+  evidence:
+  - `essential-fixes` needs broad breakage shown on a current Mac.
+  - A changed default needs a measured benefit.
+  - An option must be dormant (`options/README.md` says what that allows).
+- **Match programs by file name.** Compare a program's own file name,
+  case-insensitively. Never search a path or command line for a
+  substring. Remember that `CreateProcessInternalW` hooks miss the first
+  process (`wine X.exe`).
+- **Bound every retry.** A handler that "fixes" a fault and retries must
+  give up the second time. The review found a handler that retried for
+  ever, and another that could.
+- **Error paths.** Check allocations and system calls, and fall back to
+  WineHQ's behaviour when the workaround's own step fails.
+- **Threads.** Know which thread runs your code. A thread Wine didn't
+  create can't call Wine's debug output on 10.0, or win32u at all (see
+  AGENTS.md). Locks taken on GL threads can deadlock against threads
+  handling window queries.
+- **Vendored code and new files.** A copied third-party file needs its
+  licence in the build's `LICENSES/`, and an `SPDX-License-Identifier`
+  that covers it. New files get a copyright line.
+
+### Recording it
+
+- **`Expects before it`.** Name every patch yours needs, in code or only
+  as diff context (say which, after `; `). To find out, apply your patch
+  without each earlier patch that touches the same files. The review found
+  52 undeclared pairs.
+- **Exact scope.**
+  - `Programs` names each program and what goes wrong without the patch.
+  - `Why` says which macOS and Wine versions have the problem, and what
+    the patch does about it.
+  - `Uncertain` says what wasn't shown.
+- **`Status` stays short.** One dated line per version and event: built,
+  confirmed, measured n of m. The investigation's story belongs in the
+  commit message, not in a header the build ships.
+- **The test must catch the bug.** A regression test has to fail without
+  the fix and pass with it, and it should test the bug, not how the fix
+  works. The review found twelve tests that passed either way:
+  - a test of one 4x4 texture that missed a decoder overflowing on
+    smaller ones
+  - a test helper that set exactly the patch's mask, so the gap the
+    patch left could never show
+  - a test that checked a log line printed whether or not the fix worked
+- **Upstream.** If WineHQ would want it, write a draft in
+  `.local/bug-reports/`, and say `Upstream: no (candidate; draft in
+  .local/bug-reports/)`.
+
+## Maintaining patches
+
+- **A new Wine version.** `tools/pin <flavour> <version>` carries over
+  every copy that still applies without fuzz. For each one listed as not
+  carried, check first whether WineHQ fixed the problem. Port only what's
+  still needed.
+- **Changing a patch on one version.** `tools/patch split <name>
+  <version>` gives that version its own copy. Change it, build, confirm,
+  then port it to the others and merge copies that come out the same.
+- **Dropping or changing a patch others build on.** Run `tools/patch
+  refresh <flavour> <version>` for each version, so the later copies apply
+  at fuzz 0 again. Check where every hunk landed. A diff that relied on
+  the dropped patch's lines needs those context lines removed first.
+- **Renaming before launch.** `tools/patch rename <old> <new>` moves the
+  folder and copies and updates references. Names are frozen once a
+  published build has applied the patch.
+- **Review now and then.** Patches that work around someone else's bug
+  (Rosetta, macOS, a program, an older WineHQ) go stale. When a macOS or
+  Wine release lands, retest the patches whose headers name the affected
+  versions, and drop what's no longer needed. The 2026-11-25 review's
+  per-patch notes are in `.local/patch-review/` on the machine it ran on.
+
 ## The rules
 
 `build/patch_header.py` with no arguments checks all of this, and CI runs
@@ -107,7 +221,7 @@ Keys must appear in this order. Each may appear only once, except
 | `Evidence` | no | What shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
 | `Port` | no | How it was adapted to this Wine version. |
 | `Expects before it` | no | The patches it depends on, by name, comma-separated, then optionally `; ` and a note: `ntdll-rosetta-refuse-ldt-entries; NtSetLdtEntries refuses entries under Rosetta 2`. Each must have a lower number and a copy for every version this copy covers. |
-| `Status` | no | A dated working note (built? tested?). Not published: it can be out of date in a build. In a copy for several versions, each entry starts with the version it's about: `11.21: 2026-11-22: passes in a local test build`. |
+| `Status` | no | Short dated notes: built, confirmed, measured n of m. One line per version and event; the story of the investigation goes in the commit message. Not published: it can be out of date in a build. In a copy for several versions, each entry starts with the version it's about: `11.21: 2026-11-22: passes in a local test build`. |
 
 ## Origin blocks
 

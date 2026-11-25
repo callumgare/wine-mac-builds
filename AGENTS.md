@@ -53,6 +53,11 @@ projects.
 1. Reproduce it with a released build before changing anything. Unpack the
    tarball into a temporary folder and use a throwaway `WINEPREFIX` there.
    For a quiet run, set `WINEDLLOVERRIDES="winedbg.exe=d;mscoree=;mshtml="`.
+   Then check WineHQ's master for a fix before writing one: if it's there,
+   backport that commit. [patches/README.md](patches/README.md), "Writing a
+   patch", lists what a patch needs to be worth keeping: what to check
+   before writing it, the set it belongs in, and what its header and test
+   must show.
 2. Write the patch for the version where the bug was seen, and only that one.
    A new patch: `tools/patch new <set> <name> <version>` makes its folder,
    with the next free number in the set's range, and a header to fill in.
@@ -119,7 +124,9 @@ projects.
    default to different Windows versions. A test that passes either way
    guards nothing.
 5. Update the patch header's `Status:` after each build that includes it and
-   after each confirmation. Say plainly what was and wasn't shown.
+   after each confirmation. Say plainly what was and wasn't shown. Keep it
+   to one dated line per version and event; the investigation's story goes
+   in the commit message.
 
 ## Testing
 
