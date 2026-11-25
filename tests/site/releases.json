@@ -1,0 +1,278 @@
+[
+ {
+  "tag_name": "wine-11.21-build1-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-11.21-build1-macos-x86_64",
+  "published_at": "2026-11-14T00:00:00Z",
+  "assets": [
+   {
+    "name": "wine-11.21-build1-macos-x86_64.tar.xz",
+    "size": 1000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/10"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64-debug.tar.xz",
+    "size": 32000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/11"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64-tests.tar.xz",
+    "size": 243000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/12"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64-sources.tar.xz",
+    "size": 1024000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/13"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64.build-info.json",
+    "size": 3125000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/14"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64.spdx.json",
+    "size": 7776000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/15"
+   },
+   {
+    "name": "wine-11.21-build1-macos-x86_64.SHA256SUMS",
+    "size": 16807000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-11.21-build1-macos-x86_64/wine-11.21-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/16"
+   }
+  ],
+  "build_info": {
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "0000000000000000000000000000000000000000"
+   },
+   "toolchain": {
+    "id": "20261115"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "11.21",
+     "license": "LGPL-2.1-or-later",
+     "patches": []
+    }
+   ]
+  },
+  "sha256sums": "4e966aaef0c8fdb9da5c0a53556a8e874abd86fda0d6d18c3d03007f97763eb9  wine-11.21-build1-macos-x86_64.tar.xz\n4add2d008a9fad56c485f0ad41482a4fd48e988be4a55692db6a7afcfc56ee1f  wine-11.21-build1-macos-x86_64-debug.tar.xz\n8730bd487c571431a60b01472e78409240a545412c6a0b68fe2b763d8edf4559  wine-11.21-build1-macos-x86_64-tests.tar.xz\n37feed5adf476b4b9604ebd896e05c08904eb34ca1d8089e2af29d3d0b8b561d  wine-11.21-build1-macos-x86_64-sources.tar.xz\n15a2ed7fe5ed0768a648398f3d894cf26edd80070dc50dad0dfc2b2842941256  wine-11.21-build1-macos-x86_64.build-info.json\n8b769104c77fee52256368c5770280b5f2a5c8654c22353bdff450023d8ce853  wine-11.21-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-10.0-build1-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build1-macos-x86_64",
+  "published_at": "2026-11-14T00:00:00Z",
+  "assets": [
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64.tar.xz",
+    "size": 1000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/20"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz",
+    "size": 32000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/21"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz",
+    "size": 243000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/22"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz",
+    "size": 1024000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/23"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64.build-info.json",
+    "size": 3125000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/24"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64.spdx.json",
+    "size": 7776000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/25"
+   },
+   {
+    "name": "wine-macfixes-10.0-build1-macos-x86_64.SHA256SUMS",
+    "size": 16807000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build1-macos-x86_64/wine-macfixes-10.0-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/26"
+   }
+  ],
+  "build_info": {
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "0000000000000000000000000000000000000000"
+   },
+   "toolchain": {
+    "id": "20261115"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "patches": []
+    }
+   ]
+  },
+  "sha256sums": "9f5d2f0b7f30bfc714bab6245a2ed19c5524afd675322969c31bce33b089af4a  wine-macfixes-10.0-build1-macos-x86_64.tar.xz\neab7eaa7e530246da040e699a97ef23bb3beedcd8abe197f2abac91652641ffe  wine-macfixes-10.0-build1-macos-x86_64-debug.tar.xz\n7018834c9430bbbd11de658e42a489e181eb12c3d21362cb50aa8289d29685d0  wine-macfixes-10.0-build1-macos-x86_64-tests.tar.xz\ned473e0f2e493b7f88effbe7e9aed2da6edbc8019bb40a604d171df74c942ee1  wine-macfixes-10.0-build1-macos-x86_64-sources.tar.xz\n223b7f7769a8b7f8263e954fa5cb688fa1f2d1a8f635b87e450774d470108a4a  wine-macfixes-10.0-build1-macos-x86_64.build-info.json\n96e063b53b043be499eee614ab50c589c5f4349986211a3f736f626b63692fc5  wine-macfixes-10.0-build1-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-10.0-build2-macos-x86_64",
+  "draft": false,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-10.0-build2-macos-x86_64",
+  "published_at": "2026-11-15T00:00:00Z",
+  "assets": [
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64.tar.xz",
+    "size": 1000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/30"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz",
+    "size": 32000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/31"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz",
+    "size": 243000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/32"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz",
+    "size": 1024000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/33"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64.build-info.json",
+    "size": 3125000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/34"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64.spdx.json",
+    "size": 7776000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/35"
+   },
+   {
+    "name": "wine-macfixes-10.0-build2-macos-x86_64.SHA256SUMS",
+    "size": 16807000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-10.0-build2-macos-x86_64/wine-macfixes-10.0-build2-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/36"
+   }
+  ],
+  "build_info": {
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "0000000000000000000000000000000000000000"
+   },
+   "toolchain": {
+    "id": "20261115"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "10.0",
+     "license": "LGPL-2.1-or-later",
+     "patches": []
+    }
+   ]
+  },
+  "sha256sums": "667d0e05931c9c62db648ecb617dfca6be4108069f16aeafa073ed421a5e8f33  wine-macfixes-10.0-build2-macos-x86_64.tar.xz\nf8b463a74271b65fb41cb48e8871a04fea53f6a57c1f1398ef2c725b29cff115  wine-macfixes-10.0-build2-macos-x86_64-debug.tar.xz\nc2e0b04b48739471365fdc9c80c2c229cc0118a1a0bf00ed3f446320a4217fdf  wine-macfixes-10.0-build2-macos-x86_64-tests.tar.xz\nab510b19570b9f8248af0b6e0e46e5aa5414ec7e771016db1b91bee31c4d677d  wine-macfixes-10.0-build2-macos-x86_64-sources.tar.xz\n1ac51e0b0fe137bf4017453fea2f84899c8e14ff5bacd891942f3dad9dcd20bf  wine-macfixes-10.0-build2-macos-x86_64.build-info.json\n96168345beb3e121234d28a67f789b2c1b07f7bdf32116ee7baa0a7267863fac  wine-macfixes-10.0-build2-macos-x86_64.spdx.json\n"
+ },
+ {
+  "tag_name": "wine-macfixes-11.21-build1-macos-x86_64",
+  "draft": true,
+  "html_url": "https://github.com/callumgare/wine-mac-builds/releases/tag/wine-macfixes-11.21-build1-macos-x86_64",
+  "published_at": null,
+  "assets": [
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
+    "size": 1000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/40"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
+    "size": 32000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/41"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
+    "size": 243000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/42"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
+    "size": 1024000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/43"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
+    "size": 3125000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.build-info.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/44"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
+    "size": 7776000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.spdx.json",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/45"
+   },
+   {
+    "name": "wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
+    "size": 16807000,
+    "browser_download_url": "https://github.com/callumgare/wine-mac-builds/releases/download/wine-macfixes-11.21-build1-macos-x86_64/wine-macfixes-11.21-build1-macos-x86_64.SHA256SUMS",
+    "url": "https://api.github.com/repos/callumgare/wine-mac-builds/releases/assets/46"
+   }
+  ],
+  "build_info": {
+   "minimum_macos": "10.15",
+   "recipe": {
+    "repository": "https://github.com/callumgare/wine-mac-builds",
+    "commit": "0000000000000000000000000000000000000000"
+   },
+   "toolchain": {
+    "id": "20261115"
+   },
+   "components": [
+    {
+     "name": "wine",
+     "version": "11.21",
+     "license": "LGPL-2.1-or-later",
+     "patches": []
+    }
+   ]
+  },
+  "sha256sums": "f63a882cf209b8b15fb1af9f4a566e131e6e88d20096868c0112fc3c1ec0d33f  wine-macfixes-11.21-build1-macos-x86_64.tar.xz\nd51a61ee2ee85da25403f1ee4b7325b183b2ebc72454df182ab470b152f07eb1  wine-macfixes-11.21-build1-macos-x86_64-debug.tar.xz\n08342c4c14472d3f48612ae6a18f83c9524e011dfef73eabe2eecf409bb48106  wine-macfixes-11.21-build1-macos-x86_64-tests.tar.xz\nc24bd7c26ac55d174740e618fd265671d7dfa49aee9d438a0aaf8ac73384b9e9  wine-macfixes-11.21-build1-macos-x86_64-sources.tar.xz\naa05819eff804279e729737b67c86d977db652f132d61f37a26366ff18f77371  wine-macfixes-11.21-build1-macos-x86_64.build-info.json\nc129dd9e8f0dc93c4e8624c5eaaf1e364be090de3f0bb90df44dbda73f5f53f0  wine-macfixes-11.21-build1-macos-x86_64.spdx.json\n"
+ }
+]

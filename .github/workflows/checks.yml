@@ -1,16 +1,35 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Quick checks that need no Mac: every patch header follows
-# patches/README.md (build/patch_header.py). Builds check their own patches
-# again before applying them (build/compile.sh).
+# patches/README.md (build/patch_header.py), and the website generates from
+# made-up releases and is well formed (tests/site/check.py). Builds check
+# their own patches again before applying them (build/compile.sh).
 
 name: checks
 
 on:
   push:
-    paths: [patches/**, build/patch_header.py, .github/workflows/checks.yml]
+    paths:
+      - patches/**
+      - build/patch_header.py
+      - build/manifest.py
+      - tools/site.py
+      - tools/sitegen/**
+      - tests/site/**
+      - metadata/**
+      - wrangler.jsonc
+      - .github/workflows/checks.yml
   pull_request:
-    paths: [patches/**, build/patch_header.py, .github/workflows/checks.yml]
+    paths:
+      - patches/**
+      - build/patch_header.py
+      - build/manifest.py
+      - tools/site.py
+      - tools/sitegen/**
+      - tests/site/**
+      - metadata/**
+      - wrangler.jsonc
+      - .github/workflows/checks.yml
 
 permissions:
   contents: read
@@ -24,3 +43,12 @@ jobs:
           persist-credentials: false
       - name: Check patch headers
         run: python3 build/patch_header.py
+
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generate the site from made-up releases and check it
+        run: python3 tests/site/check.py
