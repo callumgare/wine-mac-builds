@@ -109,9 +109,9 @@ the full review of every patch (2026-11-25) found missing at least once.
 ### Recording it
 
 - **`Expects before it`.** Name every patch yours needs, in code or only
-  as diff context (say which, after `; `). To find out, apply your patch
-  without each earlier patch that touches the same files. The review found
-  52 undeclared pairs.
+  as diff context (say which, after `; `). `tools/patch deps <flavour>
+  <version> <name>` finds them: it applies your patch without each earlier
+  patch that touches the same files. The review found 52 undeclared pairs.
 - **Exact scope.**
   - `Programs` names each program and what goes wrong without the patch.
   - `Why` says which macOS and Wine versions have the problem, and what

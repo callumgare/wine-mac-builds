@@ -38,6 +38,13 @@
         it first. --fuzz N lets patch place hunks whose context changed
         more (check where they landed). Needs WineHQ's tarball for
         <version> in the download cache (WMB_CACHE_DIR, default .cache).
+    tools/patch deps <flavour> <version> [<name> ...]
+        Which earlier patches each patch needs: for each earlier patch Q
+        touching the same files, does P still apply (fuzz 0) to those files
+        with every earlier patch but Q? Prints "P needs Q (files)". Compare
+        with each header's Expects before it, and declare what's missing
+        (saying whether it's real or only diff context). Same download
+        cache as refresh.
 """
 
 import pathlib
@@ -293,9 +300,73 @@ def cmd_refresh(argv):
         print(f"every copy applies at fuzz 0 at {version}")
 
 
+def cmd_deps(argv):
+    import os
+    import tempfile
+    flavour, version, *names = argv
+    fl = P.flavour(flavour)
+    copies = P.resolve(fl["base"], fl["sets"], version)
+    inputs = (ROOT / "inputs" / fl["base"] / f"{version}.sh").read_text()
+    sha = next(l.split('"')[1] for l in inputs.splitlines() if l.startswith("WINE_SHA256="))
+    cache = pathlib.Path(os.environ.get("WMB_CACHE_DIR", ROOT / ".cache"))
+    tarball = next((cache / sha).glob("wine-*.tar.xz"), None) if (cache / sha).is_dir() else None
+    if tarball is None:
+        sys.exit(f"WineHQ's {version} tarball isn't in {cache}/{sha}/ (set WMB_CACHE_DIR)")
+
+    def split(path):
+        body = path.read_text().split("\n\n", 1)[1]
+        out, cur, buf = {}, None, []
+        for line in body.split("\n"):
+            if line.startswith("diff --git "):
+                if cur:
+                    out[cur] = out.get(cur, "") + "\n".join(buf) + "\n"
+                cur, buf = line.split(" b/", 1)[1], [line]
+            else:
+                buf.append(line)
+        if cur:
+            out[cur] = out.get(cur, "") + "\n".join(buf) + "\n"
+        return out
+
+    def run_patch(d, text, *extra):
+        return subprocess.run(["patch", "-d", str(d), "-p1", "-s", "--forward", "--batch"] + list(extra),
+                              input=text, text=True, capture_output=True).returncode == 0
+
+    diffs = [(c.patch.name, split(c.path)) for c in copies]
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        subprocess.run(["tar", "-xf", str(tarball), "-C", str(tmp)], check=True)
+        src = tmp / f"wine-{version}"
+        for i, (pname, pd) in enumerate(diffs):
+            if names and pname not in names:
+                continue
+            for j in range(i):
+                qname, qd = diffs[j]
+                shared = sorted(set(pd) & set(qd))
+                if not shared:
+                    continue
+                work = tmp / "w"
+                shutil.rmtree(work, ignore_errors=True)
+                for f in shared:
+                    (work / f).parent.mkdir(parents=True, exist_ok=True)
+                    if (src / f).exists():
+                        shutil.copy(src / f, work / f)
+                ok = True
+                for k in range(i):
+                    if k == j:
+                        continue
+                    for f in shared:
+                        if f in diffs[k][1] and not run_patch(work, diffs[k][1][f]):
+                            ok = None   # an earlier patch needs Q too; can't tell here
+                if ok is None:
+                    continue
+                if not all(run_patch(work, pd[f], "--fuzz=0", "--dry-run") for f in shared):
+                    print(f"{pname} needs {qname} ({', '.join(shared)})")
+
+
 def main(argv):
     cmds = {"new": cmd_new, "split": cmd_split, "renumber-versions": cmd_renumber_versions,
-            "extend": cmd_extend, "rename": cmd_rename, "refresh": cmd_refresh}
+            "extend": cmd_extend, "rename": cmd_rename, "refresh": cmd_refresh,
+            "deps": cmd_deps}
     if not argv or argv[0] not in cmds:
         print(__doc__, file=sys.stderr)
         return 2
