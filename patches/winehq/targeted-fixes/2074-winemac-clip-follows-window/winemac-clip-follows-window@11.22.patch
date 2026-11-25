@@ -6,7 +6,7 @@ Origin: wine-mac-builds
   Note: dlls/winemac.drv/cocoa_cursorclipping.m, cocoa_app.m, cocoa_window.m;
     written for wine-mac-builds after Second Chance's workaround (it re-clips
     on NSWindowDidResize and NSWindowDidMove).
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/)
 Why: The Mac driver clips the cursor with -[NSWindow
  setMouseConfinementRect:] on the front Wine window. That rect is in the
  window's own coordinates and is cut to the window's frame when clipping

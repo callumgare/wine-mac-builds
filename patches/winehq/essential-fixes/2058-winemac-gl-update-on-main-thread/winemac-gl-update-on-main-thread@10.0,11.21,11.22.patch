@@ -4,7 +4,8 @@ Category: graphics
 Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/). The code is the same
+ in WineHQ 10.0 to master and in CrossOver 26.3.0 (checked 2026-11-25).
 Why: macdrv_update_opengl_context updates the context through
  OnMainThread, which queues the block on the main thread's run loop and
  waits for it. OnMainThread doesn't check whether it's already on the main

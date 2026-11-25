@@ -4,8 +4,9 @@ Category: system
 Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds
-Upstream: no (WineHQ master unchanged, checked 2026-11-17)
-Why: since Wine 11, the server gives each 64-bit exe a random base in
+Upstream: yes: d87fb2f5 (2026-11-16, in master; first release 11.23), a
+ different fix for the same bug
+Why: since Wine 11.22, the server gives each 64-bit exe a random base in
  0x7ff600000000-0x7ff800000000, as Windows does. When that range is
  already in use in the new process, map_image_view() maps the exe
  somewhere else (often 0x10000), but the image information keeps the

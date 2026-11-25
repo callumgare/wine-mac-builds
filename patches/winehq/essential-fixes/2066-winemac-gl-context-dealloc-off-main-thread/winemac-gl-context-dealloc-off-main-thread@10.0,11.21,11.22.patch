@@ -4,7 +4,8 @@ Category: graphics
 Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/). The code is the same
+ in WineHQ 10.0 to master and in CrossOver 26.3.0 (checked 2026-11-25).
 Why: -[NSOpenGLContext dealloc] calls -clearDrawable, which
  WineOpenGLContext overrides. Off the main thread the override runs [super
  clearDrawable] in a block sent to the main thread with OnMainThread, and

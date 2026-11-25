@@ -6,7 +6,7 @@ Origin: wine-mac-builds
   Note: dlls/winemac.drv/cocoa_window.m (WineContentView); written for
     wine-mac-builds after Second Chance's workaround (it swizzles the same
     method).
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/)
 Why: Wine takes a click in -[WineApplicationController handleEvent:], before
  AppKit dispatches it, and then lets NSApplication deliver it as well. It
  goes to the window's WineContentView, which had no mouseDown:, so it went

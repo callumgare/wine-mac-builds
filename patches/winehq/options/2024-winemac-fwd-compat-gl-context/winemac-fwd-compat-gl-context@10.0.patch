@@ -7,7 +7,8 @@ Origin: crossover
   CW-Hacks: 24834
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
   Note: CrossOver 26.0.0 CW Hack 24834 (dlls/winemac.drv/opengl.c)
-Upstream: no
+Upstream: no; Wine 11 accepts such requests without it (win32u fills in the
+ profile and winemac 11 no longer checks the flag)
 Why: macOS only offers forward-compatible 3.2+ core contexts; with CX_FWD_COMPAT_GL_CTX=1
  a request for a non-forward-compatible 3.2-4.1 context is upgraded instead of refused.
 Programs: none known

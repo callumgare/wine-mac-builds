@@ -7,7 +7,7 @@ Origin: wine-staging
   Note: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases; CrossOver Hack 14364)
 Origin: crossover
   CW-Hacks: 14364
-Upstream: no
+Upstream: no (bug 34166 is RESOLVED NOTOURBUG)
 Why: adds the Mac Driver registry option ForceOpenGLBackingStore, which requests a
  backing store for every GL context and stops flicker in some GL games.
 Programs: none known

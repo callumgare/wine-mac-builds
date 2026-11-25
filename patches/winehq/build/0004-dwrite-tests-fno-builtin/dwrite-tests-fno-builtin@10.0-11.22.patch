@@ -5,7 +5,9 @@ Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds
     Source: none; a build fix for the tests.
-Upstream: no, not yet (the same Makefile.in is unchanged up to 11.21)
+Upstream: no, not needed upstream: since 10.12 configure builds every PE
+ file with -ffp-exception-behavior=maytrap (9195d892), which stops the
+ rewrite.
 Why: LLVM 23 (our llvm-mingw) turns floor() of a value it knows is not
  negative into trunc(). The dwrite tests import msvcrt, whose import library
  has no trunc or truncf (Windows' msvcrt.dll doesn't export them), so

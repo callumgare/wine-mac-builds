@@ -6,7 +6,8 @@ Origin: winehq
   Commit: b93bee1a8748c178a5acb0b220de6f7d62ad807d
   URL: https://gitlab.winehq.org/wine/wine/-/commit/b93bee1a8748c178a5acb0b220de6f7d62ad807d
   Note: upstream commit b93bee1a8748c178a5acb0b220de6f7d62ad807d (Hans Leidekker)
-Upstream: yes, in Wine 10.5 (Wine bug 56859)
+Upstream: yes, commit b93bee1a87 in Wine 10.5 (bug 56859, Photoshop CS6's
+ installer; closed as fixed in 10.9)
 Why: On 10.0, Big Fish trial games' WMI queries hang on "dlls\wbemprox\builtin.c: table.cs"; RtlpWaitForCriticalSection logs 60-second timeouts until it recovers.
 Programs: Big Fish trial games (White Wolf, Waverly Academy, Deadly Device):
  WMI queries hang on wbemprox's table lock (60-second timeouts) on 10.0

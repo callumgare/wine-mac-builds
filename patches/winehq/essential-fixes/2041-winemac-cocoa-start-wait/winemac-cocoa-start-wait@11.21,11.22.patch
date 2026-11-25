@@ -5,8 +5,8 @@ Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds (not in Sikarugir), after Second Chance's
     in-process helper that lengthens the same wait.
-Upstream: no (candidate, kept on Second Chance's list for later). The bug is
- in WineHQ 10.0 to master and in CrossOver 25.1.
+Upstream: no (candidate; draft in .local/bug-reports/). The bug is in WineHQ
+ 10.0 to master (2026-11-25) and in CrossOver 26.3.0.
 Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
  Cocoa app. On a Mac with every core busy, under Rosetta, that can be
  missed: the process then has no display driver ("Failed to start Cocoa app

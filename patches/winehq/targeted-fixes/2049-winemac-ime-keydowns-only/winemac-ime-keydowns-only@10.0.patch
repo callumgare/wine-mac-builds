@@ -9,8 +9,7 @@ Origin: crossover
     Source: (sources/wine/dlls/winemac.drv/keyboard.c
     Source: cocoa_window.m
     Source: macdrv_cocoa.h)
-Upstream: yes, in a different form: WineHQ 11.x's ime.c only sends key-downs
- to macdrv_send_keydown_to_input_source, with the same comment. Not in 10.0.
+Upstream: yes, since wine-10.6
 Why: When a Mac input method (IME) is active, macdrv_ImeProcessKey passed
  key-ups as well as key-downs to the Cocoa input context. Only key-downs go
  there now; key-ups go through as ordinary WM_KEYUP. The Cocoa function is

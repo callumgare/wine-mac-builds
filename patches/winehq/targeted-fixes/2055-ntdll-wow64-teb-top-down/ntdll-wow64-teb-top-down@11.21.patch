@@ -4,7 +4,8 @@ Category: cpu
 Kind: fix
 Origin: wine-mac-builds
   Note: written for wine-mac-builds
-Upstream: no (the placement changed upstream in Wine 11.18, f0bd9046)
+Upstream: no; the placement changed in Wine 11.18 (f0bd9046), and master is
+ unchanged (checked 2026-11-25). Bug report drafted, not filed.
 Why: Wine 11.18 (upstream f0bd9046, "Allocate initial TEB and process
  parameters in high memory on 64-bit") stopped reserving the TEB block
  top-down. In wow64 that moved the 32-bit TEBs and the PEB from just under

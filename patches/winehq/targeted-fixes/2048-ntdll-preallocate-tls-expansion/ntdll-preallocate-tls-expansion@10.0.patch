@@ -8,7 +8,9 @@ Origin: crossover
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Note: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
     Source: (sources/wine/dlls/ntdll/loader.c)
-Upstream: no
+Upstream: no; WineHQ 10.5 and later point GSBASE at the TEB while PE code
+ runs (3a16aabb), so %gs:0x1780 is TEB->TlsExpansionSlots there and only
+ 10.0 needs this
 Why: On x86_64 macOS, allocate the thread's TLS expansion slots
  (TEB->TlsExpansionSlots) up front in loader_init and also store the
  pointer at %gs:0x1780 (that field's offset). Otherwise kernelbase

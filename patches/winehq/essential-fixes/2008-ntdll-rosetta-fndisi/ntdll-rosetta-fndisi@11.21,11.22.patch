@@ -7,7 +7,7 @@ Origin: other
   Note: dblark/macos-wine-build patches/0001-macos-hacks.patch (handle_fndisi, Wine 11.0-rc2 version), the workaround for WineHQ bug 56441
     Source: (commit 71877c1
     Source: "Wine 11.0-rc2"); https://bugs.winehq.org/show_bug.cgi?id=56441
-Upstream: no
+Upstream: no (bug 56441 closed NOTOURBUG: Apple fixed Rosetta in macOS 15)
 Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy says "RDSSPD/RDSSPQ".)
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks

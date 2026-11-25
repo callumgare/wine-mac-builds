@@ -4,7 +4,10 @@ Category: graphics
 Kind: performance, fix
 Origin: wine-mac-builds
   Note: dlls/wined3d/buffer.c, buffer_resource_sub_resource_map()
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/). Master still marks
+ the whole buffer (checked 2026-11-25). Bug 60690 is the same commit's
+ rendering regression; its comment 2 reports a slowdown (Treasure Adventure
+ Game) that looks like this one.
 Why: WineHQ b6810e41 (11.22) marks the whole buffer dirty on every write map
  of a non-managed buffer, because applications write outside the range they
  lock. It also applies to the buffers wined3d and ddraw keep for themselves,

@@ -4,7 +4,8 @@ Category: graphics
 Kind: fix
 Origin: wine-mac-builds
   Note: ours (wine-mac-builds), 2026-11-15
-Upstream: no (WineHQ master still uses virtual_rect here, checked 2026-11-15)
+Upstream: no (candidate; draft in .local/bug-reports/). WineHQ master still
+ uses virtual_rect here (checked 2026-11-25).
 Why: when a program changes the display mode under EmulateModeset, win32u
  creates the window's GL client surface "raw" and renders into a
  framebuffer surface (an FBO of the emulated, virtual size) that it blits

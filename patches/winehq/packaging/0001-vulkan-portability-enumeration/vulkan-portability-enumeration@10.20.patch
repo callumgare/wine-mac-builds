@@ -6,7 +6,8 @@ Origin: gcenx
   Note: patches/wine/0001-win32u-enable-host-vulkan-portability-enumeration.patch,
     rebased for wine-mac-builds: the same four lines, new context.
     Source: Gcenx's macports-wine overlay (emulators/wine-devel/files/0001-win32u-Enable-host-Vulkan-portability-enumeration.diff)
-Upstream: no (not in WineHQ as of 11.21)
+Upstream: no: pending as MR !11538 (Gcenx, opened 2026-07-31, open on
+ 2026-11-25); not in master (11.22).
 Why: as the 11.x patch. MoltenVK is a "portability" Vulkan driver, and the
  bundled Vulkan loader hides it unless the instance asks for portability
  enumeration, so Vulkan finds no device.

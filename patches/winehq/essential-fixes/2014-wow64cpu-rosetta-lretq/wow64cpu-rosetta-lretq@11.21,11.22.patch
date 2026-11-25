@@ -8,7 +8,7 @@ Origin: crossover
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CW HACK 20760 (dlls/wow64cpu/cpu.c)
     Source: (sources/wine/dlls/wow64cpu/cpu.c)
-Upstream: no
+Upstream: no (WineHQ bugs 60034 and 60494, closed as a Rosetta bug)
 Why: Under Rosetta 2 (CPU brand "VirtualApple") use lcall/lretq rather than ljmp for 32-to-64-bit transitions, to avoid a SIGUSR1 race.
 Programs: Iji: crashes in wow64cpu's 32-to-64-bit switch under Rosetta
  (plain 11.21, fault at syscall_32to64)

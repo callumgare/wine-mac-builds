@@ -9,7 +9,8 @@ Origin: crossover
   Note: CrossOver 25.1.1 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c) and CX HACK 21217 (server/mach.c)
     Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c
     Source: sources/wine/server/mach.c)
-Upstream: no
+Upstream: partly (wineserver already returns zeroed debug registers under
+ Rosetta and refuses to set them; reporting success is not upstream)
 Why: Rosetta 2 cannot set or read x86 debug registers; report success (ntdll) and return zeroed debug registers (wineserver) instead of failing, so anti-debug/DRM checks and debuggers don't abort.
 Programs: Big Fish games (Armadillo DRM): setting debug registers fails
  under Rosetta (Armadillo's parent relies on the faked success)

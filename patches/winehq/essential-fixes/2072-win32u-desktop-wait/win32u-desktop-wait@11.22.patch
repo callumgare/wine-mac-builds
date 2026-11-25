@@ -5,7 +5,7 @@ Kind: fix
 Origin: wine-mac-builds
   Note: dlls/win32u/winstation.c (get_desktop_window); written for
     wine-mac-builds.
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/)
 Why: The first process of a session to need the desktop starts
  explorer.exe /desktop and waits for it to go idle, which it does once it
  has loaded the display driver, created the desktop window and registered

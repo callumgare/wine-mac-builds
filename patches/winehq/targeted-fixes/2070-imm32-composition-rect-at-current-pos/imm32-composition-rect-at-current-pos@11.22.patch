@@ -5,7 +5,7 @@ Kind: fix
 Origin: wine-mac-builds
   Note: dlls/imm32/imm.c (ImmSetCompositionWindow); written for
     wine-mac-builds.
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/)
 Why: ImmSetCompositionWindow tells the display driver where the program
  shows its composition (SetIMECompositionRect), which the Mac driver gives
  macOS input methods for their candidate window

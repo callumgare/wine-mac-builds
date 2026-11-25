@@ -5,7 +5,7 @@ Kind: fix
 Origin: wine-mac-builds
   Note: dlls/ntdll/unix/signal_x86_64.c (usr1_handler); written for
     wine-mac-builds.
-Upstream: no
+Upstream: no (candidate; draft in .local/bug-reports/)
 Why: SuspendThread reaches the thread as SIGUSR1, and usr1_handler saves
  the context that GetThreadContext later returns. If the thread is in a
  syscall it saves the user's registers from the syscall frame; otherwise it
