@@ -3,8 +3,9 @@ Summary: Stop WMI queries deadlocking on wbemprox's per-table lock (backport fro
 Category: system
 Kind: fix
 Origin: winehq
-From: upstream commit b93bee1a8748c178a5acb0b220de6f7d62ad807d (Hans Leidekker)
-Source: https://gitlab.winehq.org/wine/wine/-/commit/b93bee1a8748c178a5acb0b220de6f7d62ad807d
+  Commit: b93bee1a8748c178a5acb0b220de6f7d62ad807d
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/b93bee1a8748c178a5acb0b220de6f7d62ad807d
+  Note: upstream commit b93bee1a8748c178a5acb0b220de6f7d62ad807d (Hans Leidekker)
 Upstream: yes, in Wine 10.5 (Wine bug 56859)
 Why: On 10.0, Big Fish trial games' WMI queries hang on "dlls\wbemprox\builtin.c: table.cs"; RtlpWaitForCriticalSection logs 60-second timeouts until it recovers.
 Programs: Big Fish trial games (White Wolf, Waverly Academy, Deadly Device):

@@ -3,8 +3,7 @@ Summary: Don't let the main thread and a GL thread change an OpenGL context's vi
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no
 Why: A WineOpenGLContext's view, latent view and update flags are changed
  by the GL threads (macdrv_make_context_current, macdrv_update_opengl_context)

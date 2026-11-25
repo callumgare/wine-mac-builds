@@ -3,9 +3,11 @@ Summary: Activate a focused window without a simulated WM_MOUSEACTIVATE (for Uni
 Category: input
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.3.0 CrossOver Hack #18896 (dlls/winemac.drv/cocoa_window.m)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/winemac.drv/cocoa_window.m)
-CW-Hack: 18896
+  Version: 26.3.0
+  CW-Hacks: 18896
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CrossOver Hack #18896 (dlls/winemac.drv/cocoa_window.m)
+    Source: (sources/wine/dlls/winemac.drv/cocoa_window.m)
 Upstream: partly. WineHQ 11.x's macdrv_window_got_focus already activates
  the window without sending WM_MOUSEACTIVATE, so only the cocoa_window.m
  parts are left.

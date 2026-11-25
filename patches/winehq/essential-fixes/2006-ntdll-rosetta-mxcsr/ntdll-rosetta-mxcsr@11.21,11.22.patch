@@ -3,9 +3,11 @@ Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
 Category: cpu
 Kind: workaround
 Origin: crossover (ported here)
-From: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
-CW-Hack: 24256, 24265
+  Version: 26.3.0
+  CW-Hacks: 24256, 24265
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
+    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
 Upstream: no
 Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
 Programs: none known

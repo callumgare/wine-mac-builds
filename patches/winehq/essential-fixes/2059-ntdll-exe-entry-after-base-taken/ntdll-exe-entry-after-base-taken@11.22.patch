@@ -3,8 +3,7 @@ Summary: Start a 64-bit program at its entry point when its random base was alre
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no (WineHQ master unchanged, checked 2026-11-17)
 Why: since Wine 11, the server gives each 64-bit exe a random base in
  0x7ff600000000-0x7ff800000000, as Windows does. When that range is

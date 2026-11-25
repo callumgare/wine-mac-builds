@@ -3,11 +3,10 @@ Summary: winemac: ActivationPolicy option; "accessory" gives no Dock icon and ne
 Category: input
 Kind: feature
 Origin: wine-mac-builds
-From: dlls/winemac.drv/cocoa_app.m, transformProcessToForeground and
- tryToActivateIgnoringOtherApps; written for wine-mac-builds after the
- behaviour of CrossOver's CW HACK 24141, generalised to an option. None of
- that hack's code is used.
-Source: none published
+  Note: dlls/winemac.drv/cocoa_app.m, transformProcessToForeground and
+    tryToActivateIgnoringOtherApps; written for wine-mac-builds after the
+    behaviour of CrossOver's CW HACK 24141, generalised to an option. None of
+    that hack's code is used.
 Upstream: no
 Why: A program run as a helper of an app that embeds Wine shouldn't put a
  Dock icon or a menu bar on screen, or take focus from the app. The Mac

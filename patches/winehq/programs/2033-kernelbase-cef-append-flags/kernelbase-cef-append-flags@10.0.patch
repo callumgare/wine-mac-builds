@@ -1,11 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Add command-line flags so CEF-based launchers (Steam, Battle.net, EA app and others) render
-Category: apps
+Category: graphics
 Kind: workaround
 Origin: crossover
-From: CrossOver 24.0.7 (hack_append_command_line; CW HACKs 13322, 17315, 21883, 18582, 19610); table entries reproduced from 10.0_8's table
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz (sources/wine/dlls/kernelbase/process.c)
-CW-Hack: 13322, 17315, 21883, 18582, 19610
+  Version: 24.0.7
+  CW-Hacks: 13322, 17315, 21883, 18582, 19610
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz
+  Note: CrossOver 24.0.7 (hack_append_command_line; CW HACKs 13322, 17315, 21883, 18582, 19610); table entries reproduced from 10.0_8's table
+    Source: (sources/wine/dlls/kernelbase/process.c)
 Upstream: no
 Why: CEF-based launchers (Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club) render blank or crash in Wine unless their GPU process runs in-process with a software/ANGLE GL. Allocation uses lstrlenW(tidy_cmdline) and checks for failure; CX sizes it from cmd_line, which overflows when cmd_line is NULL or shorter. 10.0_8 logs nothing when it appends from the table, so neither does this. The registry part (Sikarugir's CommandLineAppend) is not included.
 Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their

@@ -3,9 +3,11 @@ Summary: Deliver WM_PAINT for composited windows straight away in one PeekMessag
 Category: input
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.3.0 CXHACK 19488 (dlls/win32u/message.c, peek_message)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/win32u/message.c)
-CW-Hack: 19488
+  Version: 26.3.0
+  CW-Hacks: 19488
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CXHACK 19488 (dlls/win32u/message.c, peek_message)
+    Source: (sources/wine/dlls/win32u/message.c)
 Upstream: no
 Why: When a program peeks with exactly PM_REMOVE | PM_QS_INPUT |
  PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE and gets WM_PAINT for

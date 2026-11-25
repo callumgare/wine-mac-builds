@@ -3,8 +3,7 @@ Summary: wined3d: keep the mapped range for Wine's own buffers, so streamed draw
 Category: graphics
 Kind: performance, fix
 Origin: wine-mac-builds
-From: dlls/wined3d/buffer.c, buffer_resource_sub_resource_map()
-Source: none published
+  Note: dlls/wined3d/buffer.c, buffer_resource_sub_resource_map()
 Upstream: no
 Why: WineHQ b6810e41 (11.22) marks the whole buffer dirty on every write map
  of a non-managed buffer, because applications write outside the range they

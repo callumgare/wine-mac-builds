@@ -3,9 +3,8 @@ Summary: Wait up to 120 s, not 10 s, for explorer to set up the desktop
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/win32u/winstation.c (get_desktop_window); written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/win32u/winstation.c (get_desktop_window); written for
+    wine-mac-builds.
 Upstream: no
 Why: The first process of a session to need the desktop starts
  explorer.exe /desktop and waits for it to go idle, which it does once it

@@ -3,11 +3,12 @@ Summary: Rewrite binds to 127.x.x.x addresses macOS refuses, for GOG Galaxy
 Category: system
 Kind: workaround
 Origin: crossover
-From: 11.22: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
- 11.21: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
- 10.0: CrossOver 25.1.1 CW HACK 24472
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/server/sock.c)
-CW-Hack: 24472
+  CW-Hacks: 24472
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: 11.22: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
+    11.21: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
+    10.0: CrossOver 25.1.1 CW HACK 24472
+    Source: (sources/wine/server/sock.c)
 Upstream: no
 Why: macOS only lets sockets bind to 127.0.0.1 among the 127/8 addresses; rewrite other 127.x.x.x binds so GOG Galaxy can start.
 Programs: GOG Galaxy: doesn't start, as macOS refuses binds to 127.x.x.x

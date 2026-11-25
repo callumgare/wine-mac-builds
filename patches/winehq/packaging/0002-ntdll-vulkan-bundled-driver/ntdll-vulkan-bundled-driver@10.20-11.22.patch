@@ -3,12 +3,8 @@ Summary: Point the Vulkan loader at the bundled MoltenVK driver
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds, reproducing behaviour of Gcenx's 11.21 binaries
-Source: none published. Gcenx's 11.21 ntdll.so does this (read from its
- disassembly: init_paths checks VK_DRIVER_FILES, VK_ICD_FILENAMES and
- VK_ADD_DRIVER_FILES, then sets VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d
- if that's a directory), but it isn't in his macports-wine overlay (any commit),
- WineHQ 11.21 or master, or wine-staging, as of 2026-11-12.
+  Note: written for wine-mac-builds, reproducing behaviour of Gcenx's 11.21 binaries
+    Source: none published. Gcenx's 11.21 ntdll.so does this (read from its disassembly: init_paths checks VK_DRIVER_FILES, VK_ICD_FILENAMES and VK_ADD_DRIVER_FILES, then sets VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d if that's a directory), but it isn't in his macports-wine overlay (any commit), WineHQ 11.21 or master, or wine-staging, as of 2026-11-12.
 Upstream: no
 Why: the Vulkan loader only searches its build prefix, /usr/local, /etc and
  ~/.config for driver manifests, so without this a relocatable build finds no

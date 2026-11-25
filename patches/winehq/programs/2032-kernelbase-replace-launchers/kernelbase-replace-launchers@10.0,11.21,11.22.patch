@@ -1,11 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Skip the launchers of ELDEN RING, Armored Core VI and Baldur's Gate 3; run Witcher 3's DX11 build
-Category: apps
+Category: system
 Kind: workaround
 Origin: crossover
-From: CrossOver 24.0.7 CW HACKs 22686, 22753, 22704; witcher3 entry reproduced from 10.0_8's table
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz (sources/wine/dlls/kernelbase/process.c)
-CW-Hack: 22686, 22753, 22704
+  Version: 24.0.7
+  CW-Hacks: 22686, 22753, 22704
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz
+  Note: CrossOver 24.0.7 CW HACKs 22686, 22753, 22704; witcher3 entry reproduced from 10.0_8's table
+    Source: (sources/wine/dlls/kernelbase/process.c)
 Upstream: no
 Why: Start ELDEN RING / Armored Core VI without EasyAntiCheat's start_protected_game.exe, Baldur's Gate 3 without its Larian launcher, and The Witcher 3's DX11 build instead of DX12. Copy into name[] is bounded with lstrcpynW (CX uses lstrcpyW).
 Programs: ELDEN RING and Armored Core VI: start through EasyAntiCheat's

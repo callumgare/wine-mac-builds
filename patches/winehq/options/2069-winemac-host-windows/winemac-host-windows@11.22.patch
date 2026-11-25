@@ -3,11 +3,10 @@ Summary: winemac: HostWindows option; a native host application shows the window
 Category: graphics
 Kind: feature
 Origin: wine-mac-builds
-From: dlls/winemac.drv (new cocoa_host.m; hooks in cocoa_window.m,
- cocoa_app.m, macdrv_main.c, surface.c, window.c, opengl.c); the OpenGL
- part grew out of the IOSurface probe of 2026-11-17. Written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/winemac.drv (new cocoa_host.m; hooks in cocoa_window.m,
+    cocoa_app.m, macdrv_main.c, surface.c, window.c, opengl.c); the OpenGL
+    part grew out of the IOSurface probe of 2026-11-17. Written for
+    wine-mac-builds.
 Upstream: no
 Why: An app that embeds Wine wants a program's windows inside its own
  windows, scaled or letterboxed as it likes, and the input back, without

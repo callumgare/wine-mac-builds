@@ -3,8 +3,7 @@ Summary: Centre a fullscreen GDI picture under an emulated display mode, instead
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no (WineHQ master has the same code, checked 2026-11-16)
 Why: under EmulateModeset, when a program switches to a mode whose shape
  differs from the screen's, win32u stretches its fullscreen window's

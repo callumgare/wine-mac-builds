@@ -1,10 +1,9 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Don't overrun the stack opening a database by a path without a backslash
-Category: apps
+Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/msi/database.c (MSI_OpenDatabaseW); written for wine-mac-builds.
-Source: none published
+  Note: dlls/msi/database.c (MSI_OpenDatabaseW); written for wine-mac-builds.
 Upstream: no
 Why: MSI_OpenDatabaseW takes a path with no backslash as relative to the
  current directory and built "<current directory>\<path>" with lstrcatW in

@@ -3,10 +3,9 @@ Summary: krnl386: when LDT entries are refused, load without 16-bit support and 
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
- (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
+    (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
+    wine-mac-builds.
 Upstream: no
 Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  FreeLibrary16 and the like) are forwarded to krnl386.exe16, so a 32-bit
@@ -35,8 +34,8 @@ Uncertain: what a program does when a 16-bit call fails; Budapi's
  called after ThunkConnect32 succeeds, which it now can't, so the thunks'
  own code past WOWCallback16Ex (which reads the 16-bit stack that isn't
  there) shouldn't run.
-Expects before it: 0057 (NtSetLdtEntries refuses entries under Rosetta 2;
- without it, setting an entry stops the process instead)
+Expects before it: ntdll-rosetta-refuse-ldt-entries; NtSetLdtEntries refuses entries under
+ Rosetta 2; without it, setting an entry stops the process instead
 Status: 11.22: 2026-11-18 host quick build on macOS 26.7.2 (Apple silicon):
  krnl386-attach passes; krnl386.exe16 loads, LoadLibrary16("user.exe")
  returns 2 and WOWCallback16Ex returns FALSE, each with its error in the

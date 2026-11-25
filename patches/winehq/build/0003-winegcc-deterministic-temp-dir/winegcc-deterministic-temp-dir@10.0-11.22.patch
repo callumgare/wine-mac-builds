@@ -3,8 +3,8 @@ Summary: Name winegcc's temp directory deterministically, for reproducible build
 Category: build
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none; a build-tool change for reproducible builds.
+  Note: written for wine-mac-builds
+    Source: none; a build-tool change for reproducible builds.
 Upstream: no (worth offering: it only changes winegcc's temp directory name)
 Why: winegcc links each PE file from a spec object in a temp directory named
  after the time and pid (tools.h make_temp_dir). lld-link records that path in

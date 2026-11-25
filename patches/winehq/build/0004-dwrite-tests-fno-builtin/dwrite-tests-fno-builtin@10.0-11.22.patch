@@ -3,8 +3,8 @@ Summary: Build the dwrite tests with -fno-builtin so they link with LLVM 23
 Category: build
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none; a build fix for the tests.
+  Note: written for wine-mac-builds
+    Source: none; a build fix for the tests.
 Upstream: no, not yet (the same Makefile.in is unchanged up to 11.21)
 Why: LLVM 23 (our llvm-mingw) turns floor() of a value it knows is not
  negative into trunc(). The dwrite tests import msvcrt, whose import library

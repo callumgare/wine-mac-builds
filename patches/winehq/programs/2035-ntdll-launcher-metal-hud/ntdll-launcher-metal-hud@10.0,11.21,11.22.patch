@@ -1,10 +1,10 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Hide the Metal performance HUD over launcher windows
-Category: apps
+Category: graphics
 Kind: workaround
 Origin: reconstructed
-From: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so launcher check at 0x21900
-Source: none published; behaviour read from the compiled 10.0_8 binary
+  Note: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so launcher check at 0x21900
+    Source: none published; behaviour read from the compiled 10.0_8 binary
 Upstream: no
 Why: When a launcher/overlay process (the list from the previous patch) is kept off a renderer DLL path, unset MTL_HUD_ENABLED so the Metal performance HUD doesn't show over the launcher window, unless SIKARUGIR_KEEP_METAL_HUD is set (to anything). Because this happens in init_paths, before the Windows environment is built, the variable is also gone for the launcher's children.
 Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
@@ -13,7 +13,7 @@ Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
 Uncertain: as in 10.0_8, it only happens when at least one of WINEDLLPATH_D3DMETAL, WINEDLLPATH_D9VK or WINEDLLPATH_DXVK has an entry (that is when 10.0_8 calls the check); SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0" also keeps the HUD.
 Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are
  unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
-Expects before it: 0001-ntdll-renderer-dll-paths.patch
+Expects before it: ntdll-renderer-dll-paths
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 6c0aba4..b3ab993 100644

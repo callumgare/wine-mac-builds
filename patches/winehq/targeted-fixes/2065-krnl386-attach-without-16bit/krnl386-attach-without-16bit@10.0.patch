@@ -3,10 +3,9 @@ Summary: krnl386: when LDT entries are refused, load without 16-bit support and 
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
- (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/krnl386.exe16/kernel.c (DllMain), selector.c, ne_module.c
+    (LoadModule16) and wowthunk.c (K32WOWCallback16Ex); written for
+    wine-mac-builds.
 Upstream: no
 Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  FreeLibrary16 and the like) are forwarded to krnl386.exe16, so a 32-bit
@@ -24,6 +23,9 @@ Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  call into 16-bit code (WOWCallback16Ex, which the 32-to-16 thunks go
  through) returns FALSE. Before, both faulted in the same way as the
  attach. Where LDT entries work nothing changes.
+ On 10.0 nothing needs to come before it: its x86_64 NtSetLdtEntries
+ always returns STATUS_NOT_IMPLEMENTED, as ntdll-rosetta-refuse-ldt-entries
+ makes it under Rosetta 2 on 11.x.
 Programs: Webmaster (Tivola, a Director 7 projector): Director reports
  "Handler not defined #baRegister", as its Buddy API Xtra (Budapi.x32),
  which imports LoadLibrary16, is unloaded straight after it maps.
@@ -35,8 +37,6 @@ Uncertain: what a program does when a 16-bit call fails; Budapi's
  called after ThunkConnect32 succeeds, which it now can't, so the thunks'
  own code past WOWCallback16Ex (which reads the 16-bit stack that isn't
  there) shouldn't run.
-Expects before it: nothing on 10.0: its x86_64 NtSetLdtEntries always
- returns STATUS_NOT_IMPLEMENTED, as 0057 makes it under Rosetta 2 on 11.x
 Status: 2026-11-18: ported from 11.22. 2026-11-19: CI run 44332082425
  failed to compile it: 10.0's NtSetLdtEntries takes two LDT_ENTRY values
  (four arguments), not 11.x's six ULONGs. ldt_entries_supported now passes

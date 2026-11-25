@@ -3,13 +3,15 @@ Summary: Add the flavour's name to the version string: "wine-11.21 (macfixes)"
 Category: system
 Kind: feature
 Origin: wine-staging (ported here)
-From: wine-staging patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
- (Sebastian Lackner), current wine-staging master (11.x), with the label
- taken from the make variable WINE_VERSION_LABEL instead of " (Staging)".
- Staging's other patch there, 0001 (a once-per-session "testing version"
- warning), was carried until 2026-11-25 and dropped: a released build isn't
- a testing version, and the label already says the build is patched.
-Source: https://gitlab.winehq.org/wine/wine-staging/-/tree/master/patches/Staging (checkout of 2026-11-12, upstream-commit 7384c8babcaa)
+  URL: https://gitlab.winehq.org/wine/wine-staging/-/tree/master/patches/Staging
+  Note: wine-staging patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+    (Sebastian Lackner), current wine-staging master (11.x), with the label
+    taken from the make variable WINE_VERSION_LABEL instead of " (Staging)".
+    Staging's other patch there, 0001 (a once-per-session "testing version"
+    warning), was carried until 2026-11-25 and dropped: a released build isn't
+    a testing version, and the label already says the build is patched.
+    Source: (checkout of 2026-11-12
+    Source: upstream-commit 7384c8babcaa)
 Upstream: no
 Why: Marks the build as patched, so a log or bug report shows which
  flavour it came from: `wine --version` and the version Wine reports read

@@ -3,8 +3,10 @@ Summary: Rosetta 2: skip the obsolete x87 FNDISI instruction (WineHQ bug 56441)
 Category: cpu
 Kind: workaround
 Origin: other
-From: dblark/macos-wine-build patches/0001-macos-hacks.patch (handle_fndisi, Wine 11.0-rc2 version), the workaround for WineHQ bug 56441
-Source: https://github.com/dblark/macos-wine-build (commit 71877c1, "Wine 11.0-rc2"); https://bugs.winehq.org/show_bug.cgi?id=56441
+  URL: https://github.com/dblark/macos-wine-build
+  Note: dblark/macos-wine-build patches/0001-macos-hacks.patch (handle_fndisi, Wine 11.0-rc2 version), the workaround for WineHQ bug 56441
+    Source: (commit 71877c1
+    Source: "Wine 11.0-rc2"); https://bugs.winehq.org/show_bug.cgi?id=56441
 Upstream: no
 Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy says "RDSSPD/RDSSPQ".)
 Programs: none known

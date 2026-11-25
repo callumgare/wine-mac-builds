@@ -3,9 +3,8 @@ Summary: Clear Mach exception ports inherited from the parent, such as a crash r
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds (not in Sikarugir). Second Chance does
- the same in the parent before exec today.
-Source: none published
+  Note: written for wine-mac-builds (not in Sikarugir). Second Chance does
+    the same in the parent before exec today.
 Upstream: no (candidate, kept on Second Chance's list for later)
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,

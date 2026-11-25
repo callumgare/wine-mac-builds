@@ -3,9 +3,11 @@ Summary: Allocate TLS expansion slots up front and expose them at %gs:0x1780
 Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/loader.c)
-CW-Hack: 18756
+  Version: 25.1.1
+  CW-Hacks: 18756
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
+    Source: (sources/wine/dlls/ntdll/loader.c)
 Upstream: no
 Why: On x86_64 macOS, allocate the thread's TLS expansion slots
  (TEB->TlsExpansionSlots) up front in loader_init and also store the

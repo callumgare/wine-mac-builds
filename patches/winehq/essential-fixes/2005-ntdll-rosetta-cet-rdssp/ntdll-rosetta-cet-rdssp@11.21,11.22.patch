@@ -3,9 +3,11 @@ Summary: Rosetta 2: skip the CET RDSSP instructions it rejects
 Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 20186 (dlls/ntdll/unix/signal_x86_64.c)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
-CW-Hack: 20186
+  Version: 26.3.0
+  CW-Hacks: 20186
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 20186 (dlls/ntdll/unix/signal_x86_64.c)
+    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
 Upstream: no
 Why: Rosetta raises #UD for the CET RDSSPD/RDSSPQ instructions (which are NOPs without CET); skip them in the SIGILL path.
 Programs: none known

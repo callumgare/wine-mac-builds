@@ -3,8 +3,7 @@ Summary: Keep wow64 TEBs and the PEB high in memory, as before Wine 11.18 (Armad
 Category: cpu
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no (the placement changed upstream in Wine 11.18, f0bd9046)
 Why: Wine 11.18 (upstream f0bd9046, "Allocate initial TEB and process
  parameters in high memory on 64-bit") stopped reserving the TEB block

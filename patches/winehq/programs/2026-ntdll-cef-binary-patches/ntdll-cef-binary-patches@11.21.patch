@@ -1,11 +1,13 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Patch old CEF and Qt WebEngine builds at load time so they don't crash
-Category: apps
+Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.3.0 (same code as 25.1.1) CW HACKs 16900, 18582, 19114, 19252, 21548, 22584, 22901, 23854, 25737
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/loader.c)
-CW-Hack: 16900, 18582, 19114, 19252, 21548, 22584, 22901, 23854, 25737
+  Version: 26.3.0
+  CW-Hacks: 16900, 18582, 19114, 19252, 21548, 22584, 22901, 23854, 25737
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: CrossOver 26.3.0 (same code as 25.1.1) CW HACKs 16900, 18582, 19114, 19252, 21548, 22584, 22901, 23854, 25737
+    Source: (sources/wine/dlls/ntdll/loader.c)
 Upstream: no
 Why: On macOS %gs doesn't hold the TEB, so old libcef/Qt5WebEngineCore builds that read the stack base straight from %gs:0x8 crash; rewrite those reads to go through the TEB self pointer at %gs:0x30, and force CEF's command_line_args_disabled off, at load time (fixed offsets for libcef/Qt, a byte pattern for cohtml_Unity3DPlugin.dll). CX's CW HACK 22434 (D3DMetal pe_module_loaded unix call) in the same function is left out.
 Programs: none known

@@ -3,10 +3,9 @@ Summary: winemac: load plugin libraries named in WINEMAC_PLUGINS or the Plugins 
 Category: system
 Kind: feature
 Origin: wine-mac-builds
-From: dlls/winemac.drv/macdrv_main.c, macdrv_init(); written for
- wine-mac-builds after Second Chance's weak-dylib load command patched into
- winemac.so.
-Source: none published
+  Note: dlls/winemac.drv/macdrv_main.c, macdrv_init(); written for
+    wine-mac-builds after Second Chance's weak-dylib load command patched into
+    winemac.so.
 Upstream: no
 Why: An app that embeds Wine may need code of its own inside the Mac driver
  (Objective-C hooks on Wine's windows, say). Without a hook it has to add a

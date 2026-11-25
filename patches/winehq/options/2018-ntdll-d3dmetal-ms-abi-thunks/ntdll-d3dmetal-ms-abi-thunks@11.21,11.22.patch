@@ -3,10 +3,11 @@ Summary: D3DMetal: let libd3dshared call ntdll's syscalls with the Microsoft ABI
 Category: graphics
 Kind: feature
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 23015 (dlls/ntdll/unix/unix_private.h, server.c, sync.c,
- thread.c)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-CW-Hack: 23015
+  Version: 26.3.0
+  CW-Hacks: 23015
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 23015 (dlls/ntdll/unix/unix_private.h, server.c, sync.c,
+    thread.c)
 Upstream: no
 Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
  ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an

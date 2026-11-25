@@ -3,8 +3,9 @@ Summary: msync (and esync on 11.22): waits without wineserver round trips, off u
 Category: sync
 Kind: performance
 Origin: crossover
-From: CrossOver 25.1.1 (crossover-sources-25.1.1.tar.gz, sources/wine/{server,dlls/ntdll/unix}/{esync,msync}.[ch], README.esync, and the esync/msync hunks of configure.ac, dlls/ntdll/{Makefile.in,unix/{loader,server,sync,virtual}.c,unix/unix_private.h}, server/{Makefile.in,change,console,device,event,fd,main,named_pipe,process,queue,thread,timer}.c, server/{file,object,process,thread}.h, server/protocol.def); no CodeWeavers hack number. CX's own CW Hack 23015 (GPT_IMPORT/msthunk wrappers in sync.c) and hacks_init() in loader.c are left out. configure, include/config.h.in (autoreconf, Autoconf 2.72) and include/wine/server_protocol.h, server/request_{handlers,trace}.h (tools/make_requests) regenerated.
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Version: 25.1.1
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: CrossOver 25.1.1 (crossover-sources-25.1.1.tar.gz, sources/wine/{server,dlls/ntdll/unix}/{esync,msync}.[ch], README.esync, and the esync/msync hunks of configure.ac, dlls/ntdll/{Makefile.in,unix/{loader,server,sync,virtual}.c,unix/unix_private.h}, server/{Makefile.in,change,console,device,event,fd,main,named_pipe,process,queue,thread,timer}.c, server/{file,object,process,thread}.h, server/protocol.def); no CodeWeavers hack number. CX's own CW Hack 23015 (GPT_IMPORT/msthunk wrappers in sync.c) and hacks_init() in loader.c are left out. configure, include/config.h.in (autoreconf, Autoconf 2.72) and include/wine/server_protocol.h, server/request_{handlers,trace}.h (tools/make_requests) regenerated.
 Upstream: no
 Why: Faster in-process synchronisation: esync (WINEESYNC=1, eventfd/pipe-based, from wine-staging) and msync (WINEMSYNC=1, Mach semaphores plus shared memory, CodeWeavers' macOS-native variant). Both off unless their variable is set.
 Programs: none known

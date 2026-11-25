@@ -3,10 +3,9 @@ Summary: Skip the int 68h/41h SoftICE probes that Wine's macOS code segment prov
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-From: written for wine-mac-builds. Behaviour of Second Chance's binary patch
- of 32-bit ntdll (RosettaFaultFix, part 2), done in the Unix-side fault
- handler beside 0040 (which is part 1).
-Source: none published
+  Note: written for wine-mac-builds. Behaviour of Second Chance's binary patch
+    of 32-bit ntdll (RosettaFaultFix, part 2), done in the Unix-side fault
+    handler beside 0040 (which is part 1).
 Upstream: no
 Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  NT's 0x23. Armadillo, the DRM in Big Fish games, tells Windows 9x from NT

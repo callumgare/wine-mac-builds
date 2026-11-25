@@ -3,9 +3,10 @@ Summary: ForceOpenGLBackingStore registry option, against flicker in some OpenGL
 Category: graphics
 Kind: feature
 Origin: wine-staging
-From: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases; CrossOver Hack 14364)
-Source: https://github.com/wine-staging/wine-staging/blob/v11.21/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
-CW-Hack: 14364
+  URL: https://github.com/wine-staging/wine-staging/blob/v11.21/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
+  Note: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases; CrossOver Hack 14364)
+Origin: crossover
+  CW-Hacks: 14364
 Upstream: no
 Why: adds the Mac Driver registry option ForceOpenGLBackingStore, which requests a
  backing store for every GL context and stops flicker in some GL games.

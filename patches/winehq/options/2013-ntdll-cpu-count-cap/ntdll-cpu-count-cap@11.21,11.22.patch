@@ -3,9 +3,11 @@ Summary: WINENCPU: cap the number of processors reported to programs
 Category: cpu
 Kind: feature
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 24711 (dlls/ntdll/unix/system.c), adapted
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/unix/system.c)
-CW-Hack: 24711
+  Version: 26.3.0
+  CW-Hacks: 24711
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 24711 (dlls/ntdll/unix/system.c), adapted
+    Source: (sources/wine/dlls/ntdll/unix/system.c)
 Upstream: no
 Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
 Programs: none known

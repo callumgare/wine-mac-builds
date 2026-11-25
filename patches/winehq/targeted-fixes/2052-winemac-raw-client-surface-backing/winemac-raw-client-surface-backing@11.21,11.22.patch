@@ -3,8 +3,7 @@ Summary: Fix a zoomed or cropped OpenGL picture after a program changes the disp
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-From: ours (wine-mac-builds), 2026-11-15
-Source: none published
+  Note: ours (wine-mac-builds), 2026-11-15
 Upstream: no (WineHQ master still uses virtual_rect here, checked 2026-11-15)
 Why: when a program changes the display mode under EmulateModeset, win32u
  creates the window's GL client surface "raw" and renders into a

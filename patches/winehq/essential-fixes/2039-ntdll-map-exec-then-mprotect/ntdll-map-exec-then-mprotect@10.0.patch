@@ -3,9 +3,11 @@ Summary: Map executable file sections without PROT_EXEC, then add it (old 32-bit
 Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 25.1.1 (wine_mmap in dlls/ntdll/unix/virtual.c, with CrossOver Hack #22011's utsname include)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz (sources/wine/dlls/ntdll/unix/virtual.c)
-CW-Hack: 22011
+  Version: 25.1.1
+  CW-Hacks: 22011
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: CrossOver 25.1.1 (wine_mmap in dlls/ntdll/unix/virtual.c, with CrossOver Hack #22011's utsname include)
+    Source: (sources/wine/dlls/ntdll/unix/virtual.c)
 Upstream: no (Wine 11 maps files without PROT_EXEC anyway)
 Why: macOS refuses an mmap of a file with PROT_EXEC on a shared mapping, so
  in 10.0 every executable or force-exec (DEP off, as for old 32-bit

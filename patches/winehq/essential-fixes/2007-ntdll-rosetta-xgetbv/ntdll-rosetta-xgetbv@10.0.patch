@@ -3,9 +3,11 @@ Summary: Rosetta 2: emulate XGETBV, which it rejects
 Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.0.0 CW HACK 23427 (identical code in dblark/macos-wine-build commit 3d842d1, patches/0002-macos-hacks.patch)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz (sources/wine/dlls/ntdll/unix/signal_x86_64.c); https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
-CW-Hack: 23427
+  Version: 26.0.0
+  CW-Hacks: 23427
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
+  Note: CrossOver 26.0.0 CW HACK 23427 (identical code in dblark/macos-wine-build commit 3d842d1, patches/0002-macos-hacks.patch)
+    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c); https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
 Upstream: no
 Why: Rosetta raises #UD for XGETBV; emulate it for XCR0 (0xe7 with AVX on macOS 15+, else 0x07).
 Programs: none known

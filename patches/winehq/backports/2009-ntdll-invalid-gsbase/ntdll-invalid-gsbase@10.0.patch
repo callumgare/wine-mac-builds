@@ -3,11 +3,12 @@ Summary: Repair an invalid gs_base in the segfault handler (WineHQ bug 57444)
 Category: cpu
 Kind: fix
 Origin: winehq
-From: upstream commits 94447cee6194e99b75989503c67ef48263ea5cca (William Horvath),
- "ntdll: Check for invalid gs_base in the 64-bit segv_handler.", and
- a3e3c0a117244365a093e5e52a546719c426a326 (Brendan Shanks), "ntdll: Fix
- crash in check_invalid_gsbase() on macOS."
-Source: https://gitlab.winehq.org/wine/wine/-/commit/94447cee6194e99b75989503c67ef48263ea5cca ; https://gitlab.winehq.org/wine/wine/-/commit/a3e3c0a117244365a093e5e52a546719c426a326
+  Commit: 94447cee6194e99b75989503c67ef48263ea5cca, a3e3c0a117244365a093e5e52a546719c426a326
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/94447cee6194e99b75989503c67ef48263ea5cca, https://gitlab.winehq.org/wine/wine/-/commit/a3e3c0a117244365a093e5e52a546719c426a326
+  Note: upstream commits 94447cee6194e99b75989503c67ef48263ea5cca (William Horvath),
+    "ntdll: Check for invalid gs_base in the 64-bit segv_handler.", and
+    a3e3c0a117244365a093e5e52a546719c426a326 (Brendan Shanks), "ntdll: Fix
+    crash in check_invalid_gsbase() on macOS."
 Upstream: yes, commits 94447cee61 (in Wine 10.14) and a3e3c0a117 (in Wine 10.15)
 Why: PE code that reloads %gs clears gs_base; repair it in the segv handler
  instead of recursing (WineHQ bug 57444). Includes the upstream test. The

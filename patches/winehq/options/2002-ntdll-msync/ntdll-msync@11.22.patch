@@ -3,8 +3,9 @@ Summary: msync (and esync on 11.22): waits without wineserver round trips, off u
 Category: sync
 Kind: performance
 Origin: crossover
-From: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] verbatim, and the msync hunks of dlls/ntdll/{Makefile.in,unix/{loader,sync}.c}, server/{Makefile.in,inproc_sync.c,main.c,thread.c,protocol.def}); no CodeWeavers hack number. include/wine/server_protocol.h, server/request_{handlers,trace}.h regenerated with tools/make_requests.
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Version: 26.3.0
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] verbatim, and the msync hunks of dlls/ntdll/{Makefile.in,unix/{loader,sync}.c}, server/{Makefile.in,inproc_sync.c,main.c,thread.c,protocol.def}); no CodeWeavers hack number. include/wine/server_protocol.h, server/request_{handlers,trace}.h regenerated with tools/make_requests.
 Upstream: no
 Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach messages plus shared memory and __ulock waits, CodeWeavers' macOS-native variant of esync). Off unless the variable is set.
 Programs: none known

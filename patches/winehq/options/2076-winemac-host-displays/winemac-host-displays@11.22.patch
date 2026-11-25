@@ -3,10 +3,9 @@ Summary: winemac: in host mode, the displays and current mode come from the host
 Category: graphics
 Kind: feature
 Origin: wine-mac-builds
-From: dlls/winemac.drv/cocoa_host.m, cocoa_display.m, display.c; written for
- wine-mac-builds, implementing displays_get from
- docs/app-embedded-protocol.md.
-Source: none published
+  Note: dlls/winemac.drv/cocoa_host.m, cocoa_display.m, display.c; written for
+    wine-mac-builds, implementing displays_get from
+    docs/app-embedded-protocol.md.
 Upstream: no
 Why: With HostWindows (0069) the host shows the program's windows, and it
  may show them on less than the whole screen: Second Chance keeps them

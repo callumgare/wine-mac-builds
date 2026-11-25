@@ -3,9 +3,11 @@ Summary: Export __wine_unix_call from ntdll.dll for D3DMetal's DLLs
 Category: graphics
 Kind: feature
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 22435, the ntdll part (dlls/ntdll/ntdll.spec, loader.c)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
-CW-Hack: 22435
+  Version: 26.3.0
+  CW-Hacks: 22435
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 22435, the ntdll part (dlls/ntdll/ntdll.spec, loader.c)
+    Source: (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
 Upstream: no
 Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it
  as a wrapper of the inline __wine_unix_call. 0020 carries the winemac part

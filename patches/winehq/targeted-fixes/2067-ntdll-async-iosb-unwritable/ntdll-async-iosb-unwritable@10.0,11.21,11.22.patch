@@ -3,9 +3,8 @@ Summary: Don't fault in a system APC storing an async result into a status block
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/ntdll/unix/server.c (invoke_system_apc); written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/ntdll/unix/server.c (invoke_system_apc); written for
+    wine-mac-builds.
 Upstream: no
 Why: When an asynchronous read or write finishes, the APC_ASYNC_IO system
  APC stores the result in the caller's IO_STATUS_BLOCK (set_async_iosb). A

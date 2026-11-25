@@ -3,10 +3,11 @@ Summary: D3DMetal: register PE modules with libd3dshared, if the user supplies D
 Category: graphics
 Kind: feature
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 22434 (dlls/ntdll/loader.c, dlls/ntdll/unixlib.h,
- dlls/ntdll/unix/loader.c), D3DMetal parts only
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-CW-Hack: 22434
+  Version: 26.3.0
+  CW-Hacks: 22434
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 22434 (dlls/ntdll/loader.c, dlls/ntdll/unixlib.h,
+    dlls/ntdll/unix/loader.c), D3DMetal parts only
 Upstream: no
 Why: D3DMetal (Apple's Game Porting Toolkit) needs every native PE module registered
  as a "non-native code region" with libd3dshared.dylib. Only active when the user sets

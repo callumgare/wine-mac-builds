@@ -3,10 +3,9 @@ Summary: Rosetta 2: keep Armadillo DRM (Big Fish games) running by emulating fs:
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-From: written for wine-mac-builds (not in Sikarugir). Behaviour of Second
- Chance's binary patch of 32-bit ntdll (RosettaFaultFix, part 1 only), done
- in the Unix-side fault handler instead.
-Source: none published
+  Note: written for wine-mac-builds (not in Sikarugir). Behaviour of Second
+    Chance's binary patch of 32-bit ntdll (RosettaFaultFix, part 1 only), done
+    in the Unix-side fault handler instead.
 Upstream: no (candidate, kept on Second Chance's list for later)
 Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
  32-bit code (fs:[disp16]) instead of running it. Armadillo, the DRM in Big

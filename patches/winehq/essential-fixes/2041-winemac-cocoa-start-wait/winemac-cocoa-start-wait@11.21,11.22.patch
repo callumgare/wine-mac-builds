@@ -3,9 +3,8 @@ Summary: Wait longer for the Cocoa app to start on a busy Mac
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds (not in Sikarugir), after Second Chance's
- in-process helper that lengthens the same wait.
-Source: none published
+  Note: written for wine-mac-builds (not in Sikarugir), after Second Chance's
+    in-process helper that lengthens the same wait.
 Upstream: no (candidate, kept on Second Chance's list for later). The bug is
  in WineHQ 10.0 to master and in CrossOver 25.1.
 Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a

@@ -3,8 +3,7 @@ Summary: Rosetta 2: refuse a program's own LDT entries, as Wine 10 did, instead 
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no
 Why: Wine 11 implements NtSetLdtEntries for wow64 processes and passes the
  entry to i386_set_ldt. Rosetta 2 accepts only the entries Wine sets up
@@ -22,7 +21,7 @@ Evidence: a 32-bit test program calling NtSetLdtEntries with that
  descriptor: on macfixes 11.22-build3 Rosetta prints the error and the
  process spins at 100% CPU; with this patch the call returns 0xc0000002
  and the program continues.
-Expects before it: 0043 (is_apple_silicon)
+Expects before it: ntdll-rosetta-cross-process-code-writes; for is_apple_silicon
 Status: 11.22: 2026-11-16: built in wine-macfixes-11.22-build4;
  tests/regress/ldt-program-selector (the test program above) hangs on
  build3 and passes on build4. Bioscopia passes on build4 (Second Chance

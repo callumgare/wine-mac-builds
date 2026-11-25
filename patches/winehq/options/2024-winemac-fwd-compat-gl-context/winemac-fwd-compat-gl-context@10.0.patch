@@ -3,9 +3,10 @@ Summary: CX_FWD_COMPAT_GL_CTX: upgrade OpenGL 3.2-4.1 context requests to forwar
 Category: graphics
 Kind: feature
 Origin: crossover
-From: CrossOver 26.0.0 CW Hack 24834 (dlls/winemac.drv/opengl.c)
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
-CW-Hack: 24834
+  Version: 26.0.0
+  CW-Hacks: 24834
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
+  Note: CrossOver 26.0.0 CW Hack 24834 (dlls/winemac.drv/opengl.c)
 Upstream: no
 Why: macOS only offers forward-compatible 3.2+ core contexts; with CX_FWD_COMPAT_GL_CTX=1
  a request for a non-forward-compatible 3.2-4.1 context is upgraded instead of refused.

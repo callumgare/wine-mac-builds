@@ -104,18 +104,14 @@ def patch_entry(f):
     if c is None:
         sys.exit(f"error: {f} isn't a patch copy under patches/{env['PATCH_BASE']}/")
     header = patch_info(ROOT / f)
-    origin = {"project": header.get("origin"), "ported_here": header.get("ported", False)}
-    for key in ("from", "source", "cw_hacks", "port"):
-        if key in header:
-            origin[key] = header[key]
     return {
         "name": c.patch.name, "set": c.patch.set, "number": c.patch.number, "file": f,
         "versions": c.versions, "sha256": sha256(ROOT / f), "diff_sha256": diff_sha256(f),
         "summary": header.get("summary"), "category": header.get("category"),
         "kind": header.get("kinds"),
-        # One entry per source the patch comes from. Until the headers'
-        # Origin blocks (patch-sets plan, stage 2b), there is one.
-        "origins": [origin],
+        # One entry per source the patch comes from (the header's Origin
+        # blocks): project, ported_here, and its sub-keys in snake_case.
+        "origins": header.get("origins", []),
         "header": header,
     }
 

@@ -3,8 +3,7 @@ Summary: Don't release a freed OpenGL context on the main thread after it's deal
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-From: written for wine-mac-builds
-Source: none published
+  Note: written for wine-mac-builds
 Upstream: no
 Why: -[NSOpenGLContext dealloc] calls -clearDrawable, which
  WineOpenGLContext overrides. Off the main thread the override runs [super

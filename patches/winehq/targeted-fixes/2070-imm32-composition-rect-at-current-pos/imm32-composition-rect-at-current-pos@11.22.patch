@@ -3,9 +3,8 @@ Summary: imm32: report the composition position, not the whole CFS_RECT area, to
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-From: dlls/imm32/imm.c (ImmSetCompositionWindow); written for
- wine-mac-builds.
-Source: none published
+  Note: dlls/imm32/imm.c (ImmSetCompositionWindow); written for
+    wine-mac-builds.
 Upstream: no
 Why: ImmSetCompositionWindow tells the display driver where the program
  shows its composition (SetIMECompositionRect), which the Mac driver gives
