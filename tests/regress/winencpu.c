@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
  * Env: WINENCPU=2
  * Wrapper: mac-cpus
- * Guards: 0013 cpu-winencpu
+ * Guards: ntdll-cpu-count-cap
  *
  * Some games break on Macs with many cores; WINENCPU=<n> makes Wine report
  * at most n processors. Every way of asking has to agree, or a game that

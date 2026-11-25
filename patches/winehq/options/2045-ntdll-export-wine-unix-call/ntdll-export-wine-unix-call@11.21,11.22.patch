@@ -1,0 +1,52 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Export __wine_unix_call from ntdll.dll for D3DMetal's DLLs
+Category: graphics
+Kind: feature
+Origin: crossover
+  Version: 26.3.0
+  CW-Hacks: 22435
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 22435, the ntdll part (dlls/ntdll/ntdll.spec, loader.c)
+    Source: (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
+Upstream: no
+Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it
+ as a wrapper of the inline __wine_unix_call. 0020 carries the winemac part
+ of the same hack.
+Programs: none known
+Evidence: Sikarugir 10.0_8: its x86_64 and i386 ntdll.dll export __wine_unix_call;
+ ours didn't (the only export difference across the PE DLLs, 2026-11-15).
+Status: not yet built (2026-11-15).
+
+diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
+index 79d68a4..9f6980b 100644
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -3981,6 +3981,17 @@ NTSTATUS WINAPI __wine_ctrl_routine( void *arg )
+ }
+ 
+ 
++/***********************************************************************
++ *              __wine_unix_call
++ *
++ * CW HACK 22435: Needed by D3DMetal PE DLLs
++ */
++NTSTATUS WINAPI __wine_unix_call_exported( unixlib_handle_t handle, unsigned int code, void *args )
++{
++    return __wine_unix_call( handle, code, args );
++}
++
++
+ /***********************************************************************
+  *           __wine_unix_spawnvp
+  */
+diff --git a/dlls/ntdll/ntdll.spec b/dlls/ntdll/ntdll.spec
+index 14608fd..5188587 100644
+--- a/dlls/ntdll/ntdll.spec
++++ b/dlls/ntdll/ntdll.spec
+@@ -1789,3 +1789,6 @@
+ @ cdecl wine_get_version()
+ @ cdecl wine_get_build_id()
+ @ cdecl wine_get_host_version(ptr ptr)
++
++# CW HACK 22435
++@ stdcall __wine_unix_call(int64 long ptr) __wine_unix_call_exported

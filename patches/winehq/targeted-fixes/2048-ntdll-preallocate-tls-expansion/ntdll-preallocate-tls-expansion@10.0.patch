@@ -1,0 +1,75 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Allocate TLS expansion slots up front and expose them at %gs:0x1780
+Category: cpu
+Kind: workaround
+Origin: crossover
+  Version: 25.1.1
+  CW-Hacks: 18756
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Note: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
+    Source: (sources/wine/dlls/ntdll/loader.c)
+Upstream: no
+Why: On x86_64 macOS, allocate the thread's TLS expansion slots
+ (TEB->TlsExpansionSlots) up front in loader_init and also store the
+ pointer at %gs:0x1780 (that field's offset). Otherwise kernelbase
+ allocates them on demand in TlsAlloc/TlsSetValue and never writes that
+ %gs-relative copy. On the first call it also marks every free slot in the
+ 64-entry TLS bitmap as used, so every TlsAlloc hands out an expansion
+ slot. Not for WoW64 threads. is_macos() checks wine_get_host_version
+ for "Darwin".
+Programs: none known
+Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
+ movq %rax, %gs:0x1780; ours had neither.
+Port: to 10.0: placed after 0001's testing-version warning, just before
+ FlsSlots is set up (in CX it sits right after the else block above
+ that warning).
+Status: not yet built (2026-11-15).
+
+diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
+index f10caaa..7839c4f 100644
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -4913,6 +4913,18 @@ static void release_address_space(void)
+ #endif
+ }
+ 
++#if defined(__x86_64__) && !defined(__arm64ec__)
++extern void CDECL wine_get_host_version( const char **sysname, const char **release );
++
++static BOOL is_macos(void)
++{
++    const char *sysname;
++
++    wine_get_host_version( &sysname, NULL );
++    return !strcmp( sysname, "Darwin" );
++}
++#endif
++
+ /******************************************************************
+  *		loader_init
+  *
+@@ -5026,6 +5038,24 @@ void loader_init( CONTEXT *context, void **entry )
+     else
+         WARN_(winediag)(WINE_BUILD_NAME " %s is a testing version containing experimental patches.\n", wine_get_version());
+ 
++#if defined(__x86_64__) && !defined(__arm64ec__)
++        if (is_macos() && !NtCurrentTeb()->WowTebOffset)
++        {
++            /* CW HACK 18756 */
++            /* Preallocate TlsExpansionSlots.  Otherwise, kernelbase will
++               allocate it on demand, but won't be able to do the Mac-specific poking to the
++               %gs-relative address. */
++            if (!NtCurrentTeb()->TlsExpansionSlots)
++                NtCurrentTeb()->TlsExpansionSlots = RtlAllocateHeap( GetProcessHeap(), HEAP_ZERO_MEMORY, 8 * sizeof(NtCurrentTeb()->Peb->TlsExpansionBitmapBits) * sizeof(void*) );
++            __asm__ volatile ("movq %0,%%gs:%c1"
++                              :
++                              : "r" (NtCurrentTeb()->TlsExpansionSlots), "n" (FIELD_OFFSET(TEB, TlsExpansionSlots)));
++
++            if (!attach_done) /* only the first time */
++                while (RtlFindClearBitsAndSet(NtCurrentTeb()->Peb->TlsBitmap, 1, 1) != ~0U);
++        }
++#endif
++
+     NtCurrentTeb()->FlsSlots = fls_alloc_data();
+ 
+     if (!attach_done)  /* first time around */

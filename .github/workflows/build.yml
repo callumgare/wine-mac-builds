@@ -21,7 +21,7 @@ on:
         default: wine
         required: true
       version:
-        description: Wine version (inputs/<flavour>/<version>.sh)
+        description: Wine version (one of VERSIONS in flavours/<flavour>.sh)
         required: true
       lane:
         description: Where to build (host = on the Mac, vm = in a fresh Tart VM)

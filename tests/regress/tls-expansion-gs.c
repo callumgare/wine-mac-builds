@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0048 cx-ntdll-preallocate-tls-expansion-slots
+ * Guards: ntdll-preallocate-tls-expansion
  *
  * Code that inlines TlsGetValue reads the slot array straight from the TEB
  * through %gs: slots 0-63 at %gs:0x1480, and the "expansion" slots 64 and

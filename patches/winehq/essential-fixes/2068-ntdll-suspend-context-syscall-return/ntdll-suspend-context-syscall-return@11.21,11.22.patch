@@ -1,0 +1,120 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Report the user's registers for a thread suspended on its way out of a syscall
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+  Note: dlls/ntdll/unix/signal_x86_64.c (usr1_handler); written for
+    wine-mac-builds.
+Upstream: no
+Why: SuspendThread reaches the thread as SIGUSR1, and usr1_handler saves
+ the context that GetThreadContext later returns. If the thread is in a
+ syscall it saves the user's registers from the syscall frame; otherwise it
+ takes the signal context as user code. It decides with is_inside_syscall,
+ which only covers the kernel stack up to the frame. On its way out of a
+ syscall, though, __wine_syscall_dispatcher points rsp into the frame
+ (frame+0x70, to load the user's rsp or for iretq), and on macOS it then
+ restores the user's gs base with a system call (0x3000003) from there,
+ which under Rosetta is slow. A suspend landing there saved the dispatcher's
+ own registers as the thread's context: rsp on Wine's kernel stack, just
+ below the thread's stack, and rip in the dispatcher. Now a thread whose sp
+ is in the frame is treated as in the syscall too: its context is built
+ below the frame, not over it, and leave_handler then runs as it did
+ before, since the dispatcher may already have switched to the user's gs
+ base. Other users of is_inside_syscall are unchanged.
+Programs: Steam's client (64-bit, its Chromium/CEF), since the client update
+ of 2026-11-21: Chromium's stack sampling profiler suspends a thread,
+ copies its stack from the reported rsp up to the stack base, and faulted
+ at the thread stack's guard page (libcef.dll+0x922cc1a); the game
+ started from Steam quit with it
+Uncertain: Linux has the same window (frame+0x70 before iretq) without the
+ extra system call, so there it should be rare; not tested there.
+Evidence: Two minidumps (both 11.22-build0): the faulting loop is
+ Chromium's CopyStackContentsAndRewritePointers, copying from 0x410 below a
+ thread's stack reservation (the dispatcher's kernel rsp) to its stack
+ base, and it faults on reaching the reservation's first page. A probe that
+ suspends a thread making syscalls and reads its context saw rsp at that
+ same place, with rip at __wine_syscall_dispatcher+432 (the gs-base
+ syscall), in 86135 of 287461 contexts on plain wine 11.22 and in 81608 of
+ 253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
+ 234757.
+Status: 11.22: 2026-11-21 (evening): Second Chance's full serial integration run
+ on the same swapped tree (build0 + this ntdll.so), 09:35-14:43, passed
+ every source: disc, download, Big Fish trials (all 30), Steam and Big
+ Fish installs; no Steam crashes. Still not in a build.
+ 2026-11-21 (later): confirmed with Steam by Second Chance on meeka,
+ with the same swapped tree: 0 crashes in 28 Steam starts (Blue Moon
+ Canyon x3 and the four games whose launches crashed on build0), against
+ 7 in about 35 on 11.22-build0 the same night. Still not in a build.
+ 2026-11-21: not yet in a build. Tested by swapping a ntdll.so built
+ with it into 11.22-build0 on meeka (macOS 26.7.2): the regression test
+ suspend-context-syscall-return passes (163987 contexts, none outside the
+ stack; a longer probe: 0 of 315133); on build0 it fails (49579 of 163306).
+ Not yet tested with Steam, and the full suite hasn't run on that tree.
+ 11.21: 2026-11-22 (evening): in a local test build (macfixes-11.21-build0,
+ not published): suspend-context-syscall-return passes (94304 contexts,
+ all within the stack; 1 run).
+ The build's full suite (screen-taking tests skipped): 51 passed,
+ 0 failed, 3 skipped.
+ 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
+ suspend-context-syscall-return fails on macfixes-11.21-build9
+ (48624 of 159119 contexts had rsp outside the stack; 1 run), as on 11.22
+ before this patch.
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2831,6 +2831,25 @@
+ 
+     if (is_inside_syscall( data, RSP_sig(sigcontext) )) abort_thread( 0 );
+     user_mode_abort_thread( 0, get_syscall_frame( data ));
++}
++
++
++/**********************************************************************
++ *		is_inside_syscall_frame
++ *
++ * On the way out of a syscall, the dispatcher points rsp into the syscall
++ * frame (to load the user's rsp, or for iretq) and, on macOS, restores the
++ * user's gs base with a system call while it's there. The thread is still
++ * in the syscall, but is_inside_syscall() only covers the kernel stack below
++ * the frame.
++ */
++static BOOL is_inside_syscall_frame( struct thread_data *data, ULONG_PTR sp )
++{
++    struct syscall_frame *frame;
++
++    if (!data->teb || !(frame = get_syscall_frame( data ))) return FALSE;
++    return (char *)sp > (char *)frame &&
++           (char *)sp < (char *)get_kernel_stack( data ) + kernel_stack_size;
+ }
+ 
+ 
+@@ -2848,14 +2867,17 @@
+     {
+         server_select( NULL, 0, SELECT_INTERRUPTIBLE, 0, NULL, NULL );
+     }
+-    else if (is_inside_syscall( data, RSP_sig(sigcontext) ))
++    else if (is_inside_syscall( data, RSP_sig(sigcontext) ) ||
++             is_inside_syscall_frame( data, RSP_sig(sigcontext) ))
+     {
+         struct syscall_frame *frame = get_syscall_frame( data );
++        BOOL in_frame = is_inside_syscall_frame( data, RSP_sig(sigcontext) );
++        ULONG_PTR sp = in_frame ? (ULONG_PTR)frame : RSP_sig(sigcontext);
+         ULONG64 saved_compaction = 0;
+         I386_CONTEXT *wow_context;
+         struct xcontext *context;
+ 
+-        context = (struct xcontext *)(((ULONG_PTR)RSP_sig(sigcontext) - 128 /* red zone */ - sizeof(*context)) & ~15);
++        context = (struct xcontext *)((sp - 128 /* red zone */ - sizeof(*context)) & ~15);
+         if ((char *)context < (char *)get_kernel_stack( data ))
+         {
+             ERR_(seh)( "kernel stack overflow.\n" );
+@@ -2892,6 +2914,8 @@
+             cpu->Flags |= WOW64_CPURESERVED_FLAG_RESET_STATE;
+         }
+         NtSetContextThread( GetCurrentThread(), &context->c );
++        /* The dispatcher may already have switched to the user's gs base. */
++        if (in_frame) leave_handler( data, sigcontext );
+     }
+     else
+     {

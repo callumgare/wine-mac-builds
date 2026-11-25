@@ -1,12 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Timeout: 60
  * Libs: -mwindows -lopengl32 -lgdi32 -luser32
  * Env: CX_FWD_COMPAT_GL_CTX=1
  * Wrapper: needs-opengl
- * Guards: 0024 gfx-winemac-fwd-compat-gl-context (10.0; Wine 11 does this itself)
+ * Guards: winemac-fwd-compat-gl-context
  *
  * macOS only offers forward-compatible OpenGL 3.2+ core contexts. Programs
  * written for Windows ask for 3.2-4.1 core without that flag, and Wine 10.0

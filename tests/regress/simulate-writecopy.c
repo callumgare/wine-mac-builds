@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
  * Env: WINE_SIMULATE_WRITECOPY=1
- * Guards: 0012 cpu-simulate-writecopy
+ * Guards: ntdll-simulate-writecopy
  *
  * On Windows a copy-on-write page that has been written to becomes
  * PAGE_READWRITE, and a later VirtualProtect reports that as the old

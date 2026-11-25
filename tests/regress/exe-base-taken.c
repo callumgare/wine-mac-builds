@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Versions: 11.*
  * Timeout: 60
  * Wrapper: occupy-exe-base
- * Guards: 0059 system-exe-entry-after-base-taken
+ * Guards: ntdll-exe-entry-after-base-taken
  *
  * Since Wine 11.22 the wineserver gives a 64-bit exe a random base between
  * 0x7ff600000000 and 0x7ff800000000. On macOS that range also holds host

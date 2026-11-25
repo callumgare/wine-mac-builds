@@ -1,10 +1,9 @@
 #!/bin/bash
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Flavours: macfixes
 # Versions: 11.22
 # Timeout: 180
-# Guards: 0062 winemac-plugin-hook
+# Guards: winemac-plugins
 #
 # The Mac driver loads the libraries named in WINEMAC_PLUGINS, or in the
 # Mac Driver "Plugins" registry value, before Cocoa starts, so an app that

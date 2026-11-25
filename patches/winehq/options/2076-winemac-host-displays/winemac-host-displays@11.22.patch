@@ -1,0 +1,338 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: winemac: in host mode, the displays and current mode come from the host
+Category: graphics
+Kind: feature
+Origin: wine-mac-builds
+  Note: dlls/winemac.drv/cocoa_host.m, cocoa_display.m, display.c; written for
+    wine-mac-builds, implementing displays_get from
+    docs/app-embedded-protocol.md.
+Upstream: no
+Why: With HostWindows (0069) the host shows the program's windows, and it
+ may show them on less than the whole screen: Second Chance keeps them
+ below a MacBook's notch. Until now the driver still took its monitors from
+ NSScreen and its current mode from CGDisplayCopyDisplayMode, so Wine
+ thought the screen was the full height, and Second Chance needed a helper
+ injected into Wine that changed what those calls return. Now, in host
+ mode, the driver asks the host (displays_get) when it enumerates the
+ displays: each monitor's rect and work area are the host's display, the
+ current mode's size is that display's size (refresh rate and depth stay
+ the real mode's), that size is listed among the modes, and setting it
+ changes nothing real. A screen the host doesn't report is left out. The
+ host's first display must be at the protocol's origin; when it isn't, or
+ the host doesn't answer or answers unsupported, the driver uses the real
+ displays, and a host that didn't answer isn't asked again by that
+ process (each unanswered call costs the call timeout). DISPLAYS_CHANGED
+ from the host already reached Wine's display-change handling, which
+ enumerates again. Plain mode is unchanged.
+Programs: Second Chance (an app that embeds Wine): every program shown
+ below the notch of a 14" MacBook Pro (1512x945 points there, not
+ 1512x982).
+Uncertain: Host displays are matched to real screens: the first to the
+ primary, the others by overlap with the real screen's rect. Without
+ EmulateModeset, the real modes are still listed and can be set, including
+ ones taller than the host's display. Also without EmulateModeset: after
+ the host's display changed (1512x945 to 1440x900 in the test host), Wine
+ logged "No matching mode found 1512x945x32 @60" once, most likely
+ restoring the test program's temporary (CDS_FULLSCREEN) mode at exit, a
+ size the display no longer had; nothing visible came of it.
+Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
+ host mode, a test program printing its monitors and current mode (1 run
+ each). Answering one display 0,0 1512x945 with work area 1512x920: the
+ program saw monitor (0,0)-(1512,945), work (0,0)-(1512,920), current mode
+ and SM_CX/CYSCREEN 1512x945, that size among the modes, and setting it
+ returned DISP_CHANGE_SUCCESSFUL. After the host answered 1440x900 and sent
+ DISPLAYS_CHANGED, the program saw 1440x900 throughout. Answering
+ unsupported: the real display (2560x1440, work (0,30)-(2560,1351)), and
+ each process asked once.
+Status: 2026-11-22 (evening): host16 passed Second Chance's full hosted
+ integration run on meeka (2560x1440, no notch), one run each: disc 36/36,
+ download 6/6, Her downloads 3/3 (one on a rerun; the failure was in
+ Second Chance's launcher), Steam 11/11, Big Fish trials 30/30, Big Fish
+ owned 1/1. Its host has answered displays_get since main 62dcc9a2; which
+ games asked for a display mode wasn't checked.
+ 2026-11-22 (later): confirmed by Second Chance on kiya (14" MacBook
+ Pro, macOS 15.6.1; built-in screen 1512x982 points made main, notch strip
+ 37; a 2560x1440 display beside it), host16 (host15 + this patch) through
+ its host (main 62dcc9a2) with no Wine helpers loaded, one run of a test
+ program that opens a popup over the primary monitor: Wine saw monitor
+ 0,0-1512,945, work area 0,1-1512,877, current mode and SM_CX/CYSCREEN
+ 1512x945 at 120 Hz, and the second display at 1512,-37-4072,1403; the
+ popup got 0,0-1512,945 and the host's window for it sat at Cocoa 0,0
+ 1512x945, filling the screen up to the notch strip. Without the helper,
+ the 945 could only have come from displays_get. Not tested: a real
+ display rearrangement (DISPLAYS_CHANGED) or clicks.
+ 2026-11-22: not yet in a build. Tested by swapping a winemac.so
+ built with it into the host15 tree (see Evidence). The full suite on
+ that tree: 56 passed, 0 failed, 2 skipped (the screen-taking tests).
+
+diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
+--- a/dlls/winemac.drv/cocoa_display.m
++++ b/dlls/winemac.drv/cocoa_display.m
+@@ -26,6 +26,7 @@
+ #import <IOKit/graphics/IOGraphicsLib.h>
+ #import <Metal/Metal.h>
+ #include <dlfcn.h>
++#import "cocoa_host.h"
+ 
+ #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
+ 
+@@ -862,8 +863,36 @@
+ 
+     data = CFDataCreate(NULL, edid, 128);
+     return data;
++}
++
++/***********************************************************************
++ *              host_display_for_screen
++ *
++ * Host mode: which of the host's displays stands for screen index j (frame
++ * in the same space): the first for the primary screen, otherwise the one
++ * it overlaps most. -1 if none: the host doesn't show that screen.
++ */
++static int host_display_for_screen(int j, CGRect frame, const struct wmh_display *displays, int count)
++{
++    double best_area = 0;
++    int i, best = -1;
++
++    if (j == 0) return 0;
++    for (i = 1; i < count; i++)
++    {
++        CGRect r = CGRectIntersection(frame, CGRectMake(displays[i].frame.x, displays[i].frame.y,
++                                                        displays[i].frame.width, displays[i].frame.height));
++        double area = CGRectIsNull(r) ? 0 : r.size.width * r.size.height;
++        if (area > best_area)
++        {
++            best_area = area;
++            best = i;
++        }
++    }
++    return best;
+ }
+ 
++
+ /***********************************************************************
+  *              macdrv_get_monitors
+  *
+@@ -883,6 +912,8 @@
+     uint32_t display_id_count, vendor_number, model_number, serial_number;
+     NSArray<NSScreen *> *screens = [NSScreen screens];
+     NSRect primary_frame;
++    struct wmh_display host_displays[WMH_DISPLAYS_MAX];
++    int host_count = host_get_displays(host_displays, WMH_DISPLAYS_MAX);
+     int primary_index = 0;
+     int monitor_count = 0;
+     int capacity;
+@@ -919,10 +950,26 @@
+             CGDirectDisplayID screen_displayID = [[screen deviceDescription][@"NSScreenNumber"] unsignedIntValue];
+             CFDataRef edid_data;
+             size_t length;
++            CGRect frame, work_frame;
++            int host_index = -1;
+ 
+             if (screen_displayID == display_ids[i]
+                 || CGDisplayMirrorsDisplay(display_ids[i]) == screen_displayID)
+             {
++                frame = convert_display_rect(screen.frame, primary_frame);
++                work_frame = convert_display_rect(screen.visibleFrame, primary_frame);
++                if (host_count)
++                {
++                    /* Host mode: Wine sees the host's displays, which may be
++                       smaller than the screen (below a notch, say). */
++                    host_index = host_display_for_screen(j, frame, host_displays, host_count);
++                    if (host_index < 0) break;
++                    frame = CGRectMake(host_displays[host_index].frame.x, host_displays[host_index].frame.y,
++                                       host_displays[host_index].frame.width, host_displays[host_index].frame.height);
++                    work_frame = CGRectMake(host_displays[host_index].work_area.x, host_displays[host_index].work_area.y,
++                                            host_displays[host_index].work_area.width, host_displays[host_index].work_area.height);
++                }
++
+                 /* Allocate more space if needed */
+                 if (monitor_count >= capacity)
+                 {
+@@ -937,8 +984,9 @@
+                     primary_index = monitor_count;
+ 
+                 monitors[monitor_count].id = display_ids[i];
+-                monitors[monitor_count].rc_monitor = cgrect_win_from_mac(convert_display_rect(screen.frame, primary_frame));
+-                monitors[monitor_count].rc_work = cgrect_win_from_mac(convert_display_rect(screen.visibleFrame, primary_frame));
++                monitors[monitor_count].rc_monitor = cgrect_win_from_mac(frame);
++                monitors[monitor_count].rc_work = cgrect_win_from_mac(work_frame);
++                monitors[monitor_count].from_host = host_index >= 0;
+ 
+                 vendor_number = CGDisplayVendorNumber(monitors[monitor_count].id);
+                 model_number = CGDisplayModelNumber(monitors[monitor_count].id);
+diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
+--- a/dlls/winemac.drv/cocoa_host.h
++++ b/dlls/winemac.drv/cocoa_host.h
+@@ -51,3 +51,4 @@
+ extern int host_get_cursor_position(CGPoint *pos);
+ extern int host_set_cursor_position(CGPoint pos);
+ extern int host_clip_cursor(CGRect rect);
++extern int host_get_displays(struct wmh_display *displays, int max);
+diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
+--- a/dlls/winemac.drv/cocoa_host.m
++++ b/dlls/winemac.drv/cocoa_host.m
+@@ -601,6 +601,44 @@
+     rect_sent = TRUE;
+     sent = msg;
+     host_send(WMH_KIND_IME_RECT, &msg, sizeof(msg));
++}
++
++/* displays_get: the host's displays, in the protocol's space, the first
++ * primary and at the origin. Returns how many, or 0 when there's no answer
++ * to use, and the caller uses the real displays. A host that doesn't
++ * answer, or answers unsupported, isn't asked again by this process. */
++int host_get_displays(struct wmh_display *displays, int max)
++{
++    static BOOL unanswered;
++    struct wmh_reply_displays reply;
++    uint32_t status, count, i;
++
++    if (!host_mode || unanswered) return 0;
++    status = host_call(WMH_KIND_DISPLAYS_GET, NULL, 0, &reply, sizeof(reply));
++    if (status != WMH_STATUS_OK)
++    {
++        TRACE("host: displays_get status %u; using the real displays\n", status);
++        unanswered = TRUE;
++        return 0;
++    }
++    count = reply.count;
++    if (count > WMH_DISPLAYS_MAX) count = WMH_DISPLAYS_MAX;
++    if (count > max) count = max;
++    if (!count) return 0;
++    if (reply.displays[0].frame.x || reply.displays[0].frame.y)
++    {
++        WARN("host: the first display isn't at the origin (%g,%g); using the real displays\n",
++             reply.displays[0].frame.x, reply.displays[0].frame.y);
++        return 0;
++    }
++    for (i = 0; i < count; i++)
++    {
++        if (reply.displays[i].frame.width > 0 && reply.displays[i].frame.height > 0) continue;
++        WARN("host: display %u has no size; using the real displays\n", i);
++        return 0;
++    }
++    memcpy(displays, reply.displays, count * sizeof(*displays));
++    return count;
+ }
+ 
+ void host_drag_done(macdrv_query *query)
+diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
+--- a/dlls/winemac.drv/display.c
++++ b/dlls/winemac.drv/display.c
+@@ -27,6 +27,8 @@
+ #include "macdrv.h"
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(display);
++
++static BOOL is_host_current_mode(const DEVMODEW *mode);
+ 
+ #define NEXT_DEVMODEW(mode) ((DEVMODEW *)((char *)((mode) + 1) + (mode)->dmDriverExtra))
+ 
+@@ -782,6 +784,11 @@
+         TRACE(" %sinterlaced", mode->dmDisplayFlags & DM_INTERLACED ? "" : "non-");
+         TRACE("\n");
+ 
++        if (is_host_current_mode(mode))
++        {
++            TRACE("the host's display mode; nothing to change\n");
++            continue;
++        }
+         if (!(best_display_mode = find_best_display_mode(mode, display_modes, bpp, desc)))
+         {
+             ERR("No matching mode found %ux%ux%d @%u!\n", mode->dmPelsWidth, mode->dmPelsHeight,
+@@ -897,7 +904,34 @@
+         free_display_mode_descriptor(desc);
+     }
+ 
++    if (monitor->from_host)
++    {
++        /* Host mode: the mode is the host's display, which may be smaller
++           than the real mode (below a notch, say). Refresh rate and depth
++           stay the real mode's. */
++        devmode->dmPelsWidth = CGRectGetWidth(monitor->rc_monitor);
++        devmode->dmPelsHeight = CGRectGetHeight(monitor->rc_monitor);
++    }
++
+     CFRelease(display_mode);
++}
++
++/* Host mode: whether the primary display's current mode, which comes from
++   the host's display, has this size. Setting it changes nothing real. */
++static BOOL is_host_current_mode(const DEVMODEW *mode)
++{
++    struct macdrv_monitor *monitors;
++    int count;
++    BOOL ret = FALSE;
++
++    if (!host_mode) return FALSE;
++    if (macdrv_get_monitors(CGMainDisplayID(), &monitors, &count)) return FALSE;
++    if (count && monitors[0].from_host &&
++        mode->dmPelsWidth == CGRectGetWidth(monitors[0].rc_monitor) &&
++        mode->dmPelsHeight == CGRectGetHeight(monitors[0].rc_monitor))
++        ret = TRUE;
++    macdrv_free_monitors(monitors, count);
++    return ret;
+ }
+ 
+ /***********************************************************************
+@@ -1037,6 +1071,24 @@
+         NtUserCallNoParam(NtUserCallNoParam_DisplayModeChanged);
+ }
+ 
++static BOOL current_from_host(const struct macdrv_monitor *monitors, int count, CGDirectDisplayID adapter_id)
++{
++    int i;
++    for (i = 0; i < count; i++)
++        if (monitors[i].id == adapter_id) return monitors[i].from_host;
++    return FALSE;
++}
++
++static BOOL mode_listed(const DEVMODEW *modes, int count, const DEVMODEW *mode)
++{
++    int i;
++    for (i = 0; i < count; i++)
++        if (modes[i].dmPelsWidth == mode->dmPelsWidth && modes[i].dmPelsHeight == mode->dmPelsHeight &&
++            modes[i].dmBitsPerPel == mode->dmBitsPerPel && modes[i].dmDisplayFrequency == mode->dmDisplayFrequency)
++            return TRUE;
++    return FALSE;
++}
++
+ UINT macdrv_UpdateDisplayDevices(const struct gdi_device_manager *device_manager, void *param)
+ {
+     struct macdrv_adapter *adapters, *adapter;
+@@ -1099,6 +1151,21 @@
+             }
+ 
+             if (!(modes = display_get_modes(adapter->id, &mode_count))) break;
++            if (current_mode.dmFields & DM_PELSWIDTH && current_from_host(monitors, monitor_count, adapter->id) &&
++                !mode_listed(modes, mode_count, &current_mode))
++            {
++                /* Host mode: the current mode is the host's display, which
++                   may be no real mode; list it too. */
++                DEVMODEW *new_modes = realloc(modes, (mode_count + 1) * sizeof(*modes));
++                if (new_modes)
++                {
++                    modes = new_modes;
++                    modes[mode_count] = current_mode;
++                    modes[mode_count].dmFields &= ~DM_POSITION;
++                    modes[mode_count].dmPosition.x = modes[mode_count].dmPosition.y = 0;
++                    mode_count++;
++                }
++            }
+             device_manager->add_modes( &current_mode, mode_count, modes, param );
+             free(modes);
+             macdrv_free_monitors(monitors, monitor_count);
+diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+--- a/dlls/winemac.drv/macdrv_cocoa.h
++++ b/dlls/winemac.drv/macdrv_cocoa.h
+@@ -245,6 +245,9 @@
+     unsigned char *edid;
+     uint32_t edid_len;
+     bool hdr_enabled;
++    /* host mode: rc_monitor and rc_work are the host's display, and the
++       current mode's size is rc_monitor's */
++    bool from_host;
+ };
+ 
+ extern int macdrv_set_display_mode(CGDirectDisplayID id, CGDisplayModeRef display_mode);

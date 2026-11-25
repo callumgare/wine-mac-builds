@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 60
- * Guards: 0028 apps-server-disable-hung-hooks
+ * Guards: server-disable-hung-hooks
  *
  * A global low-level keyboard or mouse hook is called by sending a message
  * to the thread that set it, and input waits for the answer. If that

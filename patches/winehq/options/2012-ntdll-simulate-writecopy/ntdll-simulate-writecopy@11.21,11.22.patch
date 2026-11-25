@@ -1,0 +1,113 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: WINE_SIMULATE_WRITECOPY: report copy-on-write pages as Windows does
+Category: cpu
+Kind: feature
+Origin: crossover
+  Version: 26.3.0
+  CW-Hacks: 22996
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 22996 (without CW HACK 24067's default-visibility export, which 10.0_8 does not have)
+    Source: (sources/wine/dlls/ntdll/unix/loader.c
+    Source: virtual.c
+    Source: unix_private.h)
+Upstream: no
+Why: With WINE_SIMULATE_WRITECOPY=1, pages changed away from PAGE_(EXECUTE_)WRITECOPY report the old protection as PAGE_(EXECUTE_)READWRITE, as on Windows after a copy-on-write.
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
+Port: to 11.21: code unchanged (CX 26.3.0's is the same as 25.1.1's); hacks_init() is called right after 11.21's server_init_process( data ) in start_main_thread(), before msync_init(), as CX 26.3.0 orders them.
+
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+index 7215322..3150a09 100644
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -1013,6 +1013,17 @@ static const unixlib_entry_t unix_call_funcs[] =
+ };
+ 
+ 
++BOOL simulate_writecopy;  /* CW Hack 22996 */
++
++static void hacks_init(void)
++{
++    const char *env_str;
++
++    env_str = getenv("WINE_SIMULATE_WRITECOPY");
++    if (env_str) simulate_writecopy = atoi(env_str);
++}
++
++
+ #ifdef _WIN64
+ 
+ static NTSTATUS wow64_load_so_dll( void *args ) { return STATUS_INVALID_IMAGE_FORMAT; }
+@@ -1849,6 +1860,7 @@ static void start_main_thread(void)
+     struct thread_data *data = virtual_alloc_first_thread_data();
+ 
+     server_init_process( data );
++    hacks_init();
+     msync_init();
+     virtual_map_user_shared_data();
+     init_cpu_info();
+diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
+index 829db1e..40fbc91 100644
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -235,6 +235,8 @@ extern pthread_mutex_t fd_cache_mutex;
+ extern struct _KUSER_SHARED_DATA *user_shared_data;
+ extern ULONG process_cookie;
+ 
++extern BOOL simulate_writecopy;
++
+ extern void init_environment(void);
+ extern void init_startup_info(void);
+ extern void *create_startup_info( const UNICODE_STRING *nt_image, ULONG process_flags,
+diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
+index 4880d62..9120052 100644
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -129,6 +129,7 @@ struct file_view
+ #define VPROT_GUARD      0x10
+ #define VPROT_COMMITTED  0x20
+ #define VPROT_WRITEWATCH 0x40
++#define VPROT_COPIED     0x80
+ /* per-mapping protection flags */
+ #define VPROT_ARM64EC          0x0100  /* view may contain ARM64EC code */
+ #define VPROT_SYSTEM           0x0200  /* system view (underlying mmap not under our control) */
+@@ -1081,7 +1082,8 @@ static const char *get_prot_str( BYTE prot )
+     buffer[0] = (prot & VPROT_COMMITTED) ? 'c' : '-';
+     buffer[1] = (prot & VPROT_GUARD) ? 'g' : ((prot & VPROT_WRITEWATCH) ? 'H' : '-');
+     buffer[2] = (prot & VPROT_READ) ? 'r' : '-';
+-    buffer[3] = (prot & VPROT_WRITECOPY) ? 'W' : ((prot & VPROT_WRITE) ? 'w' : '-');
++    buffer[3] = (prot & VPROT_WRITECOPY) ? (prot & VPROT_COPIED ? 'w' : 'W')
++        : ((prot & VPROT_WRITE) ? 'w' : '-');
+     buffer[4] = (prot & VPROT_EXEC) ? 'x' : '-';
+     buffer[5] = 0;
+     return buffer;
+@@ -1587,7 +1589,11 @@ static NTSTATUS create_view( struct file_view **view_ret, void *base, size_t siz
+  */
+ static DWORD get_win32_prot( BYTE vprot, unsigned int map_prot )
+ {
+-    DWORD ret = VIRTUAL_Win32Flags[vprot & 0x0f];
++    DWORD ret;
++
++    if ((vprot & (VPROT_COPIED | VPROT_WRITECOPY)) == (VPROT_COPIED | VPROT_WRITECOPY))
++        vprot = (vprot & ~VPROT_WRITECOPY) | VPROT_WRITE;
++    ret = VIRTUAL_Win32Flags[vprot & 0x0f];
+     if (vprot & VPROT_GUARD) ret |= PAGE_GUARD;
+     if (map_prot & SEC_NOCACHE) ret |= PAGE_NOCACHE;
+     return ret;
+@@ -5359,6 +5365,16 @@ NTSTATUS WINAPI NtProtectVirtualMemory( HANDLE process, PVOID *addr_ptr, SIZE_T
+         {
+             old = get_win32_prot( vprot, view->protect );
+             status = set_protection( view, base, size, new_prot );
++
++            if (simulate_writecopy && status == STATUS_SUCCESS
++                && ((old == PAGE_WRITECOPY || old == PAGE_EXECUTE_WRITECOPY)))
++            {
++                TRACE("Setting VPROT_COPIED.\n");
++
++                set_page_vprot_bits(base, size, VPROT_COPIED, 0);
++                vprot |= VPROT_COPIED;
++                old = get_win32_prot( vprot, view->protect );
++            }
+         }
+         else status = STATUS_NOT_COMMITTED;
+     }

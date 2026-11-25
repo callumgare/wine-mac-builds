@@ -1,0 +1,97 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't release a freed OpenGL context on the main thread after it's deallocated on a GL thread
+Category: graphics
+Kind: fix
+Origin: wine-mac-builds
+  Note: written for wine-mac-builds
+Upstream: no
+Why: -[NSOpenGLContext dealloc] calls -clearDrawable, which
+ WineOpenGLContext overrides. Off the main thread the override runs [super
+ clearDrawable] in a block sent to the main thread with OnMainThread, and
+ the block retains self. When a GL thread drops the last reference, that
+ happens during dealloc: the main thread runs the block, OnMainThread
+ returns, the GL thread finishes freeing the context, and the main thread
+ then releases the block and with it the freed context. objc_release reads
+ freed memory and the process dies ("Exception c0000005 in system thread",
+ at objc_release+34). Whether it crashes depends on which thread gets
+ there first. The block now holds an unretained reference: OnMainThread
+ waits for the block to run, so the context outlives its use.
+ Also, -dealloc released the view and then [super dealloc] called
+ -clearDrawable, which released it again whenever the context still had a
+ view. -dealloc now clears the drawable first, so the view is released
+ once.
+ Upstream winemac has the same code in 10.0; why 11.x shows the crash more
+ often isn't known (Wine 11's wined3d may release contexts on its command
+ thread, which has no event queue).
+Programs: Nancy Drew games (Shadow Ranch, Old Clock, Crystal Skull, Castle
+ Malloy) crashed at objc_release+34 ("Pattern A"); Steam's Nancy Drew games
+ (Game.exe) crashed the same way 1 s after their first frame on 11.22; our
+ d3d8-up-draw-speed test (wined3d on OpenGL) crashed in about 1 of 30 runs
+ and failed CI's host GL tests
+Evidence: An ntdll that prints the native stack of a crashing system thread
+ showed, in all three crashes caught: objc_release <- the dispose helper of
+ the block in -[WineOpenGLContext clearDrawable] <- OnMainThread's block
+ released by PerformRequest on the main thread. Logging in -dealloc showed
+ -clearDrawable called from it on a GL thread for nearly every context, in
+ every run, crashed or not.
+Status: 11.22: 2026-11-18 not yet in a build. Tested by swapping a winemac.so
+ built with it into 11.22-build12 on meeka (macOS 26.7.2): d3d8-up-draw-speed
+ passed 200 of 200 runs, against 4 crashes in 115 runs without it;
+ gl-context-dealloc (2000 devices a run) passed 5 of 5, against 5 of 5
+ crashing at objc_release+34 without it.
+ 11.21: 2026-11-18: ported from 11.22 (applies unchanged); not yet in a build.
+ Upstream 10.0 and 11.21 have the same code; Pattern A was seen on
+ 11.x builds before 0066.
+ 10.0: 2026-11-18: ported from 11.22 (applies unchanged); not yet in a build.
+ Upstream 10.0 and 11.21 have the same code; Pattern A was seen on
+ 11.x builds before 0066.
+
+diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
+index 5bb2850..1d5616e 100644
+--- a/dlls/winemac.drv/cocoa_opengl.m
++++ b/dlls/winemac.drv/cocoa_opengl.m
+@@ -55,7 +55,11 @@ @implementation WineOpenGLContext
+ 
+     - (void) dealloc
+     {
+-        [[self view] release];
++        /* -[NSOpenGLContext dealloc] calls -clearDrawable, which releases the
++           view this class retained; releasing it here as well released it
++           twice when the context still had a view. Clear it first, so that
++           call finds no view. */
++        [self clearDrawable];
+         [latentView release];
+         [super dealloc];
+     }
+@@ -156,14 +160,28 @@ - (void) setView:(NSView*)newView
+         [oldView release];
+     }
+ 
++    - (void) wine_superClearDrawable
++    {
++        [super clearDrawable];
++    }
++
+     - (void) clearDrawable
+     {
+         NSView* oldView = [self view];
+         if ([NSThread isMainThread])
+             [super clearDrawable];
+-        else OnMainThread(^{
+-            [super clearDrawable];
+-        });
++        else
++        {
++            /* This runs from -dealloc too, on whichever thread released the
++               context last. A block that retained self would be released on
++               the main thread after OnMainThread returns, by which time the
++               context may be freed. OnMainThread waits for the block to run,
++               so an unretained reference (__block, without ARC) is enough. */
++            __block WineOpenGLContext* context = self;
++            OnMainThread(^{
++                [context wine_superClearDrawable];
++            });
++        }
+         [oldView release];
+ 
+         [self wine_updateBackingSize:NULL];

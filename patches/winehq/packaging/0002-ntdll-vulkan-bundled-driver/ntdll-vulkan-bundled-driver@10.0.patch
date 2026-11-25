@@ -1,0 +1,49 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Point the Vulkan loader at the bundled MoltenVK driver
+Category: graphics
+Kind: fix
+Origin: wine-mac-builds
+  Note: patches/wine/0002-ntdll-point-vulkan-loader-at-bundled-drivers.patch,
+    rebased for wine-mac-builds onto Wine 10.0's init_paths (same function, called
+    after bin_dir and data_dir are set).
+    Source: none published; see the 11.x patch's header.
+Upstream: no
+Why: as the 11.x patch: without it the bundled Vulkan loader finds no driver
+ manifest, so no MoltenVK.
+Programs: none known
+
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -455,7 +455,22 @@
+         if (home_dir[0] != '/') fatal_error( "the home directory %s is not an absolute path\n", home_dir );
+         config_dir = build_path( home_dir, ".wine" );
+     }
++}
++
++#ifdef __APPLE__
++/* Point the Vulkan loader at the driver manifests installed with Wine
++ * (share/vulkan/icd.d: MoltenVK), unless the user has chosen drivers. */
++static void set_vulkan_driver_path(void)
++{
++    struct stat st;
++    char *path;
++
++    if (getenv( "VK_DRIVER_FILES" ) || getenv( "VK_ICD_FILENAMES" ) || getenv( "VK_ADD_DRIVER_FILES" )) return;
++    path = build_relative_path( dll_dir, LIBDIR "/wine", DATADIR "/vulkan/icd.d" );
++    if (!stat( path, &st ) && S_ISDIR( st.st_mode )) setenv( "VK_DRIVER_FILES", path, 1 );
++    free( path );
+ }
++#endif
+ 
+ static void init_paths( char *argv[] )
+ {
+@@ -486,6 +501,9 @@
+         if (!bin_dir) bin_dir = build_relative_path( dll_dir, LIBDIR "/wine", BINDIR );
+         data_dir = build_relative_path( bin_dir, BINDIR, DATADIR "/wine" );
+         wineloader = build_path( bin_dir, basename );
++#ifdef __APPLE__
++        set_vulkan_driver_path();
++#endif
+     }
+     else
+     {

@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 120
  * Libs: -mwindows -ld3d8 -luser32
  * Wrapper: needs-opengl
- * Guards: 0061 graphics-wined3d-exact-dirty-range-internal-buffers
+ * Guards: wined3d-exact-dirty-range-internal-buffers
  *
  * Wine 11.22's wined3d marks a whole buffer dirty whenever it is mapped for
  * writing (upstream b6810e41), so each small write to one of wined3d's own

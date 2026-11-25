@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 60
  * Libs: -lole32 -loleaut32 -lwbemuuid
- * Guards: 0054 wbemprox-no-per-table-lock (10.0; Wine 10.5 has it)
+ * Guards: wbemprox-no-per-table-lock
  *
  * In Wine 10.0, wbemprox locks a WMI class's table from the query until the
  * caller releases what the query returned. A second thread querying the

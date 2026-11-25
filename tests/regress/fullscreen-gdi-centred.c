@@ -1,12 +1,11 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Versions: 11.*
  * Timeout: 90
  * Libs: -mwindows -lgdi32 -luser32 -ladvapi32
  * Screenshot: centred ff00ff
- * Guards: 0056 winemac-centre-fullscreen-gdi-picture (11.x)
+ * Guards: winemac-centre-fullscreen-gdi
  *
  * With EmulateModeset on, a program switches to a display mode shaped
  * differently from the screen and covers it with a GDI-painted window. Wine

@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
  * Wrapper: unserviced-exception-port
- * Guards: 0042 ntdll-clear-inherited-exception-ports
+ * Guards: ntdll-clear-inherited-exception-ports
  *
  * Mach task exception ports are inherited across fork and exec. A launcher
  * with a task-level crash reporter (Sentry, Crashpad) passes its ports on

@@ -49,9 +49,9 @@ quicker for development.
 | `wmb` | the entry point |
 | `build/` | the build steps: `toolchain`, `compile`, `package`, `manifest`, `archive`, `vm` |
 | `toolchains/<id>.sh` | a pinned toolchain: Tart image, MacPorts and ports-tree commits, prebuilt tools |
-| `flavours/<name>.sh` | configure options for each flavour |
-| `inputs/<flavour>/<version>.sh` | pinned sources for one version (written by `tools/pin`) |
-| `patches/` | patches, each with a header saying where it came from and why |
+| `flavours/<name>.sh` | each flavour: configure options, patch sets and Wine versions |
+| `inputs/<base>/<version>.sh` | pinned sources for one version (written by `tools/pin`) |
+| `patches/` | patches in patch sets, each with a header saying where it came from and why |
 | `tools/compare` | fingerprints two builds and reports the differences |
 | `keys/` | WineHQ's release signing key |
 

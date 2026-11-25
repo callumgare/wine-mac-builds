@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 60
  * Env: MTL_HUD_ENABLED=1
  * Wrapper: prefix-env WINEDLLPATH_DXVK=regress-dxvk
- * Guards: 0034 sik-ntdll-renderer-dll-paths, 0035 sik-ntdll-launcher-metal-hud
+ * Guards: ntdll-renderer-dll-paths ntdll-launcher-metal-hud
  *
  * Sikarugir's launcher puts each renderer's DLLs (DXVK's d3d11.dll and so
  * on) on Wine's DLL search path through a variable of its own,

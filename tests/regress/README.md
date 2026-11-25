@@ -18,63 +18,63 @@ equivalent from PATH; Homebrew's `mingw-w64` works.
 |---|---|
 | `WMB_REGRESS_ONLY=<name>` | run only this test |
 | `WMB_REGRESS_NO_SCREEN=1` | skip the tests that take over the screen |
-| `WMB_REGRESS_ALL=1` | ignore `Flavours` and `Versions`. Use it to check that a test fails on a build without its fix |
+| `WMB_REGRESS_ALL=1` | ignore `Guards` and `Versions`. Use it to check that a test fails on a build without its fix |
 | `WMB_REGRESS_GL=only` | run only the tests wrapped in `needs-opengl`, and fail if the Mac offers no accelerated OpenGL (`build/hostgl.sh` uses it after VM builds) |
 
 ## The tests
 
-All guard macfixes patches; the number is the patch's in
-`patches/macfixes/<version>/`.
+All guard patches in macfixes' patch sets, named as in
+`patches/winehq/<set>/<NNNN>-<name>/`.
 
 | Test | Guards | The bug |
 |---|---|---|
 | **CPU and Rosetta** | | |
-| `cross-process-code-write` | 0043 | Rosetta keeps running old code after another process rewrites it (Armadillo, Big Fish games) |
-| `debug-registers` | 0004 | a thread setting its own debug registers fails under Rosetta (Armadillo) |
-| `exception-ports` | 0042 | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
-| `fs-addr16` | 0040 | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
-| `ldt-program-selector` | 0057 | a program's own LDT entry stops the process under Rosetta (Bioscopia) |
-| `peb-at-gs-0x60` | 0019 | in Wine 10.0 %gs:0x60 isn't the PEB, which 64-bit Windows code (D3DMetal) reads |
-| `rosetta-xgetbv` | 0007 | Rosetta rejects XGETBV, so a program checking for AVX gets an illegal-instruction exception |
-| `smc-rwx` | 0011 | rewriting code in a PAGE_EXECUTE_READWRITE page after running it crashes or hangs a 32-bit program |
-| `softice-probe` | 0053 | Armadillo's 9x SoftICE probes (int 68h, int 41h) fault, and its debugged child stalls (Big Fish games) |
-| `tls-expansion-gs` | 0048 | %gs:0x1780 (TLS expansion slots) is NULL, unlike CrossOver, for code that reads TLS through %gs |
-| `wow64-teb-peb-high` | 0055 | Wine 11.18+ puts a 32-bit process's TEB and PEB low in memory; Armadillo can't unpack |
+| `cross-process-code-write` | `ntdll-rosetta-cross-process-code-writes` | Rosetta keeps running old code after another process rewrites it (Armadillo, Big Fish games) |
+| `debug-registers` | `ntdll-rosetta-debug-registers` | a thread setting its own debug registers fails under Rosetta (Armadillo) |
+| `exception-ports` | `ntdll-clear-inherited-exception-ports` | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
+| `fs-addr16` | `ntdll-rosetta-fs-addr32` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
+| `ldt-program-selector` | `ntdll-rosetta-refuse-ldt-entries` | a program's own LDT entry stops the process under Rosetta (Bioscopia) |
+| `peb-at-gs-0x60` | `ntdll-peb-at-gs-0x60` | in Wine 10.0 %gs:0x60 isn't the PEB, which 64-bit Windows code (D3DMetal) reads |
+| `rosetta-xgetbv` | `ntdll-rosetta-xgetbv` | Rosetta rejects XGETBV, so a program checking for AVX gets an illegal-instruction exception |
+| `smc-rwx` | `ntdll-write-fault-wx-retry` | rewriting code in a PAGE_EXECUTE_READWRITE page after running it crashes or hangs a 32-bit program |
+| `softice-probe` | `ntdll-rosetta-skip-9x-debugger-probes` | Armadillo's 9x SoftICE probes (int 68h, int 41h) fault, and its debugged child stalls (Big Fish games) |
+| `tls-expansion-gs` | `ntdll-preallocate-tls-expansion` | %gs:0x1780 (TLS expansion slots) is NULL, unlike CrossOver, for code that reads TLS through %gs |
+| `wow64-teb-peb-high` | `ntdll-wow64-teb-top-down` | Wine 11.18+ puts a 32-bit process's TEB and PEB low in memory; Armadillo can't unpack |
 | **System and programs** | | |
-| `async-iosb-decommitted` | 0067 | an async read finishing while its thread runs its own code, with its status block no longer writable: the store faults on the signal stack and the thread never returns ("nested exception on signal stack"; Steam's updater, holding the loader lock) |
-| `cef-append-flags` | 0033 | Steam's CEF helper starts without the flags it needs to render in Wine |
-| `commandline-append` | 0037 | the registry's `CommandLineAppend` for an exe isn't added to its command line |
-| `composited-paint` | 0044 | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
-| `desktop-wait` | 0072 | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
-| `d3dmetal-dlls` | 0045, 0021, 0050 | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
-| `exe-base-taken` | 0059 | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
-| `gl-context-dealloc` | 0066 | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
-| `hung-ll-hook` | 0028 | a low-level keyboard hook that stops answering delays every key press by 2 s |
-| `krnl386-attach` | 0065 | with LDT entries refused under Rosetta, krnl386.exe16 faults loading the 16-bit KERNEL and fails its attach, so a DLL that only imports kernel32's 16-bit thunks doesn't load (Webmaster's Buddy API Xtra), and a 16-bit call faults instead of returning an error |
-| `loopback-bind` | 0029 | macOS refuses binds to 127.x.x.x addresses other than 127.0.0.1; GOG Galaxy doesn't start |
-| `macdrv-functions` | 0020 | winemac.so doesn't export `macdrv_functions`, so D3DMetal and DXMT can't present |
-| `map-exec-file-view` | 0039 | with DEP off, shared views fail on 10.0 ("failed to set PROT_EXEC"); old installers and Big Fish games exit |
-| `mouse-in-pointer` | 0051 | `EnableMouseInPointer` is a stub that fails on 10.0 |
-| `msi-unix-path` | 0075 | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
-| `msync` | 0002 | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
-| `nvngx-redirect` | 0038 | DLSS games read system32's nvngx.dll instead of D3DMetal's |
-| `renderer-dll-paths` | 0034, 0035 | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
-| `replace-launchers` | 0032 | ELDEN RING's EasyAntiCheat launcher runs instead of the game |
-| `server-gone` | 0071 | a program whose threads make no server request (sleeping, rendering, waiting in a macOS run loop) goes on running after its wineserver is killed |
-| `simulate-writecopy` | 0012 | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
-| `suspend-context-syscall-return` | 0068 | `GetThreadContext` on a thread suspended on its way out of a syscall gives the dispatcher's registers, with rsp on Wine's kernel stack (Steam's client: Chromium's stack sampler faults copying from there) |
-| `winemac-activation-policy` | 0063 | a helper process of an app that embeds Wine gets a Dock icon and the Wine menu and takes focus; the `ActivationPolicy` value set to `accessory` stops that. Needs a window server |
-| `winemac-plugins` | 0062 | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`, the `Plugins` value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
-| `winencpu` | 0013 | `WINENCPU=n` must cap every processor count a program can ask for |
-| `wmi-threads` | 0054 | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
+| `async-iosb-decommitted` | `ntdll-async-iosb-unwritable` | an async read finishing while its thread runs its own code, with its status block no longer writable: the store faults on the signal stack and the thread never returns ("nested exception on signal stack"; Steam's updater, holding the loader lock) |
+| `cef-append-flags` | `kernelbase-cef-append-flags` | Steam's CEF helper starts without the flags it needs to render in Wine |
+| `commandline-append` | `kernelbase-commandline-append` | the registry's `CommandLineAppend` for an exe isn't added to its command line |
+| `composited-paint` | `win32u-composited-paint` | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
+| `desktop-wait` | `win32u-desktop-wait` | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
+| `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `winemetal-stub`, `wine-inf-d3dmetal-stub-dlls` | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
+| `exe-base-taken` | `ntdll-exe-entry-after-base-taken` | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
+| `gl-context-dealloc` | `winemac-gl-context-dealloc-off-main-thread` | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
+| `hung-ll-hook` | `server-disable-hung-hooks` | a low-level keyboard hook that stops answering delays every key press by 2 s |
+| `krnl386-attach` | `krnl386-attach-without-16bit` | with LDT entries refused under Rosetta, krnl386.exe16 faults loading the 16-bit KERNEL and fails its attach, so a DLL that only imports kernel32's 16-bit thunks doesn't load (Webmaster's Buddy API Xtra), and a 16-bit call faults instead of returning an error |
+| `loopback-bind` | `server-loopback-bind` | macOS refuses binds to 127.x.x.x addresses other than 127.0.0.1; GOG Galaxy doesn't start |
+| `macdrv-functions` | `winemac-export-macdrv-functions` | winemac.so doesn't export `macdrv_functions`, so D3DMetal and DXMT can't present |
+| `map-exec-file-view` | `ntdll-map-exec-then-mprotect` | with DEP off, shared views fail on 10.0 ("failed to set PROT_EXEC"); old installers and Big Fish games exit |
+| `mouse-in-pointer` | `win32u-enable-mouse-in-pointer` | `EnableMouseInPointer` is a stub that fails on 10.0 |
+| `msi-unix-path` | `msi-database-path-length` | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
+| `msync` | `ntdll-msync` | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
+| `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's |
+| `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
+| `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game |
+| `server-gone` | `ntdll-exit-with-server` | a program whose threads make no server request (sleeping, rendering, waiting in a macOS run loop) goes on running after its wineserver is killed |
+| `simulate-writecopy` | `ntdll-simulate-writecopy` | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
+| `suspend-context-syscall-return` | `ntdll-suspend-context-syscall-return` | `GetThreadContext` on a thread suspended on its way out of a syscall gives the dispatcher's registers, with rsp on Wine's kernel stack (Steam's client: Chromium's stack sampler faults copying from there) |
+| `winemac-activation-policy` | `winemac-activation-policy` | a helper process of an app that embeds Wine gets a Dock icon and the Wine menu and takes focus; the `ActivationPolicy` value set to `accessory` stops that. Needs a window server |
+| `winemac-plugins` | `winemac-plugins` | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`, the `Plugins` value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
+| `winencpu` | `ntdll-cpu-count-cap` | `WINENCPU=n` must cap every processor count a program can ask for |
+| `wmi-threads` | `wbemprox-no-per-table-lock` | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
-| `bc7-texture` | 0046 | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
-| `color-depth` | 0064 | a program that won't run unless the screen is 8 or 16 bits can't be given that depth on a Mac; `AppDefaults\<exe>\Mac Driver\ColorDepth` sets what it sees, Wine's own bitmaps stay 32-bit, and at 8 bits the system palette holds the program's palette |
-| `d3d8-up-draw-speed` | 0061 | Wine 11.22 sends wined3d's whole streaming buffer again for each small `DrawPrimitiveUP` with software vertex processing; Iji runs about 3x slower. A timing test: it compares against the same draws with hardware vertex processing (about 1.5x with the fix, 40x without) |
-| `d3d11-vulkan-renderer` | 0025 | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
-| `fullscreen-gdi-centred` | 0056 | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |
-| `fullscreen-gl-centred` | 0052 | with EmulateModeset, a fullscreen OpenGL picture in a mode of another shape comes out zoomed and cropped on Wine 11 (White Wolf Queen) |
-| `gl-core-context` | 0024 | Wine 10.0 refuses OpenGL 3.2+ core contexts without the forward-compatible flag, the only kind macOS offers |
+| `bc7-texture` | `winemac-bc7-texture-decode` | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
+| `color-depth` | `gdi32-per-program-color-depth` | a program that won't run unless the screen is 8 or 16 bits can't be given that depth on a Mac; `AppDefaults\<exe>\Mac Driver\ColorDepth` sets what it sees, Wine's own bitmaps stay 32-bit, and at 8 bits the system palette holds the program's palette |
+| `d3d8-up-draw-speed` | `wined3d-exact-dirty-range-internal-buffers` | Wine 11.22 sends wined3d's whole streaming buffer again for each small `DrawPrimitiveUP` with software vertex processing; Iji runs about 3x slower. A timing test: it compares against the same draws with hardware vertex processing (about 1.5x with the fix, 40x without) |
+| `d3d11-vulkan-renderer` | `wined3d-vulkan-on-moltenvk` | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
+| `fullscreen-gdi-centred` | `winemac-centre-fullscreen-gdi` | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |
+| `fullscreen-gl-centred` | `winemac-raw-client-surface-backing` | with EmulateModeset, a fullscreen OpenGL picture in a mode of another shape comes out zoomed and cropped on Wine 11 (White Wolf Queen) |
+| `gl-core-context` | `winemac-fwd-compat-gl-context` | Wine 10.0 refuses OpenGL 3.2+ core contexts without the forward-compatible flag, the only kind macOS offers |
 
 Tests for a patch that's only in 10.0 run on 11.x too: there they check
 that Wine 11's own fix still holds.
@@ -95,32 +95,32 @@ that Wine 11's own fix still holds.
 ### Patches without a test
 
 - **Can't be shown on our Macs.**
-  - 0005 (RDSSP) and 0008 (FNDISI): Rosetta on macOS 15 runs the forms programs use.
-  - 0006 (MXCSR): needed on M3; MXCSR is right on M1/M2.
-  - 0009/0010 (gs_base, 10.0): Rosetta keeps the gs base on a null selector and refuses any other.
-  - 0014 (wow64 transition race, Iji): no crash in 12 attempts at provoking it.
+  - `ntdll-rosetta-cet-rdssp` (RDSSP) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use.
+  - `ntdll-rosetta-mxcsr` (MXCSR): needed on M3; MXCSR is right on M1/M2.
+  - `ntdll-invalid-gsbase` (gs_base, 10.0): Rosetta keeps the gs base on a null selector and refuses any other.
+  - `wow64cpu-rosetta-lretq` (wow64 transition race, Iji): no crash in 12 attempts at provoking it.
 - **Needs something we can't ship or reproduce.**
-  - 0017, 0018 and 0022: need Apple's D3DMetal.
-  - 0026: specific CEF and Qt builds.
-  - 0027: Battle.net.
-  - 0023: flicker.
-  - 0030/0031: need a network change.
-  - 0015/0016: Finder's free-space figure isn't visible to a program.
-  - 0041: needs a fully loaded Mac.
-  - 0047 and 0049: need real Cocoa focus and input-method events.
-  - 0073: needs a fullscreen Space and a live cursor to look at (a
+  - `ntdll-d3dmetal-code-regions`, `ntdll-d3dmetal-ms-abi-thunks` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
+  - `ntdll-cef-binary-patches`: specific CEF and Qt builds.
+  - `advapi32-battlenet-acls`: Battle.net.
+  - `winemac-force-opengl-backing-store`: flicker.
+  - `nsiproxy-macos-change-notifications`, `winhttp-cache-autoproxy`: need a network change.
+  - `ntdll-important-free-space`: Finder's free-space figure isn't visible to a program.
+  - `winemac-cocoa-start-wait`: needs a fully loaded Mac.
+  - `winemac-no-mouseactivate-on-focus` and `winemac-ime-keydowns-only`: need real Cocoa focus and input-method events.
+  - `winemac-fullscreen-space-click`: needs a fullscreen Space and a live cursor to look at (a
     background login has none).
-  - 0074: the confinement rect isn't visible to a Windows program, and
+  - `winemac-clip-follows-window`: the confinement rect isn't visible to a Windows program, and
     the pointer can only be checked with relative mouse movement (a
     synthetic absolute move isn't confined).
-- **Timing only.** 0058 (an OpenGL context updated from the main thread
+- **Timing only.** `winemac-gl-update-on-main-thread` (an OpenGL context updated from the main thread
   deadlocks it; White Wolf Queen on macOS 26): it takes a context that's
   pending on a view with no latent view, which so far has only happened
-  in the middle of a fullscreen Space transition. 0060 (the main thread and
+  in the middle of a fullscreen Space transition. `winemac-serialise-gl-context-changes` (the main thread and
   a GL thread can release the same view twice when two threads draw to one
   window): a stress program shows the two overlapping, but the crash needs
   a narrower interleaving than it reaches.
-- **Not behaviour.** 0001 (version string; the smoke test checks it) and 0003 (tests only).
+- **Not behaviour.** `ntdll-version-label` (version string; the smoke test checks it) and `kernel32-tests-esync` (tests only).
 
 ## Helpers
 
@@ -154,7 +154,6 @@ run it:
     /* SPDX-License-Identifier: LGPL-2.1-or-later
      *
      * Arch: i686                   i686 and/or x86_64; each is a separate run (default i686)
-     * Flavours: macfixes           only for these flavours (default all)
      * Versions: 11.*               only for these Wine versions (default all)
      * Timeout: 30                  seconds (default 60)
      * Libs: -lgdi32                extra linker flags
@@ -162,13 +161,15 @@ run it:
      * Wrapper: needs-opengl        run it through helpers/<name> [args]
      * Log: ^msync: up and running  a regex Wine's own output must match
      * Screenshot: centred ff00ff   see below
-     * Guards: 0057 cpu-rosetta-refuse-program-ldt-entries
+     * Guards: ntdll-rosetta-refuse-ldt-entries   the patches it guards
      *
      * What the game did, what went wrong, and what passing means.
      */
 
-`Flavours` and `Versions` say where the fix is meant to be, not where the
-patch file happens to be. A fix that's needed but missing should fail.
+A test runs on every build whose flavour takes the patch set of a patch it
+guards, whether or not that version has a copy of the patch, and
+`Versions` narrows that. They say where the fix is meant to be, not where
+a patch file happens to be: a fix that's needed but missing should fail.
 
 A `Screenshot:` test prints `<name>: SCREENSHOT` once its window is up and
 then keeps it up for a few seconds. The runner captures the screen and runs

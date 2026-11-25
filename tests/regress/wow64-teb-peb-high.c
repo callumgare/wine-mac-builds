@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0055 cpu-wow64-teb-top-down (11.x)
+ * Guards: ntdll-wow64-teb-top-down
  *
  * Where a 32-bit process's TEB and PEB are. Windows and Wine 10.0 to 11.17
  * put them just under 2 GB (0x7ffdx000); Wine 11.18 moved them to the bottom

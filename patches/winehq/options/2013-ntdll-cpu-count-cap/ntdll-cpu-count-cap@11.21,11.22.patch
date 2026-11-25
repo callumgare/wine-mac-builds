@@ -1,0 +1,72 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: WINENCPU: cap the number of processors reported to programs
+Category: cpu
+Kind: feature
+Origin: crossover
+  Version: 26.3.0
+  CW-Hacks: 24711
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 24711 (dlls/ntdll/unix/system.c), adapted
+    Source: (sources/wine/dlls/ntdll/unix/system.c)
+Upstream: no
+Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info is kept consistent.
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
+Port: to 11.21: the create_logical_proc_info() hunks are CX's. 11.21's init_cpu_info() no longer sets peb->NumberOfProcessors from a local "num": the count lives in the global cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical processor info), so the WINENCPU override now lowers cpu_count.
+
+diff --git a/dlls/ntdll/unix/system.c b/dlls/ntdll/unix/system.c
+index 83084b8..d1b5679 100644
+--- a/dlls/ntdll/unix/system.c
++++ b/dlls/ntdll/unix/system.c
+@@ -1389,6 +1389,12 @@ static NTSTATUS create_logical_proc_info(void)
+     if (sysctlbyname("hw.physicalcpu", &cores_no, &size, NULL, 0))
+         cores_no = lcpu_no;
+ 
++    /* CW HACK 24711: allow restricting the number of processors through an environment variable.
++     * Don't report more packages or physical cores than logical cores.
++     */
++    pkgs_no = MIN(pkgs_no, lcpu_no);
++    cores_no = MIN(cores_no, lcpu_no);
++
+     TRACE("%u logical CPUs from %u physical cores across %u packages\n",
+             lcpu_no, cores_no, pkgs_no);
+ 
+@@ -1451,6 +1457,14 @@ static NTSTATUS create_logical_proc_info(void)
+         cache_sharing[4] = cache_sharing[3];
+         cache_sharing[3] = cache_sharing[2];
+         cache_sharing[2] = cache_sharing[1];
++
++        /* CW HACK 24711: allow restricting the number of processors through an environment variable
++         * The number of processors (logical cores) needs to be divisible by the number of logical
++         * cores sharing a cache.
++         */
++        if (cache_sharing[4] && (lcpu_no % cache_sharing[4])) cache_sharing[4] = 1;
++        if (cache_sharing[3] && (lcpu_no % cache_sharing[3])) cache_sharing[3] = 1;
++        if (cache_sharing[2] && (lcpu_no % cache_sharing[2])) cache_sharing[2] = 1;
+     }
+ 
+     for(p = 0; p < pkgs_no; ++p)
+@@ -1775,6 +1789,23 @@ void init_cpu_info(void)
+ #else
+     FIXME("Detecting the number of processors is not supported.\n");
+ #endif
++
++#if defined(__APPLE__)
++    /* CW HACK 24711: allow restricting the number of processors through an environment variable */
++    {
++        const char *ncpu = getenv("WINENCPU");
++        if (ncpu)
++        {
++            long num_override = atoi(ncpu);
++            if (num_override > 0 && num_override < cpu_count)
++            {
++                cpu_count = num_override;
++                WARN("Restricting number of processors to %ld.\n", num_override);
++            }
++        }
++    }
++#endif
++
+     init_cpu_model();
+     get_random( &process_cookie, sizeof(process_cookie) );
+ }

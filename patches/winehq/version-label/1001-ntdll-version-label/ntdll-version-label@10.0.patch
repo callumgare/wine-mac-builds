@@ -1,0 +1,55 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Add the flavour's name to the version string: "wine-11.21 (macfixes)"
+Category: system
+Kind: feature
+Origin: wine-staging (ported here)
+  URL: https://gitlab.winehq.org/wine/wine-staging/-/tree/master/patches/Staging
+  Note: wine-staging patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+    (Sebastian Lackner), current wine-staging master (11.x), with the label
+    taken from the make variable WINE_VERSION_LABEL instead of " (Staging)".
+    Staging's other patch there, 0001 (a once-per-session "testing version"
+    warning), was carried until 2026-11-25 and dropped: a released build isn't
+    a testing version, and the label already says the build is patched.
+    Source: (checkout of 2026-11-12
+    Source: upstream-commit 7384c8babcaa)
+Upstream: no
+Why: Marks the build as patched, so a log or bug report shows which
+ flavour it came from: `wine --version` and the version Wine reports read
+ "wine-11.21 (macfixes)". build/compile.sh sets WINE_VERSION_LABEL to
+ " (<flavour>)" for flavours that take the version-label set; the rule in
+ configure.ac and configure (both patched, so no autoreconf is needed)
+ appends it when dlls/ntdll/unix/version.c is generated. Unset, the
+ version string is WineHQ's.
+Programs: none known
+Evidence: Sikarugir 10.0_8: the same mechanism, branded "wine-10.0 (Sikarugir)"
+Port: the 10.0 form of the same rule (configure's line numbers differ).
+Status: 2026-11-25: label made a build variable and the warning dropped;
+ checked by generating dlls/ntdll/unix/version.c from the patched
+ configure's rule with and without WINE_VERSION_LABEL; not yet in a build.
+
+diff --git a/configure b/configure
+index fe7464a..2359289 100755
+--- a/configure
++++ b/configure
+@@ -23327,7 +23327,7 @@ maintainer-clean::
+ 
+ as_fn_append wine_rules "
+ dlls/ntdll/unix/version.c: dummy
+-	@version=\`(GIT_DIR=${wine_srcdir}.git git describe HEAD 2>/dev/null || echo \"wine-\$(PACKAGE_VERSION)\") | sed -n -e '\$\$s/\(.*\)/const char wine_build[] = \"\\1\";/p'\` && (echo \$\$version | cmp -s - \$@) || echo \$\$version >\$@ || (rm -f \$@ && exit 1)
++	@version=\`(GIT_DIR=${wine_srcdir}.git git describe HEAD 2>/dev/null || echo \"wine-\$(PACKAGE_VERSION)\") | sed -n -e '\$\$s/\(.*\)/const char wine_build[] = \"\\1\$(WINE_VERSION_LABEL)\";/p'\` && (echo \$\$version | cmp -s - \$@) || echo \$\$version >\$@ || (rm -f \$@ && exit 1)
+ programs/winetest/build.rc: dummy
+ 	@build=\"STRINGTABLE { 1 \\\"\`GIT_DIR=${wine_srcdir}.git git rev-parse HEAD 2>/dev/null\`\\\" }\" && (echo \$\$build | cmp -s - \$@) || echo \$\$build >\$@ || (rm -f \$@ && exit 1)
+ programs/winetest/build.nfo:
+diff --git a/configure.ac b/configure.ac
+index b999e35..6d00943 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -3701,7 +3701,7 @@ dnl Rules for generated source files
+ 
+ WINE_APPEND_RULE(
+ [dlls/ntdll/unix/version.c: dummy
+-	@version=\`(GIT_DIR=${wine_srcdir}.git git describe HEAD 2>/dev/null || echo \"wine-\$(PACKAGE_VERSION)\") | sed -n -e '\$\$s/\(.*\)/const char wine_build[[]] = \"\\1\";/p'\` && (echo \$\$version | cmp -s - \$[@]) || echo \$\$version >\$[@] || (rm -f \$[@] && exit 1)
++	@version=\`(GIT_DIR=${wine_srcdir}.git git describe HEAD 2>/dev/null || echo \"wine-\$(PACKAGE_VERSION)\") | sed -n -e '\$\$s/\(.*\)/const char wine_build[[]] = \"\\1\$(WINE_VERSION_LABEL)\";/p'\` && (echo \$\$version | cmp -s - \$[@]) || echo \$\$version >\$[@] || (rm -f \$[@] && exit 1)
+ programs/winetest/build.rc: dummy
+ 	@build=\"STRINGTABLE { 1 \\\"\`GIT_DIR=${wine_srcdir}.git git rev-parse HEAD 2>/dev/null\`\\\" }\" && (echo \$\$build | cmp -s - \$[@]) || echo \$\$build >\$[@] || (rm -f \$[@] && exit 1)
+ programs/winetest/build.nfo:

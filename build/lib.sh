@@ -99,17 +99,27 @@ git_checkout() {
     [[ "$(git -C "$dest" rev-parse HEAD)" == "$commit" ]] || die "checkout of $url isn't $commit"
 }
 
-# Load a flavour and the pinned inputs for one version of it.
+# Load a flavour and the pinned inputs for one version of it. The sources
+# are pinned per base (inputs/<base>/<version>.sh); the patches are the
+# flavour's patch sets' copies for this version, in order (build/patches.py),
+# as PATCHES, repo-relative.
 load_build_inputs() {
-    local flavour="$1" version="$2"
+    local flavour="$1" version="$2" v found=0 list p
     local f="$WMB_ROOT/flavours/$flavour.sh"
-    local i="$WMB_ROOT/inputs/$flavour/$version.sh"
     [[ -f "$f" ]] || die "unknown flavour '$flavour' (no $f)"
-    [[ -f "$i" ]] || die "no pinned inputs for $flavour $version (no $i); run tools/pin $flavour $version"
     # shellcheck source=/dev/null
     source "$f"
+    : "${PATCH_BASE:?flavour must set PATCH_BASE}"
+    for v in "${VERSIONS[@]}"; do [[ "$v" == "$version" ]] && found=1; done
+    [[ $found -eq 1 ]] || die "$flavour isn't built for $version (VERSIONS in $f: ${VERSIONS[*]})"
+    local i="$WMB_ROOT/inputs/$PATCH_BASE/$version.sh"
+    [[ -f "$i" ]] || die "no pinned inputs for $version (no $i); run tools/pin $flavour $version"
     # shellcheck source=/dev/null
     source "$i"
+    list="$(/usr/bin/python3 -I "$WMB_ROOT/build/patches.py" files "$PATCH_BASE" "$version" "${PATCH_SETS[@]}")" ||
+        die "couldn't list the patches for $flavour $version"
+    PATCHES=()
+    while IFS= read -r p; do [[ -n "$p" ]] && PATCHES+=("$p"); done <<< "$list"
     : "${TOOLCHAIN:?inputs file must set TOOLCHAIN}"
     # The build number isn't an input: CI assigns the next unused one for
     # this flavour and version (build.yml) and passes it in. Local builds

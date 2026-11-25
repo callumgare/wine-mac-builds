@@ -1,0 +1,59 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't deadlock when a window's OpenGL context is updated from the main thread
+Category: graphics
+Kind: fix
+Origin: wine-mac-builds
+  Note: written for wine-mac-builds
+Upstream: no
+Why: macdrv_update_opengl_context updates the context through
+ OnMainThread, which queues the block on the main thread's run loop and
+ waits for it. OnMainThread doesn't check whether it's already on the main
+ thread, and the content view's viewWillDraw calls macdrv_update_opengl_context
+ on the main thread for GL contexts added while the view wasn't on screen.
+ The block then waits behind the main thread itself, and the main thread
+ hangs for good, with every other thread that needs it (wined3d's command
+ stream thread in wglSwapBuffers, for one). Update the context directly
+ when already on the main thread. Upstream winemac has the same code in
+ 10.0 and 11.x.
+ Seen in White Wolf Queen (Big Fish trial, Direct3D on OpenGL): on macOS 26
+ it hung in 2 of 4 launches as its window went into its fullscreen Space.
+Programs: White Wolf Queen (Big Fish trial): hangs as its window goes into
+ its fullscreen Space on macOS 26 (2 of 4 launches)
+Evidence: samples of the hung game (Second Chance integration run on
+ meeka, 2026-11-16, 11.22-build4, six samples over 3 minutes, all the
+ same): main thread in -[_NSEnterFullScreenTransitionController
+ _doSucceededToEnterFullScreen] -> CA::Transaction::commit ->
+ -[WineContentView viewWillDraw] -> macdrv_update_opengl_context ->
+ OnMainThread -> dispatch_semaphore_wait; wined3d_cs thread in
+ wglSwapBuffers -> framebuffer_surface_swap -> macdrv_context_activate ->
+ macdrv_add_view_opengl_context -> OnMainThread, waiting for the main
+ thread.
+Status: 11.22: built in macfixes-11.22-build5 (2026-11-17); the regression suite
+ passes on it. Confirmed 2026-11-17 on 11.22-build5: White Wolf's Big Fish
+ trial on meeka (macOS 26) ran 10 of 10 launches without a hang, against 4
+ hangs in 7 launches on builds 2 and 4.
+ 11.21: built in macfixes-11.21-build6 (2026-11-17); the regression suite
+ passes on it. Confirmed 2026-11-17 on 11.22-build5: White Wolf's Big Fish
+ trial on meeka (macOS 26) ran 10 of 10 launches without a hang, against 4
+ hangs in 7 launches on builds 2 and 4.
+ 10.0: built in macfixes-10.0-build6 (2026-11-17); the regression suite passes
+ on it. The game run that confirmed it was on 11.22-build5.
+
+diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
+index c15aefe..5488840 100644
+--- a/dlls/winemac.drv/cocoa_opengl.m
++++ b/dlls/winemac.drv/cocoa_opengl.m
+@@ -308,6 +308,13 @@ void macdrv_update_opengl_context(WineOpenGLContext *context)
+                 [context clearDrawableLeavingSurfaceOnScreen];
+                 context.view = view;
+             }
++            else if ([NSThread isMainThread])
++            {
++                /* From the content view's viewWillDraw, which runs on the main
++                 * thread: OnMainThread would queue the block behind itself and
++                 * wait for ever. */
++                [context update];
++            }
+             else OnMainThread(^{
+                 [context update];
+             });

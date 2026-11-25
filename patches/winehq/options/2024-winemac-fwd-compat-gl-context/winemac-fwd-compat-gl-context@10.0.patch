@@ -1,0 +1,34 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: CX_FWD_COMPAT_GL_CTX: upgrade OpenGL 3.2-4.1 context requests to forward-compatible
+Category: graphics
+Kind: feature
+Origin: crossover
+  Version: 26.0.0
+  CW-Hacks: 24834
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.0.0.tar.gz
+  Note: CrossOver 26.0.0 CW Hack 24834 (dlls/winemac.drv/opengl.c)
+Upstream: no
+Why: macOS only offers forward-compatible 3.2+ core contexts; with CX_FWD_COMPAT_GL_CTX=1
+ a request for a non-forward-compatible 3.2-4.1 context is upgraded instead of refused.
+Programs: none known
+Evidence: Sikarugir 10.0_8: winemac.so string CX_FWD_COMPAT_GL_CTX
+
+diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
+index 68de39f..b5e747f 100644
+--- a/dlls/winemac.drv/opengl.c
++++ b/dlls/winemac.drv/opengl.c
+@@ -2824,6 +2824,14 @@ static struct wgl_context *macdrv_wglCreateContextAttribsARB(HDC hdc,
+     if ((major == 3 && (minor == 2 || minor == 3)) ||
+         (major == 4 && (minor == 0 || minor == 1)))
+     {
++        /* CW Hack 24834 */
++        const char *fwd_compat_context = getenv("CX_FWD_COMPAT_GL_CTX");
++        if (fwd_compat_context && fwd_compat_context[0] == '1')
++        {
++            if (!(flags & WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB))
++                flags |= WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
++        }
++
+         if (!(flags & WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB))
+         {
+             WARN("OS X only supports forward-compatible 3.2+ contexts\n");

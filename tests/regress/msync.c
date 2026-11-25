@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 60
  * Env: WINEMSYNC=1
  * Log: ^msync: up and running
- * Guards: 0002 msync-esync-msync
+ * Guards: ntdll-msync
  *
  * msync (WINEMSYNC=1) moves waits on events, mutexes and semaphores out of
  * wineserver into shared memory and Mach messages, which makes games that

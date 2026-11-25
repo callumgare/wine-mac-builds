@@ -1,0 +1,75 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Skip the int 68h/41h SoftICE probes that Wine's macOS code segment provokes (Armadillo DRM)
+Category: cpu
+Kind: workaround
+Origin: wine-mac-builds
+  Note: written for wine-mac-builds. Behaviour of Second Chance's binary patch
+    of 32-bit ntdll (RosettaFaultFix, part 2), done in the Unix-side fault
+    handler beside 0040 (which is part 1).
+Upstream: no
+Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
+ NT's 0x23. Armadillo, the DRM in Big Fish games, tells Windows 9x from NT
+ by the high byte of %cs, so under Wine it takes the 9x path and probes for
+ the SoftICE debugger with "int 68h" (and "int 41h"). On a real 9x without
+ SoftICE those do nothing; here they fault. In Armadillo's child process
+ the fault goes to its debugger (the parent), whose debugger thread is
+ meanwhile in WaitForInputIdle on the child, so the launcher stalls and the
+ game never starts. Only in that LDT code segment, step over int 68h/41h
+ as 9x would. On NT they'd fault, but no NT program runs in that segment
+ expecting that: the segment is what makes these checks misfire.
+Programs: Big Fish games (Armadillo DRM), White Wolf's launcher wqxgxgg.exe:
+ stalls and the game never starts; Iji: launched on 10.0 only with this or
+ Second Chance's binary patch
+Status: 11.22: built in macfixes-11.22-build1; not yet tested there. Confirmed on 10.0
+ (macfixes-10.0-build4, 2026-11-16): without Second Chance's binary patch,
+ White Wolf's launcher (wqxgxgg.exe) starts the game and Iji launches.
+ 11.21: built in macfixes-11.21-build3; not yet tested there. Confirmed on 10.0
+ (macfixes-10.0-build4, 2026-11-16): without Second Chance's binary patch,
+ White Wolf's launcher (wqxgxgg.exe) starts the game and Iji launches.
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 9553ebf..264e98c 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2041,6 +2041,29 @@ static BOOL emulate_fs_addr32( struct thread_data *data, ucontext_t *sigcontext
+     TRACE_(seh)( "emulated an fs: addr32 instruction (%02x) at %#x\n", instr[2], (DWORD)(RIP_sig(sigcontext) - len) );
+     return TRUE;
+ }
++
++/***********************************************************************
++ *           skip_9x_debugger_probe
++ *
++ * On macOS, 32-bit code runs in an LDT code segment (cs32_sel, e.g. 0x107)
++ * instead of NT's 0x23. Programs that tell Windows 9x from NT by the high
++ * byte of %cs (Armadillo, the DRM in Big Fish games, does) decide they're
++ * on 9x and probe for the SoftICE debugger with "int 68h" or "int 41h".
++ * On a real 9x without SoftICE those do nothing; here they fault, and
++ * Armadillo's debugger-protected child stalls on the exception. Only in
++ * that LDT segment, step over them as 9x would.
++ */
++static BOOL skip_9x_debugger_probe( ucontext_t *sigcontext )
++{
++    BYTE instr[2];
++
++    if (!cs32_sel || CS_sig(sigcontext) != cs32_sel) return FALSE;
++    if (virtual_uninterrupted_read_memory( (BYTE *)(ULONG_PTR)(DWORD)RIP_sig(sigcontext), instr, 2 ) != 2) return FALSE;
++    if (instr[0] != 0xcd || (instr[1] != 0x68 && instr[1] != 0x41)) return FALSE;
++    TRACE_(seh)( "skipped int %02xh (9x debugger probe) at %#x\n", instr[1], (DWORD)RIP_sig(sigcontext) );
++    RIP_sig(sigcontext) += 2;
++    return TRUE;
++}
+ #endif
+ 
+ /***********************************************************************
+@@ -2562,6 +2585,11 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *_sigcontext )
+                 leave_handler( data, sigcontext );
+                 return;
+             }
++            if (skip_9x_debugger_probe( sigcontext ))
++            {
++                leave_handler( data, sigcontext );
++                return;
++            }
+ #endif
+             if (!err && (rec.ExceptionCode = is_privileged_instr( &context.c ))) break;
+             if ((err & 7) == 2 && handle_interrupt( data, sigcontext, &rec, &context )) return;

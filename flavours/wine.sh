@@ -1,10 +1,20 @@
 # shellcheck shell=bash disable=SC2034
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Flavour "wine": plain WineHQ releases, plus the patches Gcenx's builds of
-# the same version carry (listed per version in inputs/wine/<version>.sh).
+# Flavour "wine": plain WineHQ releases, with only the patches needed to
+# build them with this project's toolchain, reproducibly, and to run with its
+# packaging (the build and packaging patch sets, from Gcenx's builds and our
+# own).
 
-FLAVOUR_DESCRIPTION="WineHQ's release, with Gcenx's macOS patches"
+FLAVOUR_DESCRIPTION="WineHQ's release, with only the changes needed to build and package it"
+
+# The patches: whole patch sets from patches/<base>/ (patches/README.md),
+# applied in order number. The sources for each version are pinned in
+# inputs/<base>/<version>.sh.
+PATCH_BASE=winehq
+PATCH_SETS=(build packaging)
+# The Wine versions this flavour is built for.
+VERSIONS=(10.0 10.20 11.21 11.22)
 
 # Configure options: Gcenx's wine-devel Portfile at fc0301b, with the
 # default +gstreamer variant. Paths that depend on the toolchain are added

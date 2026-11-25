@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
- * Guards: 0067 ntdll-async-iosb-unwritable
+ * Guards: ntdll-async-iosb-unwritable
  *
  * When an asynchronous read or write finishes, Wine stores its result in
  * the caller's IO_STATUS_BLOCK (the OVERLAPPED) from a system APC. A thread

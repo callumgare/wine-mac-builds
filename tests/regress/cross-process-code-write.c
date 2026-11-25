@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 60
- * Guards: 0043 cpu-rosetta-cross-process-code-writes
+ * Guards: ntdll-rosetta-cross-process-code-writes
  *
  * What Armadillo, the DRM in Big Fish games, does to its child: start it
  * suspended, write "jmp $" (EB FE) over its entry point, let it run until it

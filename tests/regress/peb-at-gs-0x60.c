@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0019 gfx-ntdll-peb-at-gs-0x60-on-macos (10.0; 11.x does this itself)
+ * Guards: ntdll-peb-at-gs-0x60
  *
  * 64-bit Windows code finds the PEB at %gs:0x60 (TEB->Peb); D3DMetal does.
  * In Wine 10.0 on macOS %gs is the thread's pthread TSD, not the TEB, so

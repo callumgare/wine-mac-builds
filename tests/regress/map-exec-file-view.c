@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Timeout: 30
  * Libs: -Wl,--disable-nxcompat
- * Guards: 0039 cpu-map-files-without-exec-then-mprotect (10.0; Wine 11 maps files without PROT_EXEC)
+ * Guards: ntdll-map-exec-then-mprotect
  *
  * Old 32-bit programs aren't marked NX-compatible, so Wine runs them with
  * DEP off and adds PROT_EXEC to every readable mapping. macOS refuses

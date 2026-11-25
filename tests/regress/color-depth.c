@@ -1,11 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686
- * Flavours: macfixes
  * Versions: 11.22
  * Timeout: 60
  * Libs: -lgdi32 -luser32 -ladvapi32
- * Guards: 0064 gdi32-per-program-color-depth
+ * Guards: gdi32-per-program-color-depth
  *
  * An old program (a Director projector, say) asks the screen's colour depth
  * and won't run unless it's 8 or 16 bits. AppDefaults\<exe>\Mac

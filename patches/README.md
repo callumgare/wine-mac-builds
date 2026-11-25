@@ -1,21 +1,74 @@
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # Patches
 
-- `wine/`: the patches every flavour applies (the plain `wine` flavour applies
-  only these).
-- `macfixes/<version>/`: the `macfixes` flavour's patches for one Wine
-  version, applied after `wine/`'s.
-- `macports/`: changes to MacPorts ports used by the toolchain. Their
-  headers are free text and not covered below.
+Every change this project makes to Wine, one documented patch at a time.
 
-Which patches a build applies, and in what order, is `PATCHES` in
-`inputs/<flavour>/<version>.sh`.
+```text
+patches/
+  <base>/                               the source the patches apply to: winehq
+    <set>/                              a patch set
+      README.md                         Summary: and Range: lines, then what the set is for
+      <NNNN>-<name>/                    one patch: its order number and name
+        <name>@<versions>.patch         one copy of it, for those Wine versions
+  macports/                             changes to MacPorts ports the toolchain uses
+```
+
+- **Patch sets.** A flavour (`flavours/<flavour>.sh`) takes whole patch
+  sets (`PATCH_SETS`); a build applies every patch of those sets that has
+  a copy for its Wine version, in order number. Sets are grouped by why a
+  flavour takes them, not by which part of Wine they change (that's
+  `Category`). Each set's README says what qualifies for it.
+- **Names.** A patch's name is `<module>-<what it does>`
+  (`ntdll-rosetta-mxcsr`). It identifies the patch: unique within the base,
+  and never changed once a published build has applied it. Refer to
+  patches by name.
+- **Order numbers.** Four digits, unique within the base, in the range of
+  the patch's set (its README's `Range`). Sets taken by more flavours have
+  lower ranges (layers): every flavour that takes a set also takes the
+  sets below it, so a patch never depends on one some of its flavours
+  lack. `winehq`'s layers: `0001`-`0999` for every flavour (`build`,
+  `packaging`), `1000`-`1999` for every flavour but plain `wine`
+  (`version-label`), `2000`-`2999` for `macfixes`' own sets. New patches
+  take the next free number in their range (`tools/patch new`).
+- **Copies.** One file per distinct diff. `<versions>` lists the Wine
+  versions a copy is for, ascending, comma-separated, with three or more
+  consecutive ones as `<first>-<last>`: `10.0,11.21-11.23`. A run covers
+  the versions pinned in `inputs/<base>/` between its ends. Copies that
+  differ only in line numbers are one copy. `tools/pin` adds a new
+  version to the copies that still apply; `tools/patch split` gives one
+  version its own copy, to change it there first.
+- **Which patches a build applies:** `build/patches.py flavour <flavour>
+  <version>`.
+
+## The rules
+
+`build/patch_header.py` with no arguments checks all of this, and CI runs
+it on every push:
+
+- every copy's header follows the format below; the copies of a patch
+  agree on `Summary`, `Category`, `Kind` and `Programs`
+- folder and file names have the forms above, version lists are in that
+  normal form and name only pinned versions, and no two copies of a patch
+  cover the same version
+- names and numbers are unique within the base, and each number is in its
+  set's range
+- each set's README starts with `Summary:` and `Range:` lines
+- every set a flavour lists exists, the list is in layer order, the layer
+  rule holds, and every version a flavour lists is pinned
+- every name a regression test `Guards` is a patch
+- nothing is left of the old `patches/<flavour>/<version>/` layout
+  (`tools/patch-migrate` converts a patch written that way), and no
+  `.orig` or `.rej` files
+
+It warns, without failing, about copies of one patch whose `Why` or
+`Uncertain` differ, and about copies with no `Port` saying how they
+differ from the others.
 
 ## Header format
 
-Every patch under `wine/` and `macfixes/` starts with a header: `Key: value`
+Every copy starts with a header: `Key: value`
 lines, then one blank line, then the diff. A value continues onto following
-lines that start with a space. `build/patch_header.py` checks the format:
+lines that start with a space. `Origin` starts a block of its own (below). `build/patch_header.py` checks the format:
 `build/compile.sh` runs it before applying a build's patches, and CI runs it
 on every push. `build/manifest.py` records each patch's header in
 `BUILD-INFO.json`, and the website shows it on the build's page.
@@ -26,42 +79,77 @@ Summary: Rosetta 2: report success when setting debug registers instead of faili
 Category: cpu
 Kind: workaround
 Origin: crossover
-From: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
-Source: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-CW-Hack: 22131
+  Version: 26.3.0
+  CW-Hacks: 22131
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
 Upstream: partly (the wineserver half)
 Why: Rosetta 2 cannot set or read x86 debug registers; report success from
  NtSetContextThread instead of failing, so anti-debug/DRM checks don't abort.
-Applies to: wine 11.21
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 ```
 
-Keys must appear in this order. Each may appear only once.
+Keys must appear in this order. Each may appear only once, except
+`Origin`.
 
 | Key | Required | Value |
 | --- | --- | --- |
 | `SPDX-License-Identifier` | yes | The patch's licence. |
 | `Summary` | yes | One line, at most 100 characters, no full stop. What the patch does, for the build page's patch list. |
-| `Category` | yes | What part of Wine it changes, one of the values below. The build page groups patches by it. |
+| `Category` | yes | What part of Wine it changes, one of the values below. The build page filters patches by it. |
 | `Kind` | yes | What sort of change it is: one or more of the values below, comma-separated, e.g. `fix, performance`. |
-| `Origin` | yes | Where the change comes from, one of the values below. Add ` (ported here)` when this project rewrote someone else's change for another Wine version or file, e.g. `gcenx (ported here)`; `From` and `Port` say how. |
-| `From` | yes | Exactly where: commit, CrossOver version and files, wine-staging patch name, or the binary and function it was rebuilt from. |
-| `Source` | yes | A URL for that source, or `none published`. |
-| `CW-Hack` | no | CodeWeavers hack numbers the patch carries, comma-separated: `22131, 21217`. |
+| `Origin` | yes | Where the change comes from: one block per source (see "Origin blocks"). |
 | `Upstream` | yes | `yes`, `no` or `partly`, then optional detail: is the change in WineHQ's own tree? |
 | `Why` | yes | What problem it fixes, and how. |
 | `Programs` | yes | The programs that led to the patch, each with what went wrong in it, so a later problem with the patch has something to test against: `Iji: about 3x slower with software vertex processing`. Name them even when the patch helps everything. `none known` when the source doesn't name one; `none (build)` for patches that change only how Wine builds. |
 | `Uncertain` | no | What isn't known for sure. The build page flags these patches. |
 | `Evidence` | no | What shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
 | `Port` | no | How it was adapted to this Wine version. |
-| `Expects before it` | no | Patches it depends on. |
-| `Applies to` | yes | Which Wine versions and flavours. |
-| `Status` | no | A dated working note (built? tested?). Not published: it can be out of date in a build. |
+| `Expects before it` | no | The patches it depends on, by name, comma-separated, then optionally `; ` and a note: `ntdll-rosetta-refuse-ldt-entries; NtSetLdtEntries refuses entries under Rosetta 2`. Each must have a lower number and a copy for every version this copy covers. |
+| `Status` | no | A dated working note (built? tested?). Not published: it can be out of date in a build. In a copy for several versions, each entry starts with the version it's about: `11.21: 2026-11-22: passes in a local test build`. |
 
-`Category` values. `apps` is for changes that take effect only for
-specific named programs (they check the program's name or its files); every
-other patch goes by what part of Wine it changes, whoever it was written for.
+## Origin blocks
+
+`Origin: <project>` names one source the patch comes from, from the list
+below. Add ` (ported here)` when this project rewrote someone else's
+change for another Wine version or file: `Origin: crossover (ported here)`.
+The lines after it, indented two spaces, are that source's own
+identifiers; a value continues on lines indented four. A patch that comes
+from two places has two blocks: a wine-staging patch that is also a
+CrossOver hack has an `Origin: wine-staging` block and an
+`Origin: crossover` block with its `CW-Hacks`.
+
+```text
+Origin: wine-staging
+  URL: https://github.com/wine-staging/wine-staging/blob/v11.21/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
+  Note: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases)
+Origin: crossover
+  CW-Hacks: 14364
+```
+
+| Project | Its own sub-keys |
+| --- | --- |
+| `winehq` | `Commit`, `Bugs`, `MR` |
+| `wine-staging` | `Patchset`, `Files` |
+| `crossover` | `CW-Hacks` (CodeWeavers' "CW HACK" numbers), `Files` |
+| `gcenx` | `Commit`, `File` |
+| `reconstructed` | `Binary`, `Functions` |
+| `other` | `Name` |
+| `wine-mac-builds` | only `Version`, `Changes` and `Note` |
+
+Every project may also have `Version` (the source's version: `26.3.0`,
+`v11.21`; for `wine-mac-builds`, the version of our own copy this one was
+ported from), `Authors`, `URL` (one or more, comma-separated), `Note` and
+`Changes` (how our copy differs from the source's code, or `verbatim`).
+Several values are comma-separated. The headers were converted to blocks
+on 2026-11-25 with the old `From` text kept as `Note`; the patch review
+(stage 3 of the patch-sets plan) fills in the rest, and turns `Port` into
+`Changes` and `wine-mac-builds` blocks.
+
+`Category` values: what part of Wine a patch changes, whoever it was
+written for. (Which patches act only on named programs is the `programs`
+patch set.)
 
 | Value | Covers |
 | --- | --- |
@@ -70,7 +158,6 @@ other patch goes by what part of Wine it changes, whoever it was written for.
 | `graphics` | Direct3D, D3DMetal, OpenGL and Vulkan |
 | `input` | Windows, focus, mouse and keyboard |
 | `system` | Files, network, processes and version |
-| `apps` | Fixes for specific programs |
 | `build` | How Wine builds, and its tests; nothing changes at run time |
 
 `Kind` values:
@@ -91,9 +178,10 @@ other patch goes by what part of Wine it changes, whoever it was written for.
 | `wine-staging` | From the wine-staging patch set |
 | `crossover` | From CodeWeavers' published CrossOver source |
 | `gcenx` | From Gcenx's macports-wine overlay |
-| `other` | From another public project; `From` says which |
+| `other` | From another public project; its `Name` says which |
 | `reconstructed` | Rebuilt from a compiled binary with no published source |
 | `wine-mac-builds` | Written for this project |
 
 To check every patch: `python3 build/patch_header.py`. To check some:
-`python3 build/patch_header.py patches/macfixes/11.22/*.patch`.
+`python3 build/patch_header.py patches/winehq/options/*/*.patch` (headers
+only; the layout rules need the whole tree).

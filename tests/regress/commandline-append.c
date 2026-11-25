@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0037 sik-kernelbase-commandline-append
+ * Guards: kernelbase-commandline-append
  *
  * Sikarugir lets users add options to a game's command line from the
  * registry, without editing shortcuts: the REG_SZ value CommandLineAppend

@@ -24,7 +24,11 @@
 #   Arch: i686 and/or x86_64     (default i686; each listed is a separate run)
 #   Libs: <linker flags>
 #   Timeout: <seconds>           (default 60)
-#   Flavours: <flavour> ...      run only for these (default all)
+#   Guards: <patch name> ...     the patches it guards: it runs on builds whose
+#                                flavour takes one of their patch sets, whether
+#                                or not this version has the patch (a fix that's
+#                                needed but missing should fail); without it, on
+#                                every build
 #   Versions: <glob> ...         run only for these Wine versions (default all)
 #   Env: <NAME=value> ...        set for the run
 #   Wrapper: <helper> [args]     run "tests/regress/helpers/<helper> [args] <wine>
@@ -82,6 +86,34 @@ trap stop_wine EXIT
 # in the test's header comment.
 header() { sed -n -E "1,40s/^( \*|#) $2: (.*)$/\2/p" "$1" | head -1; }
 
+# EXPECTED: the names of every patch in the patch sets this build's flavour
+# takes (the sets BUILD-INFO.json records, or for a build from before patch
+# sets, the flavour's sets now), space-separated.
+EXPECTED=" $(/usr/bin/python3 -I - "$T/BUILD-INFO.json" "$WMB_ROOT/build" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[2])
+import patches
+d = json.load(open(sys.argv[1]))
+base = d.get("patch_base")
+sets = [s["name"] for s in d.get("patch_sets", [])]
+if not base:
+    fl = patches.flavour(d["flavour"])
+    base, sets = fl["base"], fl["sets"]
+print(" ".join(p.name for p in patches.load(base) if p.set in sets))
+PY
+) "
+
+# guarded <patch names...>: does this build's flavour take any of them (or
+# are there none)?
+guarded() {
+    local n
+    [[ $# -eq 0 ]] && return 0
+    for n in "$@"; do
+        [[ $EXPECTED == *" $n "* ]] && return 0
+    done
+    return 1
+}
+
 # matches <word> <globs...>: is <word> one of the globs (or are there none)?
 matches() {
     local w="$1" g; shift
@@ -115,14 +147,14 @@ for src in "$WMB_ROOT"/tests/regress/*.c "$WMB_ROOT"/tests/regress/*.sh; do
     [[ $kind == c ]] || archs=(sh)
     timeout="$(header "$src" Timeout)"; timeout="${timeout:-60}"
     read -r -a libs <<< "$(header "$src" Libs)"
-    read -r -a flavours <<< "$(header "$src" Flavours)"
+    read -r -a guards <<< "$(header "$src" Guards)"
     read -r -a versions <<< "$(header "$src" Versions)"
     read -r -a envs <<< "$(header "$src" Env)"
     read -r -a wrapper <<< "$(header "$src" Wrapper)"
     read -r -a screenshot <<< "$(header "$src" Screenshot)"
     want_log="$(header "$src" Log)"
 
-    if [[ -z ${WMB_REGRESS_ALL:-} ]] && { ! matches "$FLAVOUR" ${flavours[@]+"${flavours[@]}"} || ! matches "$VERSION" ${versions[@]+"${versions[@]}"}; }; then
+    if [[ -z ${WMB_REGRESS_ALL:-} ]] && { ! guarded ${guards[@]+"${guards[@]}"} || ! matches "$VERSION" ${versions[@]+"${versions[@]}"}; }; then
         continue  # not meant for this build; not worth a line
     fi
     if [[ ${WMB_REGRESS_GL:-} == only && ${wrapper[0]:-} != needs-opengl ]]; then
@@ -195,5 +227,21 @@ for src in "$WMB_ROOT"/tests/regress/*.c "$WMB_ROOT"/tests/regress/*.sh; do
 done
 
 log "regress: ${#passed[@]} passed, ${#skipped[@]} skipped, ${#failed[@]} failed${failed[*]+: $(IFS=,; echo "${failed[*]}" | sed "s/,/, /g")}"
+# For build/tests.py: the release's <build ID>.tests.json.
+/usr/bin/python3 -I -c 'import json, sys
+groups, cur = {"passed": [], "skipped": [], "failed": []}, None
+for a in sys.argv[2:]:
+    if a in ("--passed", "--skipped", "--failed"):
+        cur = a[2:]
+    else:
+        groups[cur].append(a)
+groups["opengl_only"] = sys.argv[1] == "only"
+print(json.dumps(groups, indent=2))' "${WMB_REGRESS_GL:-}" --passed ${passed[@]+"${passed[@]}"} \
+    --skipped ${skipped[@]+"${skipped[@]}"} --failed ${failed[@]+"${failed[@]}"} > "$LOG/results.json"
+# A build's own full run (not --tree, one test, or only the OpenGL tests)
+# also writes the release file <build ID>.tests.json, with smoke.sh's results.
+if [[ -n ${W:-} && -z ${WMB_REGRESS_ONLY:-} && -z ${WMB_REGRESS_GL:-} && -f "$W/smoke/results.json" ]]; then
+    /usr/bin/python3 -I "$WMB_ROOT/build/tests.py" write "$W" "$BUILD_ID" "$WMB_OUT_DIR"
+fi
 [[ ${#failed[@]} -eq 0 ]] || exit 1
 rm -rf "$WINEPREFIX"

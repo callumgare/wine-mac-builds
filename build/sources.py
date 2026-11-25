@@ -6,7 +6,8 @@ Called by build/manifest.sh after manifest.py. The asset holds what's
 specific to this build:
 
   wine-<version>.tar.xz   WineHQ's source tarball, as pinned
-  patches/                the patches applied
+  patches/                the patches applied: patches/<set>/<name>.patch,
+                          and patches/series listing them in order
   recipe/                 this repo's tracked files, as built (the scripts
                           that control compiling and installing)
   macports/<port>/        each bundled port's Portfile and its files/
@@ -110,15 +111,29 @@ wine_name = os.path.basename(env["WINE_URL"])
 shutil.copy(CACHE / env["WINE_SHA256"] / wine_name, S / wine_name)
 if sha256(S / wine_name) != env["WINE_SHA256"]:
     sys.exit(f"error: {wine_name} doesn't match its pinned sha256")
-patches = [p for p in env["PATCH_LIST"].split() if p]
+# patches/<set>/<name>.patch, and patches/series (quilt's name) listing them
+# in the order they were applied.
+by_file = {p["file"]: p for c in info["components"] if c["name"] == "wine" for p in c["patches"]}
+patches = []
 (S / "patches").mkdir()
-for p in patches:
-    shutil.copy(ROOT / p, S / "patches" / os.path.basename(p))
+for f in env["PATCH_LIST"].split():
+    if not f:
+        continue
+    entry = by_file[f]
+    rel = f"{entry['set']}/{entry['name']}.patch"
+    (S / "patches" / entry["set"]).mkdir(exist_ok=True)
+    shutil.copy(ROOT / f, S / "patches" / rel)
+    patches.append(rel)
+(S / "patches" / "series").write_text(
+    "# The patches this build applied, in this order, each with\n"
+    "# `patch -p1` from the top of Wine's source folder.\n"
+    "# (With quilt, from that folder: QUILT_PATCHES=../patches quilt push -a)\n"
+    + "".join(rel + "\n" for rel in patches))
 components.append({
     "name": "wine", "version": env["WINE_VERSION"], "license": "LGPL-2.1-or-later",
     "files": [{"name": wine_name, "sha256": env["WINE_SHA256"], "upstream": [env["WINE_URL"]],
                "path": wine_name}],
-    "patches": ["patches/" + os.path.basename(p) for p in patches],
+    "patches": ["patches/" + rel for rel in patches],
 })
 
 # --- The recipe: this repo's tracked files ------------------------------------

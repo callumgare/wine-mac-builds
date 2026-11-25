@@ -63,12 +63,21 @@ stop_wine() { sandbox-exec -p "$PROFILE" "$T/bin/wineserver" -k >/dev/null 2>&1 
 trap stop_wine EXIT
 
 fail() { stop_wine; die "smoke test: $*"; }
-step() { log "smoke: $*"; }
+# Each check, as it starts; written to $LOG/results.json at the end (a
+# failed check stops the test, so a finished test passed every one but
+# those skipped).
+checks=() skipped_checks=()
+step() { log "smoke: $*"; checks+=("$*"); }
+skip_step() { skipped_checks+=("${checks[${#checks[@]}-1]}"); unset 'checks[${#checks[@]}-1]'; }
 
 step "wine --version"
 run 60 version "$T/bin/wine" --version || fail "wine --version failed (see $LOG/version.log)"
-grep -q -x "wine-$WINE_VERSION.*" <(grep -v '^dyld' "$LOG/version.log") ||
-    fail "wine --version says '$(grep -v '^dyld' "$LOG/version.log")', expected wine-$WINE_VERSION"
+# Plain WineHQ's version, plus " (<flavour>)" for flavours that take the
+# version-label patch set (build/compile.sh).
+want="wine-$WINE_VERSION"
+for set_name in "${PATCH_SETS[@]}"; do [[ $set_name == version-label ]] && want+=" ($FLAVOUR)"; done
+grep -q -x -F "$want" <(grep -v '^dyld' "$LOG/version.log") ||
+    fail "wine --version says '$(grep -v '^dyld' "$LOG/version.log")', expected '$want'"
 
 step "wineboot (new prefix)"
 run 600 wineboot "$T/bin/wine" wineboot -u || fail "wineboot failed or timed out (see $LOG/wineboot.log)"
@@ -131,6 +140,7 @@ if [[ $rc -eq 2 ]]; then
         fail "the Mac has an audio output device but Wine sees none (see $LOG/audio.log)"
     fi
     log "smoke: WARNING: no audio output device on this Mac, so sound wasn't tested"
+    skip_step
 elif [[ $rc -ne 0 ]]; then
     fail "the audio probe failed (see $LOG/audio.log)"
 fi
@@ -174,4 +184,9 @@ grep -q -x "$T/lib/libMoltenVK.dylib" "$LOG/loaded.txt" ||
     fail "MoltenVK wasn't loaded from $T/lib, so Vulkan has no driver"
 
 log "Smoke test passed ($(wc -l < "$LOG/loaded.txt" | tr -d ' ') libraries loaded, $(grep -c "^$T/" "$LOG/loaded.txt") of them the build's own)"
+# For build/tests.py: the release's <build ID>.tests.json.
+/usr/bin/python3 -I -c 'import json, sys
+n = sys.argv.index("--")
+print(json.dumps({"passed": sys.argv[1:n], "skipped": sys.argv[n + 1:], "failed": []}, indent=2))' \
+    "${checks[@]}" -- ${skipped_checks[@]+"${skipped_checks[@]}"} > "$LOG/results.json"
 rm -rf "$WINEPREFIX"

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Quick checks that need no Mac: every patch header follows
-# patches/README.md (build/patch_header.py), and the website generates from
-# made-up releases and is well formed (tests/site/check.py). Builds check
-# their own patches again before applying them (build/compile.sh).
+# patches/README.md, and so do the patch sets' layout, the flavours' sets and
+# versions, and the regression tests' Guards (build/patch_header.py); and the
+# website generates from made-up releases and is well formed
+# (tests/site/check.py). Builds check their own patches again before
+# applying them (build/compile.sh).
 
 name: checks
 
@@ -11,7 +13,11 @@ on:
   push:
     paths:
       - patches/**
+      - flavours/**
+      - inputs/**
+      - tests/regress/**
       - build/patch_header.py
+      - build/patches.py
       - build/manifest.py
       - tools/site.py
       - tools/sitegen/**
@@ -22,7 +28,11 @@ on:
   pull_request:
     paths:
       - patches/**
+      - flavours/**
+      - inputs/**
+      - tests/regress/**
       - build/patch_header.py
+      - build/patches.py
       - build/manifest.py
       - tools/site.py
       - tools/sitegen/**

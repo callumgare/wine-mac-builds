@@ -1,0 +1,158 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Centre a fullscreen GDI picture under an emulated display mode, instead of drawing it at the edge
+Category: input
+Kind: fix
+Origin: wine-mac-builds
+  Note: written for wine-mac-builds
+Upstream: no (WineHQ master has the same code, checked 2026-11-16)
+Why: under EmulateModeset, when a program switches to a mode whose shape
+ differs from the screen's, win32u stretches its fullscreen window's
+ visible rect over the whole monitor and keeps the window rect where the
+ scaled picture belongs; winemac masks the rest black. Two winemac bugs put
+ a GDI-drawn picture at the window's top-left corner instead, leaving an
+ unpainted band:
+ - WindowPosChanged stores swp_flags & WINE_SWP_FULLSCREEN (0x80000000) in
+   the 1-bit data->fullscreen, which keeps the low bit, so it is always 0.
+   Store !!(...) instead.
+ - The window surface is relative to the window rect there, not the
+   visible rect. Offset it in the surface flush. Moving the content view's
+   own layer (layer.position) has no effect, since AppKit keeps it at the
+   view's frame, so a surface that doesn't start at the view's origin is
+   drawn in a sublayer below the mask. Surfaces at the origin are drawn as
+   before.
+ OpenGL and Vulkan output already gets the offset from win32u.
+ Seen in Bioscopia (Director 8, GDI, 800x600 on 2560x1440): the picture at
+ x=0 with a white band to its right.
+Programs: Bioscopia: its fullscreen GDI picture is drawn at the left edge
+ with a white band beside it (EmulateModeset)
+Evidence: test program switching to 960x540 on a 1024x768 screen and
+ painting a 1024x576 frame with GDI: before, the frame sat at the top with
+ a white band below it; after, it fills rows 96-672 with black bars above
+ and below. The flag fix plus the offset alone (without the sublayer) left
+ it at the top.
+Port: 11.21's winemac draws the window surface as a CGImage cropped to the
+ layer's bounds rather than an IOSurface; the sublayer gets the whole image.
+Status: 2026-11-16: built in wine-macfixes-11.21-build5. Same change as the
+ 11.22 patch, which was tested with Bioscopia; tests/regress
+ fullscreen-gdi-centred guards it.
+
+diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+index 1ffe959..1c7dd5e 100644
+--- a/dlls/winemac.drv/cocoa_window.m
++++ b/dlls/winemac.drv/cocoa_window.m
+@@ -229,6 +229,7 @@ @interface WineContentView : WineBaseView <NSTextInput, NSViewLayerContentScaleD
+ {
+     CGRect surfaceRect;
+     CGImageRef colorImage;
++    CALayer* _offsetSurfaceLayer;
+     CGImageRef shapeImage;
+ 
+     NSMutableArray* glContexts;
+@@ -373,6 +374,7 @@ - (void) dealloc
+         [_caLayerHosts release];
+         CGImageRelease(colorImage);
+         CGImageRelease(shapeImage);
++        [_offsetSurfaceLayer release];
+         [super dealloc];
+     }
+ 
+@@ -407,13 +409,46 @@ - (void) updateLayer
+ 
+         maskedImage = shapeImage ? CGImageCreateWithMask(colorImage, shapeImage)
+                                  : CGImageRetain(colorImage);
+-        image = CGImageCreateWithImageInRect(maskedImage, imageRect);
++        if (CGPointEqualToPoint(surfaceRect.origin, CGPointZero))
++            image = CGImageCreateWithImageInRect(maskedImage, imageRect);
++        else
++            image = CGImageRetain(maskedImage);
+         CGImageRelease(maskedImage);
+ 
+-        if (image)
++        if (image && CGPointEqualToPoint(surfaceRect.origin, CGPointZero))
+         {
++            if (_offsetSurfaceLayer)
++            {
++                [_offsetSurfaceLayer removeFromSuperlayer];
++                [_offsetSurfaceLayer release];
++                _offsetSurfaceLayer = nil;
++            }
+             layer.position = surfaceRect.origin;
+             layer.contents = (id)image;
++        }
++        else if (image)
++        {
++            /* AppKit keeps a view's own layer at the view's frame, so a surface that doesn't
++             * start at the view's origin (such as a fullscreen window's picture centred
++             * under an emulated display mode) is drawn in a sublayer at its offset. */
++            [CATransaction begin];
++            [CATransaction setDisableActions:YES];
++            if (!_offsetSurfaceLayer)
++            {
++                _offsetSurfaceLayer = [[CALayer alloc] init];
++                [layer insertSublayer:_offsetSurfaceLayer atIndex:0];
++            }
++            _offsetSurfaceLayer.contentsScale = layer.contentsScale;
++            _offsetSurfaceLayer.frame = CGRectMake(surfaceRect.origin.x, surfaceRect.origin.y,
++                                                   CGImageGetWidth(image) / layer.contentsScale,
++                                                   CGImageGetHeight(image) / layer.contentsScale);
++            _offsetSurfaceLayer.contents = (id)image;
++            layer.contents = nil;
++            [CATransaction commit];
++        }
++
++        if (image)
++        {
+             CFRelease(image);
+             [window windowDidDrawContent];
+ 
+diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
+index 5552b82..1e211c8 100644
+--- a/dlls/winemac.drv/surface.c
++++ b/dlls/winemac.drv/surface.c
+@@ -84,6 +84,7 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
+     CGColorSpaceRef colorspace;
+     CGImageRef image;
+     struct macdrv_win_data *data;
++    RECT surface_rect = *rect, dirty_rect = *dirty;
+ 
+     colorspace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+     image = CGImageCreate(color_info->bmiHeader.biWidth, abs(color_info->bmiHeader.biHeight), 8, 32,
+@@ -91,7 +92,24 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
+                           alpha_info | kCGBitmapByteOrder32Little, surface->provider, NULL, retina_on, kCGRenderingIntentDefault);
+     CGColorSpaceRelease(colorspace);
+ 
+-    macdrv_window_set_color_image(surface->window, image, cgrect_from_rect(*rect), cgrect_from_rect(*dirty));
++    if ((data = get_win_data(window_surface->hwnd)))
++    {
++        /* When a program changes the display mode under EmulateModeset, win32u stretches a
++         * fullscreen window's visible rect over the whole monitor and keeps its window rect
++         * where the scaled picture belongs (centred, with the rest masked black). The window
++         * surface is relative to the window rect then, so move it there. */
++        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
++
++        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
++            window->right <= visible->right && window->bottom <= visible->bottom)
++        {
++            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
++            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
++        }
++        release_win_data(data);
++    }
++    macdrv_window_set_color_image(surface->window, image, cgrect_from_rect(surface_rect),
++                                  cgrect_from_rect(dirty_rect));
+     CGImageRelease(image);
+ 
+     if (shape_changed)
+diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+index 6bcef62..19f9e9b 100644
+--- a/dlls/winemac.drv/window.c
++++ b/dlls/winemac.drv/window.c
+@@ -1640,7 +1640,7 @@ BOOL macdrv_GetWindowStyleMasks(HWND hwnd, UINT style, UINT ex_style, UINT *styl
+ void macdrv_WindowPosChanged(HWND hwnd, HWND insert_after, HWND owner_hint, UINT swp_flags,
+                              const struct window_rects *new_rects, struct window_surface *surface)
+ {
+-    BOOL fullscreen = swp_flags & WINE_SWP_FULLSCREEN;
++    BOOL fullscreen = !!(swp_flags & WINE_SWP_FULLSCREEN);
+     struct macdrv_thread_data *thread_data;
+     struct macdrv_win_data *data;
+     unsigned int new_style = NtUserGetWindowLongW(hwnd, GWL_STYLE);

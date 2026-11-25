@@ -1,9 +1,8 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: i686 x86_64
- * Flavours: macfixes
  * Timeout: 30
- * Guards: 0004 cpu-rosetta-debug-registers
+ * Guards: ntdll-rosetta-debug-registers
  *
  * Rosetta 2 can't set x86 debug registers, so wineserver refuses when a
  * thread sets its own (server/mach.c, is_rosetta()). Anti-debug and DRM code

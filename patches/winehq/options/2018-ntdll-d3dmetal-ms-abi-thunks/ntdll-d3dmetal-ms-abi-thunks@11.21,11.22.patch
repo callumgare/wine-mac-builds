@@ -1,0 +1,346 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: D3DMetal: let libd3dshared call ntdll's syscalls with the Microsoft ABI
+Category: graphics
+Kind: feature
+Origin: crossover
+  Version: 26.3.0
+  CW-Hacks: 23015
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Note: CrossOver 26.3.0 CW HACK 23015 (dlls/ntdll/unix/unix_private.h, server.c, sync.c,
+    thread.c)
+Upstream: no
+Why: libd3dshared calls NtClose, NtCreateThreadEx and the event/semaphore syscalls in
+ ntdll.so directly with the Microsoft x64 ABI. Each becomes an asm wrapper that jumps to an
+ ms_abi thunk when the caller's return address is inside libd3dshared, and to the normal
+ (renamed sysv_*) function otherwise. Needs 0017 (libd3dshared_load_addr/_code_end).
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so's exported NtClose, NtCreateSemaphore, NtReleaseSemaphore,
+ NtCreateEvent, NtSetEvent, NtResetEvent, NtClearEvent, NtPulseEvent and NtCreateThreadEx
+ (and no other Nt* export) start with the wrapper: push %rax; push %rcx; compare the return
+ address against two globals; jmp to one of two bodies
+Port: to 11.21: GPT_ABI_WRAPPER is CX 26.3.0's: a plain asm() block with only .globl, because
+ Wine 11's __ASM_GLOBAL_FUNC also emits .private_extern, which would hide the wrappers from
+ libd3dshared. NtReleaseSemaphore's count is LONG in 11.21 (ULONG in 10.0 and CX 26.3.0), so
+ the sysv_/msthunk_ signatures use LONG. The NtSetEvent thunk sits after
+ NtSetEventBoostPriority. FLAG: 11.21 runs Windows code with GSBASE = the TEB and Unix code
+ with GSBASE = the pthread TSD (CX 26.3.0, on Wine 11.0, still keeps GSBASE on the pthread TSD
+ with TEB fields poked into it). If D3DMetal's PE side calls into libd3dshared, and so into
+ these ntdll.so functions, directly rather than through a syscall, that Unix code would run
+ with %gs = TEB and libc's TSD accesses would break. Untested; D3DMetal on 11.21 needs a run.
+
+diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
+index c80226f..4815226 100644
+--- a/dlls/ntdll/unix/server.c
++++ b/dlls/ntdll/unix/server.c
+@@ -1938,7 +1938,7 @@ NTSTATUS WINAPI NtCompareTokens( HANDLE first, HANDLE second, BOOLEAN *equal )
+ /**************************************************************************
+  *           NtClose
+  */
+-NTSTATUS WINAPI NtClose( HANDLE handle )
++NTSTATUS WINAPI GPT_IMPORT(NtClose)( HANDLE handle )
+ {
+     sigset_t sigset;
+     HANDLE port;
+@@ -1980,6 +1980,18 @@ NTSTATUS WINAPI NtClose( HANDLE handle )
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtClose( HANDLE handle )
++{
++    return sysv_NtClose( handle );
++}
++
++GPT_ABI_WRAPPER( NtClose );
++
++#endif
++
+ #ifdef _WIN64
+ 
+ struct __server_request_info32
+diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
+index e5e7c6f..48fbca7 100644
+--- a/dlls/ntdll/unix/sync.c
++++ b/dlls/ntdll/unix/sync.c
+@@ -1031,8 +1031,8 @@ done:
+ /******************************************************************************
+  *              NtCreateSemaphore (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtCreateSemaphore( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
+-                                   LONG initial, LONG max )
++NTSTATUS WINAPI GPT_IMPORT(NtCreateSemaphore)( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
++                                               LONG initial, LONG max )
+ {
+     unsigned int ret;
+     data_size_t len;
+@@ -1060,6 +1060,19 @@ NTSTATUS WINAPI NtCreateSemaphore( HANDLE *handle, ACCESS_MASK access, const OBJ
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtCreateSemaphore( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
++                                                            LONG initial, LONG max )
++{
++    return sysv_NtCreateSemaphore( handle, access, attr, initial, max );
++}
++
++GPT_ABI_WRAPPER( NtCreateSemaphore );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtOpenSemaphore (NTDLL.@)
+@@ -1131,7 +1144,7 @@ NTSTATUS WINAPI NtQuerySemaphore( HANDLE handle, SEMAPHORE_INFORMATION_CLASS cla
+ /******************************************************************************
+  *              NtReleaseSemaphore (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, LONG count, ULONG *previous )
++NTSTATUS WINAPI GPT_IMPORT(NtReleaseSemaphore)( HANDLE handle, LONG count, ULONG *previous )
+ {
+     unsigned int ret;
+ 
+@@ -1156,12 +1169,24 @@ NTSTATUS WINAPI NtReleaseSemaphore( HANDLE handle, LONG count, ULONG *previous )
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtReleaseSemaphore( HANDLE handle, LONG count, ULONG *previous )
++{
++    return sysv_NtReleaseSemaphore( handle, count, previous );
++}
++
++GPT_ABI_WRAPPER( NtReleaseSemaphore );
++
++#endif
++
+ 
+ /**************************************************************************
+  *              NtCreateEvent (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtCreateEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
+-                               EVENT_TYPE type, BOOLEAN state )
++NTSTATUS WINAPI GPT_IMPORT(NtCreateEvent)( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
++                                           EVENT_TYPE type, BOOLEAN state )
+ {
+     unsigned int ret;
+     data_size_t len;
+@@ -1189,6 +1214,19 @@ NTSTATUS WINAPI NtCreateEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtCreateEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_ATTRIBUTES *attr,
++                                                        EVENT_TYPE type, BOOLEAN state )
++{
++    return sysv_NtCreateEvent( handle, access, attr, type, state );
++}
++
++GPT_ABI_WRAPPER( NtCreateEvent );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtOpenEvent (NTDLL.@)
+@@ -1220,7 +1258,7 @@ NTSTATUS WINAPI NtOpenEvent( HANDLE *handle, ACCESS_MASK access, const OBJECT_AT
+ /******************************************************************************
+  *              NtSetEvent (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtSetEvent( HANDLE handle, LONG *prev_state )
++NTSTATUS WINAPI GPT_IMPORT(NtSetEvent)( HANDLE handle, LONG *prev_state )
+ {
+     unsigned int ret;
+ 
+@@ -1249,11 +1287,23 @@ NTSTATUS WINAPI NtSetEventBoostPriority( HANDLE handle )
+     return NtSetEvent( handle, NULL );
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtSetEvent( HANDLE handle, LONG *prev_state )
++{
++    return sysv_NtSetEvent( handle, prev_state );
++}
++
++GPT_ABI_WRAPPER( NtSetEvent );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtResetEvent (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtResetEvent( HANDLE handle, LONG *prev_state )
++NTSTATUS WINAPI GPT_IMPORT(NtResetEvent)( HANDLE handle, LONG *prev_state )
+ {
+     unsigned int ret;
+ 
+@@ -1273,21 +1323,45 @@ NTSTATUS WINAPI NtResetEvent( HANDLE handle, LONG *prev_state )
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtResetEvent( HANDLE handle, LONG *prev_state )
++{
++    return sysv_NtResetEvent( handle, prev_state );
++}
++
++GPT_ABI_WRAPPER( NtResetEvent );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtClearEvent (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtClearEvent( HANDLE handle )
++NTSTATUS WINAPI GPT_IMPORT(NtClearEvent)( HANDLE handle )
+ {
+     /* FIXME: same as NtResetEvent ??? */
+     return NtResetEvent( handle, NULL );
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtClearEvent( HANDLE handle )
++{
++    return sysv_NtClearEvent( handle );
++}
++
++GPT_ABI_WRAPPER( NtClearEvent );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtPulseEvent (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtPulseEvent( HANDLE handle, LONG *prev_state )
++NTSTATUS WINAPI GPT_IMPORT(NtPulseEvent)( HANDLE handle, LONG *prev_state )
+ {
+     unsigned int ret;
+ 
+@@ -1307,6 +1381,18 @@ NTSTATUS WINAPI NtPulseEvent( HANDLE handle, LONG *prev_state )
+     return ret;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtPulseEvent( HANDLE handle, LONG *prev_state )
++{
++    return sysv_NtPulseEvent( handle, prev_state );
++}
++
++GPT_ABI_WRAPPER( NtPulseEvent );
++
++#endif
++
+ 
+ /******************************************************************************
+  *              NtQueryEvent (NTDLL.@)
+diff --git a/dlls/ntdll/unix/thread.c b/dlls/ntdll/unix/thread.c
+index af57f4e..abb59bd 100644
+--- a/dlls/ntdll/unix/thread.c
++++ b/dlls/ntdll/unix/thread.c
+@@ -1410,10 +1410,10 @@ NTSTATUS WINAPI NtCreateThread( HANDLE *handle, ACCESS_MASK access, OBJECT_ATTRI
+ /***********************************************************************
+  *              NtCreateThreadEx   (NTDLL.@)
+  */
+-NTSTATUS WINAPI NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATTRIBUTES *attr,
+-                                  HANDLE process, PRTL_THREAD_START_ROUTINE start, void *param,
+-                                  ULONG flags, ULONG_PTR zero_bits, SIZE_T stack_commit,
+-                                  SIZE_T stack_reserve, PS_ATTRIBUTE_LIST *attr_list )
++NTSTATUS WINAPI GPT_IMPORT(NtCreateThreadEx)( HANDLE *handle, ACCESS_MASK access, OBJECT_ATTRIBUTES *attr,
++                                              HANDLE process, PRTL_THREAD_START_ROUTINE start, void *param,
++                                              ULONG flags, ULONG_PTR zero_bits, SIZE_T stack_commit,
++                                              SIZE_T stack_reserve, PS_ATTRIBUTE_LIST *attr_list )
+ {
+     static const ULONG supported_flags = THREAD_CREATE_FLAGS_CREATE_SUSPENDED | THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH |
+                                          THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER | THREAD_CREATE_FLAGS_SKIP_LOADER_INIT |
+@@ -1491,6 +1491,22 @@ done:
+     return status;
+ }
+ 
++/* CW Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++
++NTSTATUS __attribute__((ms_abi)) msthunk_NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATTRIBUTES *attr,
++                                                           HANDLE process, PRTL_THREAD_START_ROUTINE start, void *param,
++                                                           ULONG flags, ULONG_PTR zero_bits, SIZE_T stack_commit,
++                                                           SIZE_T stack_reserve, PS_ATTRIBUTE_LIST *attr_list )
++{
++    return sysv_NtCreateThreadEx( handle, access, attr, process, start, param, flags, zero_bits,
++                                  stack_commit, stack_reserve, attr_list );
++}
++
++GPT_ABI_WRAPPER( NtCreateThreadEx );
++
++#endif
++
+ 
+ /***********************************************************************
+  *              PsCreateSystemThread   (ntdll.so)
+diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
+index 40fbc91..a2f7d2c 100644
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -591,6 +591,45 @@ static inline ULONG_PTR get_zero_bits_limit( ULONG_PTR zero_bits )
+     return (~(UINT64)0) >> shift;
+ }
+ 
++/* CX Hack 23015 */
++#if defined(__APPLE__) && defined(__x86_64__)
++#include <wine/asm.h>
++
++extern void *libd3dshared_load_addr, *libd3dshared_code_end;
++
++#define GPT_IMPORT(name) sysv_##name
++#define GPT_ABI_WRAPPER(name) \
++    asm(".text\n\t" \
++        ".align 4\n\t" \
++        ".globl " __ASM_NAME(#name) "\n\t" \
++        __ASM_NAME(#name) ":\n\t" \
++        /* Using rax for scratch to fetch externs, rcx for return address. */ \
++        "push %rax\n\t" \
++        "push %rcx\n\t" \
++        "movq " __ASM_NAME("libd3dshared_load_addr") "@GOTPCREL(%rip), %rax\n\t" \
++        /* Always use the sysv version if we didn't load libd3dshared. */ \
++        "cmpq $0, (%rax)\n\t" \
++        "je " __ASM_LOCAL_LABEL("jmp_sysv_" #name) "\n\t" \
++        /* Is the return address (rsp+16) inside libd3dshared? */ \
++        "movq 16(%rsp), %rcx\n\t" \
++        "cmpq (%rax), %rcx\n\t" \
++        "jb " __ASM_LOCAL_LABEL("jmp_sysv_" #name) "\n\t" \
++        "movq " __ASM_NAME("libd3dshared_code_end") "@GOTPCREL(%rip), %rax\n\t" \
++        "cmpq (%rax), %rcx\n\t" \
++        "ja " __ASM_LOCAL_LABEL("jmp_sysv_" #name) "\n\t" \
++        /* Yes; use the ms_abi thunk. */ \
++        "pop %rcx\n\t" \
++        "pop %rax\n\t" \
++        "jmp " __ASM_NAME("msthunk_" #name) "\n\t" \
++        /* No; use sysv. */ \
++        __ASM_LOCAL_LABEL("jmp_sysv_" #name) ":\n\t" \
++        "pop %rcx\n\t" \
++        "pop %rax\n\t" \
++        "jmp " __ASM_NAME("sysv_" #name) "\n\t" );
++#else
++#define GPT_IMPORT(name) name
++#endif
++
+ 
+ enum loadorder
+ {

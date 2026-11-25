@@ -1,0 +1,194 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Repair an invalid gs_base in the segfault handler (WineHQ bug 57444)
+Category: cpu
+Kind: fix
+Origin: winehq
+  Commit: 94447cee6194e99b75989503c67ef48263ea5cca, a3e3c0a117244365a093e5e52a546719c426a326
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/94447cee6194e99b75989503c67ef48263ea5cca, https://gitlab.winehq.org/wine/wine/-/commit/a3e3c0a117244365a093e5e52a546719c426a326
+  Note: upstream commits 94447cee6194e99b75989503c67ef48263ea5cca (William Horvath),
+    "ntdll: Check for invalid gs_base in the 64-bit segv_handler.", and
+    a3e3c0a117244365a093e5e52a546719c426a326 (Brendan Shanks), "ntdll: Fix
+    crash in check_invalid_gsbase() on macOS."
+Upstream: yes, commits 94447cee61 (in Wine 10.14) and a3e3c0a117 (in Wine 10.15)
+Why: PE code that reloads %gs clears gs_base; repair it in the segv handler
+ instead of recursing (WineHQ bug 57444). Includes the upstream test. The
+ second commit fixes a crash in the first on macOS: it read the faulting
+ instruction directly and crashed on a jump to an invalid address, so it
+ reads it with virtual_uninterrupted_read_memory().
+Programs: none known
+Evidence: Sikarugir 10.0_8: ntdll.so: "check_invalid_gsbase", "gsbase
+ %016lx teb %p at instr %p, fixing up"; it reads into a 16-byte stack buffer
+ with a length check and passes a zero gsbase to the TRACE, as this does
+
+diff --git a/dlls/ntdll/tests/exception.c b/dlls/ntdll/tests/exception.c
+index 9b5ca2c..f50d479 100644
+--- a/dlls/ntdll/tests/exception.c
++++ b/dlls/ntdll/tests/exception.c
+@@ -2711,6 +2711,12 @@ static const struct exception
+     { { 0xb8, 0x01, 0x00, 0x00, 0x00,          /* mov $0x01, %eax */
+         0xcd, 0x2d, 0xfa, 0xc3 },              /* int $0x2d; cli; ret */
+       8, 0, STATUS_SUCCESS, 0 },
++    { { 0x66, 0x0f, 0xa8,                      /* push %gs */
++        0x66, 0x0f, 0xa9,                      /* pop  %gs */
++        0x65, 0x48, 0x8b, 0x04, 0x25,          /* movq %gs:0x30,%rax (NtCurrentTeb) */
++        0x30, 0x00, 0x00, 0x00,
++        0xc3 },                                /* ret */
++      8, 0, STATUS_SUCCESS, 0 },
+ };
+ 
+ static int got_exception;
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 05773fd..499be23 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2162,6 +2162,88 @@ static BOOL handle_syscall_trap( ucontext_t *sigcontext, siginfo_t *siginfo )
+ }
+ 
+ 
++/***********************************************************************
++ *           check_invalid_gsbase
++ *
++ * Check for fault caused by invalid %gs value (some copy protection schemes mess with it).
++ */
++static inline BOOL check_invalid_gsbase( ucontext_t *ucontext )
++{
++    unsigned int prefix_count = 0;
++    const BYTE *instr = (const BYTE *)RIP_sig( ucontext );
++    TEB *teb = NtCurrentTeb();
++    ULONG_PTR cur_gsbase = 0;
++
++    if (CS_sig(ucontext) != cs64_sel) return FALSE;
++
++#ifdef __linux__
++    if (user_shared_data->ProcessorFeatures[PF_RDWRFSGSBASE_AVAILABLE])
++        __asm__("rdgsbase %0" : "=r" (cur_gsbase));
++    else
++        arch_prctl( ARCH_GET_GS, &cur_gsbase );
++#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
++    amd64_get_gsbase( &cur_gsbase );
++#elif defined(__NetBSD__)
++    sysarch( X86_64_GET_GSBASE, &cur_gsbase );
++#endif
++
++    if (cur_gsbase == (ULONG_PTR)teb) return FALSE;
++
++    for (;;)
++    {
++        switch (*instr)
++        {
++        /* instruction prefixes */
++        case 0x2e:  /* %cs: */
++        case 0x36:  /* %ss: */
++        case 0x3e:  /* %ds: */
++        case 0x26:  /* %es: */
++        case 0x40:  /* rex */
++        case 0x41:  /* rex */
++        case 0x42:  /* rex */
++        case 0x43:  /* rex */
++        case 0x44:  /* rex */
++        case 0x45:  /* rex */
++        case 0x46:  /* rex */
++        case 0x47:  /* rex */
++        case 0x48:  /* rex */
++        case 0x49:  /* rex */
++        case 0x4a:  /* rex */
++        case 0x4b:  /* rex */
++        case 0x4c:  /* rex */
++        case 0x4d:  /* rex */
++        case 0x4e:  /* rex */
++        case 0x4f:  /* rex */
++        case 0x64:  /* %fs: */
++        case 0x66:  /* opcode size */
++        case 0x67:  /* addr size */
++        case 0xf0:  /* lock */
++        case 0xf2:  /* repne */
++        case 0xf3:  /* repe */
++            if (++prefix_count >= 15) return FALSE;
++            instr++;
++            continue;
++        case 0x65:  /* %gs: */
++            break;
++        default:
++            return FALSE;
++        }
++        break;
++    }
++
++    TRACE( "gsbase %016lx teb %p at instr %p, fixing up\n", cur_gsbase, teb, instr );
++
++#ifdef __linux__
++    arch_prctl( ARCH_SET_GS, teb );
++#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
++    amd64_set_gsbase( teb );
++#elif defined(__NetBSD__)
++    sysarch( X86_64_SET_GSBASE, &teb );
++#endif
++    return TRUE;
++}
++
++
+ /**********************************************************************
+  *		segv_handler
+  *
+@@ -2214,7 +2296,7 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *sigcontext )
+         rec.NumberParameters = 2;
+         rec.ExceptionInformation[0] = (ERROR_sig(ucontext) >> 1) & 0x09;
+         rec.ExceptionInformation[1] = (ULONG_PTR)siginfo->si_addr;
+-        if (!virtual_handle_fault( &rec, (void *)RSP_sig(ucontext) ))
++        if (!virtual_handle_fault( &rec, (void *)RSP_sig(ucontext) ) || check_invalid_gsbase( ucontext ))
+         {
+             leave_handler( ucontext );
+             return;
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 499be23..7a39cdb 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -2169,8 +2169,8 @@ static BOOL handle_syscall_trap( ucontext_t *sigcontext, siginfo_t *siginfo )
+  */
+ static inline BOOL check_invalid_gsbase( ucontext_t *ucontext )
+ {
+-    unsigned int prefix_count = 0;
+-    const BYTE *instr = (const BYTE *)RIP_sig( ucontext );
++    BYTE instr[16];
++    unsigned int i, len, prefix_count = 0;
+     TEB *teb = NtCurrentTeb();
+     ULONG_PTR cur_gsbase = 0;
+ 
+@@ -2185,13 +2185,18 @@ static inline BOOL check_invalid_gsbase( ucontext_t *ucontext )
+     amd64_get_gsbase( &cur_gsbase );
+ #elif defined(__NetBSD__)
+     sysarch( X86_64_GET_GSBASE, &cur_gsbase );
++#elif defined(__APPLE__)
++    /* init_handler() has already reset GSBASE, we can't determine what it was before the signal */
+ #endif
+ 
+     if (cur_gsbase == (ULONG_PTR)teb) return FALSE;
+ 
+-    for (;;)
++    len = virtual_uninterrupted_read_memory( (BYTE *)RIP_sig(ucontext), instr, sizeof(instr) );
++    if (!len) return FALSE;
++
++    for (i = 0; i < len; i++)
+     {
+-        switch (*instr)
++        switch (instr[i])
+         {
+         /* instruction prefixes */
+         case 0x2e:  /* %cs: */
+@@ -2221,7 +2226,6 @@ static inline BOOL check_invalid_gsbase( ucontext_t *ucontext )
+         case 0xf2:  /* repne */
+         case 0xf3:  /* repe */
+             if (++prefix_count >= 15) return FALSE;
+-            instr++;
+             continue;
+         case 0x65:  /* %gs: */
+             break;
+@@ -2239,6 +2243,8 @@ static inline BOOL check_invalid_gsbase( ucontext_t *ucontext )
+     amd64_set_gsbase( teb );
+ #elif defined(__NetBSD__)
+     sysarch( X86_64_SET_GSBASE, &teb );
++#elif defined(__APPLE__)
++    /* leave_handler() will set GSBASE to the TEB */
+ #endif
+     return TRUE;
+ }
