@@ -80,7 +80,9 @@ website and the JSON list builds.
 **Release files.** The files in a release: the build archive (`.tar.xz`),
 debug symbols (`-debug.tar.xz`), tests (`-tests.tar.xz`), corresponding
 source (`-sources.tar.xz`), the SBOM (`.spdx.json`), BUILD-INFO
-(`.build-info.json`) and checksums (`.SHA256SUMS`).
+(`.build-info.json`), test results (`.tests.json`) and checksums
+(`.SHA256SUMS`, which covers every file but the test results: those are
+written after it).
 
 **BUILD-INFO.json.** The record of what went into a build: source, patches
 with their headers, toolchain, environment, configure options and

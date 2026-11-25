@@ -219,6 +219,11 @@ info = {
     "patch_base": env["PATCH_BASE"],
     "patch_sets": [patch_set_entry(s) for s in env["PATCH_SETS_LIST"].split()],
     "wine_version": env["WINE_VERSION"],
+    # What `wine --version` prints: WineHQ's version string, plus the
+    # flavour's label from the version-label patch set (the smoke test
+    # checks the build prints exactly this).
+    "wine_version_string": f"wine-{env['WINE_VERSION']}" + (
+        f" ({env['FLAVOUR']})" if "version-label" in env["PATCH_SETS_LIST"].split() else ""),
     "build_number": int(env["BUILD_NUMBER"]),
     "platform": "macos-x86_64",
     "minimum_macos": env["DEPLOYMENT_TARGET"],

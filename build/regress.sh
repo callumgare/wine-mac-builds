@@ -227,5 +227,21 @@ for src in "$WMB_ROOT"/tests/regress/*.c "$WMB_ROOT"/tests/regress/*.sh; do
 done
 
 log "regress: ${#passed[@]} passed, ${#skipped[@]} skipped, ${#failed[@]} failed${failed[*]+: $(IFS=,; echo "${failed[*]}" | sed "s/,/, /g")}"
+# For build/tests.py: the release's <build ID>.tests.json.
+/usr/bin/python3 -I -c 'import json, sys
+groups, cur = {"passed": [], "skipped": [], "failed": []}, None
+for a in sys.argv[2:]:
+    if a in ("--passed", "--skipped", "--failed"):
+        cur = a[2:]
+    else:
+        groups[cur].append(a)
+groups["opengl_only"] = sys.argv[1] == "only"
+print(json.dumps(groups, indent=2))' "${WMB_REGRESS_GL:-}" --passed ${passed[@]+"${passed[@]}"} \
+    --skipped ${skipped[@]+"${skipped[@]}"} --failed ${failed[@]+"${failed[@]}"} > "$LOG/results.json"
+# A build's own full run (not --tree, one test, or only the OpenGL tests)
+# also writes the release file <build ID>.tests.json, with smoke.sh's results.
+if [[ -n ${W:-} && -z ${WMB_REGRESS_ONLY:-} && -z ${WMB_REGRESS_GL:-} && -f "$W/smoke/results.json" ]]; then
+    /usr/bin/python3 -I "$WMB_ROOT/build/tests.py" write "$W" "$BUILD_ID" "$WMB_OUT_DIR"
+fi
 [[ ${#failed[@]} -eq 0 ]] || exit 1
 rm -rf "$WINEPREFIX"

@@ -89,5 +89,10 @@ rc=0
 } | gui_job "$H" hostgl 1800 || rc=$?
 [[ $rc != 124 ]] || die "hostgl: the OpenGL tests didn't finish within 30 minutes"
 [[ $rc == 0 ]] || die "hostgl: OpenGL tests failed (exit $rc)"
+# A full build's <build ID>.tests.json (build/tests.py) records this run.
+tests_json="$(dirname "$ARCHIVE")/$BUILD_ID.tests.json"
+if [[ -f $tests_json && -z ${WMB_REGRESS_ONLY:-} ]]; then
+    /usr/bin/python3 -I "$WMB_ROOT/build/tests.py" add-opengl "$H/work/regress-$BUILD_ID/results.json" "$tests_json"
+fi
 rm -rf "$T" "$H/work"
 log "hostgl: OpenGL tests passed"
