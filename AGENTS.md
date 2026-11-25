@@ -124,12 +124,15 @@ projects.
   same games, in the same session and on the same Mac. Report "n of m"
   launches, not "works".
 - The website: `python3 tests/site/check.py` generates it from made-up
-  releases (`tests/site/releases.json`, no network) and checks the HTML,
+  releases (`tests/site/make-releases.py`, no network) and checks the HTML,
   links, assets, `_headers` and `_redirects`; `--keep <dir>` leaves the
-  site there, and `--site <dir>` checks one generated already. The made-up
-  releases come from `tests/site/make-releases.py`; after changing it, run
-  it, and add any new builds.json keys with `check.py --write-keys`. Preview
-  with `python3 tools/site.py --out site --releases tests/site/releases.json
+  site there, and `--site <dir>` checks one generated already. Their patch
+  entries are real: `tests/site/sample-patches.json`, which
+  `tests/site/sample-from-recipe.py <checkout>` rewrites from the recipe's
+  patches. After a change that adds builds.json keys, add them with
+  `check.py --write-keys`. Preview with `python3
+  tests/site/make-releases.py` (it writes `tests/site/releases.json`), then
+  `python3 tools/site.py --out site --releases tests/site/releases.json
   --metadata tests/site/metadata --include-drafts` (or the real drafts:
   `GH_TOKEN=… python3 tools/site.py --out site --include-drafts`) and
   `npx wrangler dev`, which applies `_headers`,

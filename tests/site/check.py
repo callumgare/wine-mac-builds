@@ -3,8 +3,9 @@
 """tests/site/check.py [--releases <file>] [--metadata <dir>] [--site <dir>] [--keep <dir>]
                     [--write-keys]
 
-Generates the website from made-up releases (tests/site/releases.json, drafts
-included) with tools/site.py, without the network, and checks what it wrote:
+Generates the website from made-up releases (tests/site/make-releases.py,
+drafts included) with tools/site.py, without the network, and checks what it
+wrote:
 
   - every page is well formed: a doctype, balanced tags, unique ids, one h1,
     and every href="#…", for, aria-controls (and the other id references)
@@ -464,8 +465,7 @@ def check_markup():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
-    ap.add_argument("--releases", default=str(ROOT / "tests/site/releases.json"),
-                    help="made-up releases to generate from (default: tests/site/releases.json)")
+    ap.add_argument("--releases", help="releases to generate from (default: make-releases.py's)")
     ap.add_argument("--metadata", default=str(ROOT / "tests/site/metadata"),
                     help="the metadata folder to generate with (default: tests/site/metadata)")
     ap.add_argument("--site", help="check this generated site instead of generating one")
@@ -475,6 +475,10 @@ def main():
     problems = check_markup() + check_repo()
     with tempfile.TemporaryDirectory() as tmp:
         site = args.site
+        if not site and not args.releases:
+            args.releases = str(pathlib.Path(tmp) / "releases.json")
+            subprocess.run([sys.executable, str(ROOT / "tests/site/make-releases.py"), args.releases],
+                           check=True, capture_output=True)
         if not site:
             site = args.keep or str(pathlib.Path(tmp) / "site")
             r = subprocess.run([sys.executable, str(ROOT / "tools/site.py"), "--out", site,

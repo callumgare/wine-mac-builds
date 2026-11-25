@@ -255,8 +255,11 @@
  "builds[].patches[].file": [
   "string"
  ],
- "builds[].patches[].kind": [
-  "null",
+ "builds[].patches[].kinds": [
+  "array",
+  "null"
+ ],
+ "builds[].patches[].kinds[]": [
   "string"
  ],
  "builds[].patches[].name": [
@@ -271,12 +274,6 @@
  "builds[].patches[].origins[]": [
   "object"
  ],
- "builds[].patches[].origins[].binary": [
-  "string"
- ],
- "builds[].patches[].origins[].changes": [
-  "string"
- ],
  "builds[].patches[].origins[].commit": [
   "string"
  ],
@@ -284,18 +281,9 @@
   "array"
  ],
  "builds[].patches[].origins[].cw_hacks[]": [
-  "string"
- ],
- "builds[].patches[].origins[].functions": [
-  "string"
- ],
- "builds[].patches[].origins[].name": [
-  "string"
+  "number"
  ],
  "builds[].patches[].origins[].note": [
-  "string"
- ],
- "builds[].patches[].origins[].patchset": [
   "string"
  ],
  "builds[].patches[].origins[].ported_here": [

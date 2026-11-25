@@ -472,3 +472,4 @@ h3.plat { font: 500 1rem var(--f-mono); margin-top: .5rem; }
   .frow2 .fn { grid-column: 1 / -1; }
   .frow2 .sz { text-align: left; }
 }
+.tests .fail { color: var(--warn); }

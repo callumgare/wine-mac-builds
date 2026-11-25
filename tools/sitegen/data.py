@@ -126,12 +126,14 @@ def build_path(buildless, number, experimental):
 
 
 def patch_data(info, wine_version):
-    """(patch_base, patch_sets, patches) in BUILD-INFO's patch-set shape,
-    mapping a build from before patch sets (legacy.py)."""
-    if "patch_sets" in info:
-        return info.get("patch_base"), info["patch_sets"], info.get("patches", [])
+    """(patch_base, patch_sets, patches) in BUILD-INFO's patch-set shape.
+    The patches are under components[wine]; a build from before patch sets
+    has them in the old shape, which legacy.py maps."""
     wine = next((c for c in info.get("components", []) if c.get("name") == "wine"), {})
-    patches = [legacy.patch(p, wine_version) for p in wine.get("patches", [])]
+    raw = wine.get("patches") or info.get("patches") or []
+    if "patch_sets" in info and all("set" in p for p in raw):
+        return info.get("patch_base"), info["patch_sets"], raw
+    patches = [legacy.patch(p, wine_version) for p in raw]
     return "winehq", legacy.sets_for(patches), patches
 
 
@@ -205,7 +207,7 @@ def _entry(rel, metadata_dir, site_url):
         "patch_base": base,
         "patch_sets": [{k: s.get(k) for k in ("name", "summary", "range")} for s in sets],
         "patches": [{k: p.get(k) for k in ("name", "set", "number", "file", "versions", "sha256", "diff_sha256",
-                                           "summary", "category", "kind", "origins")} for p in patches],
+                                           "summary", "category", "kinds", "origins")} for p in patches],
         "assets": assets,
         "known_issues": meta.get("known_issues", []),
         "changes": meta.get("changes"),

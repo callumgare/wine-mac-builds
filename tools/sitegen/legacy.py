@@ -141,22 +141,20 @@ def patch(p, wine_version):
     source = p.get("source") or ""
     origin = {"project": p.get("origin") or "other", "ported_here": bool(p.get("ported"))}
     if p.get("cw_hacks"):
-        origin["cw_hacks"] = [str(n) for n in p["cw_hacks"]]
+        origin["cw_hacks"] = [int(n) for n in p["cw_hacks"]]
     if source.startswith("http"):
         origin["url"] = source.split()[0]
     if p.get("from"):
         origin["note"] = p["from"]
     header = {k: v for k, v in p.items()
-              if k not in ("file", "sha256", "summary", "category", "kinds", "origin", "ported", "cw_hacks")}
-    kinds = p.get("kinds") or []
-    if len(kinds) > 1:
-        header["kinds"] = kinds
+              if k not in ("file", "sha256", "origin", "ported", "cw_hacks")}
+    header["origins"] = [origin]
     return {
         "name": name, "set": s, "number": number, "file": p.get("file"),
         "versions": [m["version"] if m and m["version"] else wine_version],
         "sha256": p.get("sha256"), "diff_sha256": None,
         "summary": p.get("summary"), "category": p.get("category"),
-        "kind": kinds[0] if kinds else None,
+        "kinds": p.get("kinds"),
         "origins": [origin], "header": header,
     }
 

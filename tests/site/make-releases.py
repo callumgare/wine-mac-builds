@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LGPL-2.1-or-later
-"""tests/site/make-releases.py: writes tests/site/releases.json, the
-made-up releases tests/site/check.py generates the site from.
+"""tests/site/make-releases.py [<file>]: writes the made-up releases
+tests/site/check.py generates the site from (by default
+tests/site/releases.json, which isn't committed: it's about 1.5 MB, and
+check.py makes its own).
 
-Every value is invented; sha256s are hashes of names. It follows the
+Every value is invented (sha256s are hashes of names) except the patch
+entries, which are real: tests/site/sample-patches.json, from the recipe's
+patches (sample-from-recipe.py). It follows the
 GitHub releases API's JSON with each release's build_info, sha256sums and
 test_results inlined (tools/site.py --releases), and BUILD-INFO's patch-set
 shape ("What BUILD-INFO records" in the patch-sets plan). It covers:
@@ -15,15 +19,17 @@ shape ("What BUILD-INFO records" in the patch-sets plan). It covers:
   - two platforms of one build (wine 11.21 build1); a platform only an
     older build has (macfixes 10.0 build1's arm64)
   - one build from before patch sets (macfixes 11.21 build1, the old
-    patch fields), one draft (macfixes 11.22 build1), one build with a
+    patch fields), one draft (macfixes 11.22 build2), one build with a
     .tests.json file, and one with no CI run in its release notes
+  - a header with markup characters in it, to check escaping (11.0-rc2)
 
-Run it again after changing it, and commit both files.
+Its metadata files (tests/site/metadata/) are committed.
 """
 
 import hashlib
 import json
 import pathlib
+import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = "https://github.com/callumgare/wine-mac-builds"
@@ -36,91 +42,23 @@ def sha(s):
     return hashlib.sha256(s.encode()).hexdigest()
 
 
-SETS = {
-    "build": ("Needed to build with this project's toolchain, or to build reproducibly.", "0001-0999"),
-    "packaging": ("Needed for Wine to work as this project packages it.", "0001-0999"),
-    "version-label": ("Adds the flavour's name to Wine's version string.", "1000-1999"),
-    "essential-fixes": ("Fixes without which Wine is broken for many programs or Macs.", "2000-2999"),
-    "targeted-fixes": ("Fixes and workarounds for specific situations.", "2000-2999"),
-    "options": ("Changes that do nothing until enabled.", "2000-2999"),
-    "programs": ("Changes that act only on named programs.", "2000-2999"),
-}
-FLAVOUR_SETS = {
-    "wine": ["build", "packaging"],
-    "macfixes": ["build", "packaging", "version-label", "essential-fixes", "targeted-fixes", "options", "programs"],
-}
-DESCRIPTIONS = {
-    "wine": "WineHQ's release, with only what's needed to build and package it.",
-    "macfixes": "WineHQ's release plus fixes for running Windows programs on a Mac.",
-}
-# name, set, number, category, kind, summary, origins, header
-PATCHES = [
-    ("vulkan-portability-enumeration", "packaging", "0001", "graphics", "fix",
-     "Let Wine's Vulkan find MoltenVK (portability enumeration)",
-     [{"project": "gcenx", "ported_here": False, "commit": "fc0301b4", "url": "https://github.com/Gcenx/macports-wine"}],
-     {"why": "MoltenVK is a portability driver; without this the loader hides it.", "programs": "none known",
-      "upstream": "no", "upstream_status": "no"}),
-    ("ntdll-vulkan-bundled-driver", "packaging", "0002", "graphics", "fix",
-     "Point the Vulkan loader at the bundled MoltenVK driver",
-     [{"project": "wine-mac-builds", "ported_here": False}],
-     {"why": "The loader only searches its build prefix for driver manifests.", "upstream": "no",
-      "upstream_status": "no"}),
-    ("winegcc-deterministic-temp-dir", "build", "0003", "build", "fix",
-     "Name winegcc's temp directory deterministically, for reproducible builds",
-     [{"project": "wine-mac-builds", "ported_here": False}], {"upstream": "no", "upstream_status": "no"}),
-    ("dwrite-tests-fno-builtin", "build", "0004", "build", "tests",
-     "Build the dwrite tests with `-fno-builtin` so they link with LLVM 23",
-     [{"project": "wine-mac-builds", "ported_here": False}], {"upstream": "no", "upstream_status": "no"}),
-    ("ntdll-version-label", "version-label", "1001", "system", "feature",
-     "Add the flavour's name to `wine --version`",
-     [{"project": "wine-staging", "ported_here": True, "version": "v11.21", "patchset": "Staging",
-       "url": "https://github.com/wine-staging/wine-staging/tree/v11.21/patches/Staging"}],
-     {"upstream": "no", "upstream_status": "no"}),
-    ("ntdll-rosetta-mxcsr", "essential-fixes", "2006", "cpu", "workaround",
-     "Rosetta 2: mask MXCSR bits it rejects <before> LDMXCSR & friends",
-     [{"project": "crossover", "ported_here": True, "version": "26.3.0", "cw_hacks": ["24256", "24265"],
-       "changes": "CX 26.3.0's code at 11.21's locations.",
-       "url": "https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz"}],
-     {"why": "Rosetta raises #GP for reserved MXCSR bits.\nPrograms built with old MSVC set them.",
-      "programs": "Older Unity games", "evidence": "Sikarugir 10.0_8's ntdll.so has the same check.",
-      "upstream": "no", "upstream_status": "no"}),
-    ("winemac-gl-update-on-main-thread", "essential-fixes", "2058", "graphics", "fix",
-     "Update OpenGL contexts on the main thread",
-     [{"project": "wine-mac-builds", "ported_here": False}, {"project": "crossover", "cw_hacks": ["19005"]}],
-     {"why": "AppKit requires it; off the main thread it crashes on macOS 14 and later.",
-      "upstream": "partly (11.22)", "upstream_status": "partly"}),
-    ("ntdll-rosetta-debug-registers", "targeted-fixes", "2004", "cpu", "workaround",
-     "Rosetta 2: report success when setting debug registers",
-     [{"project": "crossover", "ported_here": False, "cw_hacks": ["22131"]}],
-     {"why": "Rosetta 2 can't set x86 debug registers; DRM checks abort when it fails.",
-      "programs": "Big Fish games (Armadillo DRM)", "upstream": "partly (the wineserver half)",
-      "upstream_status": "partly"}),
-    ("ntdll-rosetta-cross-process-code-writes", "targeted-fixes", "2043", "cpu", "workaround",
-     "Rosetta 2: flush translations after another process writes code",
-     [{"project": "reconstructed", "ported_here": False, "binary": "Sikarugir 10.0_8 ntdll.so",
-       "functions": "virtual_flush_cross_process"}],
-     {"why": "Rosetta caches translated code.", "uncertain": "Rebuilt from compiled code; the original's intent is a guess.",
-      "upstream": "no", "upstream_status": "no"}),
-    ("ntdll-msync", "options", "2002", "sync", "feature",
-     "msync: Mach-semaphore synchronisation, on with `WINEMSYNC=1`",
-     [{"project": "crossover", "ported_here": True, "cw_hacks": ["18947"]}, {"project": "other", "name": "msync by marzent",
-                                                                              "url": "https://github.com/marzent/wine-msync"}],
-     {"why": "Faster than wineserver round trips for programs with many threads.", "upstream": "no",
-      "upstream_status": "no"}),
-    ("advapi32-battlenet-acls", "programs", "2027", "system", "workaround",
-     "Battle.net: grant the permissions its updater checks for",
-     [{"project": "crossover", "ported_here": False, "cw_hacks": ["20891"]}],
-     {"programs": "Battle.net", "upstream": "no", "upstream_status": "no"}),
-]
+# Real patch entries, from the recipe's patches (sample-from-recipe.py).
+SAMPLE = json.loads((HERE / "sample-patches.json").read_text())
+# One made-up patch, to check that header text is escaped.
+ODD_PATCH = {"name": "test-escaping", "set": "build", "number": "0999",
+             "file": "patches/winehq/build/0999-test-escaping/test-escaping@11.0-rc2.patch", "versions": ["11.0-rc2"],
+             "sha256": sha("odd"), "diff_sha256": sha("odd-diff"),
+             "summary": "Escape <script>alert(1)</script> & \"quotes\" in `code`", "category": "build",
+             "kinds": ["tests"], "origins": [{"project": "wine-mac-builds", "ported_here": False}],
+             "header": {"why": "Made up: <b>not bold</b> & co.", "upstream": "no", "upstream_status": "no"}}
 
 
-def patch_for(p, version):
-    name, s, number, category, kind, summary, origins, header = p
-    vs = ["10.0"] if version == "10.0" else ["11.21", "11.22"] if version in ("11.21", "11.22") else [version]
-    f = f"patches/winehq/{s}/{number}-{name}/{name}@{','.join(vs)}.patch"
-    return {"name": name, "set": s, "number": number, "file": f, "versions": vs, "sha256": sha(f),
-            "diff_sha256": sha(name + vs[0][:2]), "summary": summary, "category": category, "kind": kind,
-            "origins": origins, "header": header}
+def sample_patches(flavour, version):
+    # A version the sample doesn't have borrows the nearest one's list.
+    key = f"{flavour}/{version}"
+    if key not in SAMPLE["applied"]:
+        key = f"{flavour}/11.21"
+    return [SAMPLE["copies"][f] for f in SAMPLE["applied"][key]]
 
 
 def legacy_patches(version):
@@ -172,12 +110,13 @@ def release(flavour, version, number, platform, published, *, experimental=False
     if legacy:
         info["components"][0]["patches"] = legacy_patches(version)
     else:
-        sets = FLAVOUR_SETS[flavour]
-        info["patch_base"] = "winehq"
-        info["patch_sets"] = [{"name": s, "summary": SETS[s][0], "range": SETS[s][1]} for s in sets]
-        info["patches"] = sorted((patch_for(p, version) for p in PATCHES if p[1] in sets), key=lambda p: p["number"])
-        info["flavour_description"] = DESCRIPTIONS[flavour]
+        fl = SAMPLE["flavours"][flavour]
+        info["flavour_description"] = fl["description"]
+        info["patch_base"] = fl["base"]
+        info["patch_sets"] = fl["sets"]
         info["wine_version_string"] = f"wine-{version}" + ("" if flavour == "wine" else f" ({flavour})")
+        info["components"][0]["patches"] = sample_patches(flavour, version) + (
+            [ODD_PATCH] if version == "11.0-rc2" else [])
     assets, sums = [], []
     rid = int(sha(tag)[:6], 16)
     for i, suffix in enumerate(FILES + [".SHA256SUMS"] + ([".tests.json"] if tests else [])):
@@ -194,9 +133,12 @@ def release(flavour, version, number, platform, published, *, experimental=False
            "published_at": None if draft else published, "assets": assets, "build_info": info,
            "sha256sums": "\n".join(sums) + "\n"}
     if tests:
-        rel["test_results"] = {"smoke": {"passed": ["launch", "window", "audio"], "failed": ["media"]},
-                               "regress": {"passed": ["rosetta-mxcsr", "gl-main-thread"], "failed": [],
-                                           "skipped": ["fullscreen-space"]}}
+        rel["test_results"] = {
+            "schema_version": 1, "build_id": tag,
+            "smoke": {"passed": ["launch", "window", "audio"], "skipped": [], "failed": ["media"]},
+            "regress": {"passed": ["rosetta-mxcsr (i686)", "rosetta-mxcsr (x86_64)"], "skipped": ["gl-main-thread"],
+                        "failed": []},
+            "regress_opengl": {"passed": ["gl-main-thread"], "skipped": [], "failed": []}}
     return rel
 
 
@@ -210,12 +152,20 @@ RELEASES = [
     release("macfixes", "10.0", 2, "macos-x86_64", "2026-11-15T12:00:00Z"),
     release("macfixes", "10.0", 3, "macos-x86_64", "2026-11-16T12:00:00Z"),
     release("macfixes", "10.0", 4, "macos-x86_64", "2026-11-17T12:00:00Z", experimental=True),
+    release("wine", "10.20", 1, "macos-x86_64", "2026-11-14T09:00:00Z"),
+    release("wine", "11.22", 1, "macos-x86_64", "2026-11-18T10:00:00Z"),
     release("macfixes", "11.21", 1, "macos-x86_64", "2026-11-15T08:00:00Z", legacy=True),
-    release("macfixes", "11.22", 1, "macos-x86_64", None, draft=True),
+    release("macfixes", "11.21", 2, "macos-x86_64", "2026-11-17T08:00:00Z"),
+    release("macfixes", "11.22", 1, "macos-x86_64", "2026-11-18T08:00:00Z"),
+    release("macfixes", "11.22", 2, "macos-x86_64", None, draft=True),
 ]
 
+def write(path):
+    pathlib.Path(path).write_text(json.dumps(RELEASES, indent=1) + "\n")
+
+
 if __name__ == "__main__":
-    (HERE / "releases.json").write_text(json.dumps(RELEASES, indent=1) + "\n")
+    write(sys.argv[1] if len(sys.argv) > 1 else HERE / "releases.json")
     (HERE / "metadata").mkdir(exist_ok=True)
     (HERE / "metadata" / "wine-macfixes-10.0-build2.toml").write_text(
         'withdrawn = "Crashes on start on macOS 10.15 (made up for the test). It stays downloadable."\n'

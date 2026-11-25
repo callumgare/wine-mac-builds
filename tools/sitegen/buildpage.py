@@ -255,7 +255,7 @@ def upstream_status(p):
 
 def patch_row(p, commit, repo_url):
     h = p.get("header") or {}
-    kinds = h.get("kinds") or ([p["kind"]] if p.get("kind") else [])
+    kinds = p.get("kinds") or []
     badges = [el("span", KIND_NAMES.get(k, k), class_="kchip") for k in kinds]
     if h.get("uncertain"):
         badges.append(el("span", "uncertain", class_="pbadge unc"))
@@ -339,27 +339,34 @@ def changes_and_issues(b):
     return wrap(el("div", *parts, class_="prose"))
 
 
+TEST_GROUPS = (("smoke", "Smoke tests"), ("regress", "Regression tests"),
+               ("regress_opengl", "OpenGL regression tests, on the host"))
+
+
 def tests_section(b):
+    """From <build ID>.tests.json (build/tests.py): each group lists the
+    tests that passed, were skipped and failed, by name."""
     results = [(p, e["_test_results"]) for p, e in sorted(b["platforms"].items()) if e.get("_test_results")]
     if not results:
         return None
-    out = [head("Tests", "From each platform's .tests.json release file, written after the build's tests ran.")]
+    out = [head("Tests", "From the build's .tests.json release file, written after its tests ran. "
+                         "A test that runs for several architectures counts once for each.")]
     for p, r in results:
+        if len(results) > 1:
+            out.append(el("h3", p, class_="plat"))
         cells = []
-        for group, label in (("smoke", "Smoke probes"), ("regress", "Regression tests")):
-            g = r.get(group) if isinstance(r, dict) else None
+        for key, label in TEST_GROUPS:
+            g = r.get(key) if isinstance(r, dict) else None
             if not isinstance(g, dict):
                 continue
-            passed, failed, skipped = (g.get(k) or [] for k in ("passed", "failed", "skipped"))
-            total = len(passed) + len(failed)
+            passed, skipped, failed = (list(g.get(k) or []) for k in ("passed", "skipped", "failed"))
+            ran = len(passed) + len(failed)
             detail = []
             if failed:
-                detail.append(f"failed: {', '.join(failed)}")
+                detail.append(el("span", "Failed: ", ", ".join(failed), class_="small fail"))
             if skipped:
-                detail.append(f"skipped: {', '.join(skipped)}")
-            cells.append(el("div", el("b", f"{len(passed)} / {total}"),
-                            el("span", f"{label} passed" + (f" ({p})" if len(results) > 1 else "")),
-                            el("span", "; ".join(detail), class_="small") if detail else None))
+                detail.append(el("span", f"{len(skipped)} skipped: ", ", ".join(skipped), class_="small"))
+            cells.append(el("div", el("b", f"{len(passed)} / {ran}"), el("span", f"{label} passed"), *detail))
         out.append(el("div", *cells, class_="tests"))
     return wrap(*out)
 
