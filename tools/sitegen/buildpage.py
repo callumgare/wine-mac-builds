@@ -298,7 +298,7 @@ def patches_section(b):
     cats = collections.Counter(p.get("category") for p in patches)
     chips = [el("button", CATEGORIES.get(c, c), " ", el("b", str(n)), type="button", data_cat=c, aria_pressed="false")
              for c, n in sorted(cats.items(), key=lambda x: (-x[1], str(x[0]))) if c]
-    filters = el("div", el("div", el("span", "Category", class_="pflabel"), el("div", *chips, class_="pchips"),
+    filters = el("div", el("div", el("span", "Category", class_="pflabel"), el("div", *chips, class_="pchips", data_box="cat"),
                            el("span", f"{len(patches)} patches", class_="count", data_count=""), class_="pfrow"),
                  class_="pfilters", role="group", aria_label="Filter patches by category", data_js="", hidden=True)
     groups = []

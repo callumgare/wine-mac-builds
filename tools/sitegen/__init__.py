@@ -10,7 +10,11 @@
   buildpage.py     build pages, latest-build pages, pasted-name stubs,
                    and the buildless download redirects
   buildlist.py     /builds/
-  placeholders.py  stand-ins for pages not built yet
+  content.py       content.toml: the longer copy
+  home.py          /
+  flavours.py      /flavours/
+  patchespage.py   /patches/
+  packaging.py     /packaging/
   notfound.py      /404.html
   static/          site.css, site.js, favicon.svg and fonts/
 """

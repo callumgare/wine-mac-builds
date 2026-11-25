@@ -16,7 +16,9 @@ the site workflow deploys it to Cloudflare (a static-assets Worker).
   <out>/builds/<buildless>/   the latest build's page
   <out>/builds/<build name>/  a stub leading to the build's page, for
                               pasted build names
-  <out>/builds/, <out>/       and the other pages (tools/sitegen/)
+  <out>/, <out>/{flavours,builds,packaging,patches}/
+                              the other pages (tools/sitegen/; longer copy
+                              in tools/sitegen/content.toml)
   <out>/_redirects            buildless downloads:
                               /builds/<buildless>/<platform><suffix> -> the
                               latest build's file. These must stay for good.
@@ -59,7 +61,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import sitegen  # noqa: E402
-from sitegen import buildlist, buildpage, data, notfound, placeholders  # noqa: E402
+from sitegen import buildlist, buildpage, data, flavours, home, notfound, packaging, patchespage  # noqa: E402
 
 SCHEMA_VERSION = 1
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -97,7 +99,10 @@ def main():
             "builds": bl["builds"], "platforms": platforms}))
     buildpage.render_all(site, d)
     buildlist.render(site, d)
-    placeholders.render(site)
+    home.render(site, d)
+    flavours.render(site, d)
+    packaging.render(site, d)
+    patchespage.render(site, d)
     notfound.render(site)
     redirects = buildpage.redirects(site, d)
     if len(redirects) > 1900:

@@ -105,6 +105,9 @@ def release(flavour, version, number, platform, published, *, experimental=False
                  "source": {"url": f"https://dl.winehq.org/wine/source/{version.split('.')[0]}.x/wine-{version}.tar.xz",
                             "sha256": sha(version), "signed_by": "DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D"}},
                 {"name": "MoltenVK", "version": "1.4.0", "license": "Apache-2.0"},
+                {"name": "GStreamer.framework", "version": "1.28.1", "license": "LGPL-2.0-or-later"},
+                {"name": "wine-gecko", "version": "2.47.4", "license": "MPL-2.0"},
+                {"name": "vulkan-loader", "version": "1.4.363.0_0", "license_macports": "Apache-2"},
                 {"name": "wine-mono", "version": "11.3.0", "license": "MIT AND others"},
                 {"name": "zlib", "version": "1.3.2_0", "license": None}]}
     if legacy:

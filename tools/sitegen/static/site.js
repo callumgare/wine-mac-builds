@@ -2,7 +2,8 @@
 //
 // The website's one script. Every page is complete without it; it only adds
 // what needs a script: copy buttons, clickable build rows, the Builds
-// page's filters and the build page's category filter. Controls that need
+// page's filters, the patch filters, and the Flavours page's version
+// switcher and set popovers. Controls that need
 // it are hidden in the HTML (hidden, data-js) and shown here. It loads
 // nothing and talks to no other site.
 (() => {
@@ -84,35 +85,143 @@
     apply();
   });
 
-  /* Build page: show only the patches of the chosen categories. */
+  /* Patch lists (a build page, /patches/): filter by the chips in each
+     [data-box] (set, cat, origin: a row matches a box if it has any chosen
+     value) and by the search box. */
   $$('.pfilters[data-js]').forEach(bar => {
     const root = bar.parentElement;
     bar.hidden = false;
-    const on = new Set();
-    const rows = $$('.prow[data-cat]', root);
+    const chosen = {};
+    let q = '';
+    const rows = $$('.prow', root);
+    const attr = { set: 'set', cat: 'cat', origin: 'origins' };
+    const match = r => Object.entries(chosen).every(([box, vals]) => {
+      if (!vals.size) return true;
+      const have = (r.dataset[attr[box]] || '').split(' ');
+      return have.some(v => vals.has(v));
+    }) && (!q || (r.dataset.search || r.textContent.toLowerCase()).includes(q));
     const apply = () => {
       let shown = 0;
       $$('.pcat', root).forEach(sec => {
-        const rs = $$('.prow[data-cat]', sec);
+        const rs = $$('.prow', sec);
         let n = 0;
-        rs.forEach(r => { const ok = !on.size || on.has(r.dataset.cat); r.hidden = !ok; n += ok; });
+        rs.forEach(r => { const ok = match(r); r.hidden = !ok; n += ok; });
         const c = $('[data-n]', sec);
         if (c) c.textContent = n === rs.length ? `${rs.length}` : `${n} of ${rs.length}`;
         sec.hidden = n === 0;
         shown += n;
       });
-      $('[data-count]', bar).textContent = shown === rows.length ? `${shown} patches` : `${shown} of ${rows.length} patches`;
+      const count = $('[data-count]', bar);
+      if (count) count.textContent = shown === rows.length ? `${shown} patches` : `${shown} of ${rows.length} patches`;
       const empty = $('[data-empty]', root);
       if (empty) empty.hidden = shown > 0;
     };
     bar.addEventListener('click', e => {
-      const b = e.target.closest('button[data-cat]');
+      const b = e.target.closest('[data-box] button');
       if (!b) return;
-      on.has(b.dataset.cat) ? on.delete(b.dataset.cat) : on.add(b.dataset.cat);
-      b.setAttribute('aria-pressed', String(on.has(b.dataset.cat)));
+      const box = b.closest('[data-box]').dataset.box;
+      const v = b.dataset[box];
+      const set = chosen[box] || (chosen[box] = new Set());
+      set.has(v) ? set.delete(v) : set.add(v);
+      b.setAttribute('aria-pressed', String(set.has(v)));
       apply();
     });
+    const input = $('input[data-q]', bar);
+    if (input) input.addEventListener('input', () => { q = input.value.trim().toLowerCase(); apply(); });
   });
+
+  /* Flavours: the version switcher shows one diagram at a time. */
+  $$('.fverrow[data-js]').forEach(row => {
+    row.hidden = false;
+    row.addEventListener('click', e => {
+      const b = e.target.closest('button[data-v]');
+      if (!b) return;
+      $$('button', row).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      $$('.fgrid[data-version]').forEach(g => { g.hidden = g.dataset.version !== b.dataset.v; });
+      closeSet();
+    });
+  });
+
+  /* Flavours: a set box opens its details (from the <template> it names).
+     Where the pointer is fine and can hover, a popover beside the box,
+     which also opens on hover and stays open while the pointer moves into
+     it; elsewhere a sheet from the bottom. Escape or a click outside closes
+     either (the Popover API's light dismiss), and focus returns to the box.
+     Without the Popover API the boxes stay links to the sections below. */
+  const fine = matchMedia('(hover: hover) and (pointer: fine)');
+  const canPop = typeof HTMLElement !== 'undefined' && HTMLElement.prototype.hasOwnProperty('popover');
+  let pop = null, current = null, mode = null, openT = 0, closeT = 0;
+  function closeSet() { if (pop && pop.matches(':popover-open')) pop.hidePopover(); }
+  function ensurePop() {
+    if (pop) return pop;
+    pop = document.createElement('div');
+    pop.id = 'setpop';
+    pop.className = 'setpop';
+    pop.setAttribute('popover', 'auto');
+    pop.setAttribute('role', 'dialog');
+    pop.innerHTML = '<button type="button" class="x" aria-label="Close">\u00d7</button><div class="body"></div>';
+    document.body.appendChild(pop);
+    $('.x', pop).addEventListener('click', () => { pop.hidePopover(); });
+    pop.addEventListener('toggle', e => {
+      if (e.newState !== 'closed' || !current) return;
+      const box = current;
+      box.setAttribute('aria-expanded', 'false');
+      current = null;
+      if (mode !== 'hover') box.focus();
+    });
+    pop.addEventListener('mouseenter', () => clearTimeout(closeT));
+    pop.addEventListener('mouseleave', () => { if (mode === 'hover') closeT = setTimeout(closeSet, 250); });
+    return pop;
+  }
+  function place(box) {
+    const r = box.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = Math.min(Math.max(16, r.left), innerWidth - w - 16);
+    let top = r.bottom + 8;
+    if (top + h > innerHeight - 8 && r.top - h - 8 > 8) top = r.top - h - 8;
+    pop.style.left = `${left}px`;
+    pop.style.top = `${Math.max(8, Math.min(top, innerHeight - h - 8))}px`;
+  }
+  function openSet(box, how) {
+    const tpl = document.getElementById(box.dataset.set);
+    if (!tpl) return;
+    ensurePop();
+    if (current && current !== box) current.setAttribute('aria-expanded', 'false');
+    const body = $('.body', pop);
+    body.replaceChildren(tpl.content.cloneNode(true));
+    const h = $('h3', body);
+    if (h) { h.id = 'setpop-title'; pop.setAttribute('aria-labelledby', 'setpop-title'); }
+    mode = how;
+    pop.classList.toggle('sheet', how === 'sheet');
+    current = box;
+    box.setAttribute('aria-expanded', 'true');
+    if (!pop.matches(':popover-open')) pop.showPopover();
+    if (how === 'sheet') { pop.style.left = ''; pop.style.top = ''; } else place(box);
+    if (how !== 'hover') { const list = $('.setlist', pop) || $('.x', pop); list.focus({ preventScroll: true }); }
+  }
+  if (canPop) {
+    $$('.fgrid a.layer[data-set]').forEach(box => {
+      box.setAttribute('role', 'button');
+      box.setAttribute('aria-expanded', 'false');
+      box.setAttribute('aria-controls', 'setpop');
+      if (!box.hasAttribute('href')) box.tabIndex = 0;
+      box.addEventListener('click', e => {
+        e.preventDefault();
+        clearTimeout(openT);
+        if (current === box && mode !== 'hover') { closeSet(); return; }
+        openSet(box, fine.matches ? 'click' : 'sheet');
+      });
+      box.addEventListener('keydown', e => { if (e.key === ' ') { e.preventDefault(); box.click(); } });
+      box.addEventListener('mouseenter', () => {
+        if (!fine.matches || (current && mode !== 'hover')) return;
+        clearTimeout(closeT);
+        openT = setTimeout(() => openSet(box, 'hover'), 150);
+      });
+      box.addEventListener('mouseleave', () => {
+        clearTimeout(openT);
+        if (mode === 'hover' && current === box) closeT = setTimeout(closeSet, 250);
+      });
+    });
+  }
 
   wireCopy();
 })();

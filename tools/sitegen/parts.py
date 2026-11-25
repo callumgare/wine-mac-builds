@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 """Pieces shared by several pages."""
 
+from .data import version_key
 from .markup import Markup, el, esc, inline
 
 _COPY_ICONS = Markup(
@@ -81,3 +82,22 @@ def text(s):
         return inline(s)
     except ValueError:
         return esc(s)
+
+
+def version_ranges(versions, known):
+    """'10.0, 11.21–11.24': versions in WineHQ's order, with three or more
+    consecutive ones (consecutive among known, the versions there are builds
+    of) as a range: the patch plan's notation, with an en dash."""
+    known = sorted(set(known) | set(versions), key=version_key)
+    idx = sorted(known.index(v) for v in set(versions))
+    parts, i = [], 0
+    while i < len(idx):
+        j = i
+        while j + 1 < len(idx) and idx[j + 1] == idx[j] + 1:
+            j += 1
+        if j - i >= 2:
+            parts.append(f"{known[idx[i]]}–{known[idx[j]]}")
+        else:
+            parts += [known[k] for k in idx[i:j + 1]]
+        i = j + 1
+    return ", ".join(parts)

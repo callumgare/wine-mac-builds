@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# The website's longer copy. Short facts come from the builds themselves: a
+# built flavour's one-line description is FLAVOUR_DESCRIPTION in
+# flavours/<f>.sh, which BUILD-INFO records; set summaries come from each
+# set's README. Text takes the inline markup: `code`, [text](url), **bold**.
+# Paragraphs are separated by a blank line.
+#
+# The copy informs technical readers. It doesn't sell, instruct or joke.
+
+[home]
+title = "Stable and comprehensive builds of Wine for macOS"
+lede = """Each build is a plain folder of Wine plus everything it needs to run on its own: MoltenVK, \
+GStreamer, Gecko and Mono. A published build is never changed; a fix is a new build with the next number."""
+
+[[home.goals]]
+title = "Stable"
+body = """A published build is never removed or changed. Old versions stay downloadable at the same URL. \
+The only exception is a build marked experimental when it's published."""
+
+[[home.goals]]
+title = "Transparent"
+body = """Every step from WineHQ's source to the downloaded file is in the repository. Each build records \
+its source, patches, toolchain, compiler flags and every bundled library, and can be checked with \
+`gh attestation verify`."""
+
+[[home.goals]]
+title = "Automated"
+body = """New WineHQ releases are built, tested and published by CI. A person steps in only when something fails."""
+
+# One table per flavour, planned ones too, in the order the site shows them.
+# A planned flavour has no builds, so its one-line description is here, and
+# what it's made of: its base, the sets it shares with built flavours
+# (shares), and its own sets (sets; layer is 0-3, or "source" for a set
+# drawn with the source).
+
+[flavours.wine]
+status = "available"
+uses = [
+  "Programs that embed Wine and want WineHQ's behaviour.",
+  "Comparing a program's behaviour with WineHQ bug reports.",
+  "A base for your own patches.",
+]
+body = """WineHQ's release as published, with only the patches needed to build it with this project's \
+toolchain, build it reproducibly, and find the bundled MoltenVK. Nothing in it changes how Wine \
+behaves."""
+
+[flavours.macfixes]
+status = "available"
+uses = [
+  "Programs that fail on plain Wine on a Mac but run under CrossOver or Sikarugir's engines.",
+  "Older 32-bit games under Rosetta 2.",
+  "Programs that embed Wine and need an option that plain Wine lacks.",
+]
+body = """WineHQ's release plus fixes for running Windows programs on macOS, and options that do nothing \
+until enabled.
+
+The fixes are in four sets. `essential-fixes` are those without which Wine is broken for many programs \
+or Macs, such as Rosetta 2's rejected instructions and OpenGL contexts changed off the main thread. \
+`backports` are WineHQ's own later fixes. `targeted-fixes` fix specific programs or situations, and \
+change default behaviour only where nobody would want the old one. `improvements` are default-on \
+changes that aren't fixes.
+
+`options` stay dormant until an environment variable or registry value turns them on: msync, the \
+D3DMetal hooks, hosting Wine's windows in another app, and display and CPU options. `programs` act \
+only on the programs they name, such as Battle.net and CEF-based launchers.
+
+Many patches come from CrossOver's published source, identified by their CrossOver hack numbers; \
+others come from wine-staging, Gcenx's builds, or this project. Five were reconstructed from \
+Sikarugir's compiled engine, which has no published source, and are the least certain. Each patch's \
+header says where it came from; the [Patches](/patches/) page lists them. `wine --version` reports \
+`wine-<version> (macfixes)`."""
+
+[flavours.staging]
+status = "planned"
+description = "WineHQ's release plus wine-staging's patches."
+uses = ["Trying fixes the Wine project maintains but hasn't merged yet."]
+body = """wine-staging's own release, pinned by tag and applied with its `patchinstall.py`, on top of \
+WineHQ's source, then the same `build` and `packaging` sets as `wine`. Comparing it with `wine` shows \
+wine-staging's effect alone."""
+# What it's made of, for the Flavours page's diagram (no builds say yet).
+base = "winehq"
+shares = ["build", "packaging"]
+[[flavours.staging.sets]]
+name = "wine-staging"
+layer = "source"
+summary = "wine-staging's own release, pinned by tag and sha256, applied before any other patch with its `patchinstall.py`."
+
+[flavours.cx]
+status = "planned"
+description = "Wine built from CodeWeavers' published CrossOver source."
+uses = ["Checking whether a program's behaviour comes from CrossOver's Wine changes rather than CrossOver itself."]
+body = """The `sources/wine` tree from CodeWeavers' published CrossOver source, as CodeWeavers ships \
+it, with only the patches needed to build and package it here. It is versioned by CrossOver version \
+(`wine-cx-25.1.0-build1`); each build records the Wine release it's based on. Apple's D3DMetal isn't \
+included.
+
+This is not CrossOver, and CodeWeavers doesn't support it. Buying CrossOver is what funds \
+CodeWeavers' Wine development for the Mac."""
+base = "crossover"
+[[flavours.cx.sets]]
+name = "build"
+layer = 0
+summary = "What CodeWeavers' tree needs to build with this project's toolchain, or to build reproducibly."
+[[flavours.cx.sets]]
+name = "packaging"
+layer = 0
+summary = "What CodeWeavers' tree needs to work as this project packages it."
+
+# Rows of the Flavours page's comparison table, after the rows it works out
+# from the builds (status, source, patch sets, wine --version, versions built).
+[[comparison]]
+label = "msync"
+wine = "No"
+macfixes = "Yes, off until `WINEMSYNC=1`"
+staging = "No"
+cx = "Yes"
+
+[[comparison]]
+label = "Rosetta 2 workarounds"
+wine = "Only WineHQ's own"
+macfixes = "Yes"
+staging = "Only WineHQ's and wine-staging's"
+cx = "Yes"
+
+[[comparison]]
+label = "D3DMetal hooks"
+wine = "No"
+macfixes = "Yes, used only if D3DMetal is supplied"
+staging = "No"
+cx = "Yes"
+
+[[comparison]]
+label = "Versioned by"
+wine = "Wine version"
+macfixes = "Wine version"
+staging = "Wine version"
+cx = "CrossOver version"
+
+[packaging]
+body = """What every build contains, how it's laid out, what its files are called and which files each \
+release has. Every flavour is packaged the same way."""

@@ -473,3 +473,137 @@ h3.plat { font: 500 1rem var(--f-mono); margin-top: .5rem; }
   .frow2 .sz { text-align: left; }
 }
 .tests .fail { color: var(--warn); }
+
+/* Flavours diagram: placement classes (the CSP blocks style attributes). */
+.layers .c2-3 { grid-column: 2 / 3; }
+.layers .c2-4 { grid-column: 2 / 4; }
+.layers .c2-5 { grid-column: 2 / 5; }
+.layers .c2-6 { grid-column: 2 / 6; }
+.layers .c2-7 { grid-column: 2 / 7; }
+.layers .c2-8 { grid-column: 2 / 8; }
+.layers .c2-9 { grid-column: 2 / 9; }
+.layers .c3-4 { grid-column: 3 / 4; }
+.layers .c3-5 { grid-column: 3 / 5; }
+.layers .c3-6 { grid-column: 3 / 6; }
+.layers .c3-7 { grid-column: 3 / 7; }
+.layers .c3-8 { grid-column: 3 / 8; }
+.layers .c3-9 { grid-column: 3 / 9; }
+.layers .c4-5 { grid-column: 4 / 5; }
+.layers .c4-6 { grid-column: 4 / 6; }
+.layers .c4-7 { grid-column: 4 / 7; }
+.layers .c4-8 { grid-column: 4 / 8; }
+.layers .c4-9 { grid-column: 4 / 9; }
+.layers .c5-6 { grid-column: 5 / 6; }
+.layers .c5-7 { grid-column: 5 / 7; }
+.layers .c5-8 { grid-column: 5 / 8; }
+.layers .c5-9 { grid-column: 5 / 9; }
+.layers .c6-7 { grid-column: 6 / 7; }
+.layers .c6-8 { grid-column: 6 / 8; }
+.layers .c6-9 { grid-column: 6 / 9; }
+.layers .c7-8 { grid-column: 7 / 8; }
+.layers .c7-9 { grid-column: 7 / 9; }
+.layers .c8-9 { grid-column: 8 / 9; }
+.layers .r1, .layers .row-1 { grid-row-start: 1; }
+.layers .r2, .layers .row-2 { grid-row-start: 2; }
+.layers .r3, .layers .row-3 { grid-row-start: 3; }
+.layers .r4, .layers .row-4 { grid-row-start: 4; }
+.layers .r5, .layers .row-5 { grid-row-start: 5; }
+.layers .r6, .layers .row-6 { grid-row-start: 6; }
+.layers .r7, .layers .row-7 { grid-row-start: 7; }
+.layers .r8, .layers .row-8 { grid-row-start: 8; }
+.layers .r9, .layers .row-9 { grid-row-start: 9; }
+.layers .r10, .layers .row-10 { grid-row-start: 10; }
+.layers .r11, .layers .row-11 { grid-row-start: 11; }
+.layers .r12, .layers .row-12 { grid-row-start: 12; }
+.layers .r13, .layers .row-13 { grid-row-start: 13; }
+.layers .r14, .layers .row-14 { grid-row-start: 14; }
+.layers .r15, .layers .row-15 { grid-row-start: 15; }
+.layers .r16, .layers .row-16 { grid-row-start: 16; }
+.layers .r17, .layers .row-17 { grid-row-start: 17; }
+.layers .r18, .layers .row-18 { grid-row-start: 18; }
+.layers .r19, .layers .row-19 { grid-row-start: 19; }
+.layers .r20, .layers .row-20 { grid-row-start: 20; }
+.layers .r21, .layers .row-21 { grid-row-start: 21; }
+.layers .r22, .layers .row-22 { grid-row-start: 22; }
+.layers .r23, .layers .row-23 { grid-row-start: 23; }
+.layers .r24, .layers .row-24 { grid-row-start: 24; }
+.layers .r25, .layers .row-25 { grid-row-start: 25; }
+.layers .r26, .layers .row-26 { grid-row-start: 26; }
+.layers .r27, .layers .row-27 { grid-row-start: 27; }
+.layers .r28, .layers .row-28 { grid-row-start: 28; }
+.layers .r29, .layers .row-29 { grid-row-start: 29; }
+.layers .r30, .layers .row-30 { grid-row-start: 30; }
+.layers .r31, .layers .row-31 { grid-row-start: 31; }
+.layers .r32, .layers .row-32 { grid-row-start: 32; }
+.layers .r33, .layers .row-33 { grid-row-start: 33; }
+.layers .r34, .layers .row-34 { grid-row-start: 34; }
+.layers .r35, .layers .row-35 { grid-row-start: 35; }
+.layers .r36, .layers .row-36 { grid-row-start: 36; }
+.layers .r37, .layers .row-37 { grid-row-start: 37; }
+.layers .r38, .layers .row-38 { grid-row-start: 38; }
+.layers .r39, .layers .row-39 { grid-row-start: 39; }
+.layers .r40, .layers .row-40 { grid-row-start: 40; }
+.layers .rows-1 { grid-row-end: span 1; }
+.layers .rows-2 { grid-row-end: span 2; }
+.layers .rows-3 { grid-row-end: span 3; }
+.layers .rows-4 { grid-row-end: span 4; }
+.layers .rows-5 { grid-row-end: span 5; }
+.layers .rows-6 { grid-row-end: span 6; }
+.layers .rows-7 { grid-row-end: span 7; }
+.layers .rows-8 { grid-row-end: span 8; }
+.layers .rows-9 { grid-row-end: span 9; }
+.layers .rows-10 { grid-row-end: span 10; }
+.layers .rows-11 { grid-row-end: span 11; }
+.layers .rows-12 { grid-row-end: span 12; }
+.layers .rows-13 { grid-row-end: span 13; }
+.layers .rows-14 { grid-row-end: span 14; }
+.layers .rows-15 { grid-row-end: span 15; }
+.layers .rows-16 { grid-row-end: span 16; }
+.layers .rows-17 { grid-row-end: span 17; }
+.layers .rows-18 { grid-row-end: span 18; }
+.layers .rows-19 { grid-row-end: span 19; }
+.layers .rows-20 { grid-row-end: span 20; }
+
+/* Flavours page (generated markup) */
+.dhead { display: grid; grid-template-columns: var(--cols); gap: 0 .75rem; border-bottom: 1px solid var(--line); }
+.colh { font: 600 .98rem var(--f-display); display: inline-flex; gap: .45rem; align-items: center; padding: .6rem 0; color: var(--fg); }
+.colh i { width: .65rem; height: .65rem; border-radius: 3px; background: var(--c); flex: none; }
+.fl-plan.colh i, .fl-plan .colh i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--plan); }
+.layers .axis { justify-content: center; }
+a.layer { display: block; text-decoration: none; }
+.layers .layer small { display: block; }
+.diagrams .fgrid { min-width: 34rem; }
+.setsecs { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1.25rem; }
+.setdetail { display: flex; flex-direction: column; gap: .5rem; padding: 1.1rem 1.25rem; border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; scroll-margin-top: 6rem; }
+.setdetail:target { box-shadow: inset 0 0 0 2px var(--hl-ink); }
+.setdetail h3 { font-size: 1rem; }
+.setlist { margin: 0; padding: 0 0 0 .1rem; list-style: none; font-size: .9rem; display: flex; flex-direction: column; gap: .3rem; max-height: 16rem; overflow: auto; }
+.setlist code { color: var(--faint); margin-right: .2rem; }
+.setlist a { color: var(--fg); text-decoration: none; }
+.setlist a:hover { text-decoration: underline; }
+.setpop { position: fixed; inset: auto; margin: 0; width: min(26rem, calc(100vw - 32px)); max-height: min(28rem, 80vh); overflow: auto; padding: 1.1rem 1.25rem; border: 0; border-radius: var(--r); background: var(--surface); color: var(--fg); box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0, 0, 0, .18); }
+.setpop .setdetail { padding: 0; box-shadow: none; background: none; }
+.setpop .x { position: absolute; top: .5rem; right: .5rem; width: 2rem; height: 2rem; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-size: 1.1rem; }
+.setpop .x:hover { background: var(--sunk); color: var(--fg); }
+.setpop h3 { padding-right: 2rem; }
+.setpop.sheet { inset: auto 0 0 0; width: 100%; max-height: 75vh; border-radius: 16px 16px 0 0; padding: 1.25rem 16px calc(1.25rem + env(safe-area-inset-bottom, 0px)); }
+.setpop.sheet:popover-open { animation: sheetin .28s var(--ease); }
+@keyframes sheetin { from { transform: translateY(100%); } to { transform: none; } }
+.setpop::backdrop { background: transparent; }
+.setpop.sheet::backdrop { background: rgba(0, 0, 0, .25); }
+table.cmp th[scope="row"] { text-transform: none; letter-spacing: 0; font: 400 .85rem var(--f-body); color: var(--muted); white-space: normal; border-bottom: 1px solid var(--line); vertical-align: top; padding-top: .85rem; }
+table.cmp td { font-size: .9rem; overflow-wrap: anywhere; }
+table.cmp th .colh { padding: 0; text-transform: none; letter-spacing: 0; font-size: .95rem; }
+.fsec .side h3 i { flex: none; }
+.prow .pv { font-size: .8rem; color: var(--muted); }
+.pcopy { display: block; }
+@media (max-width: 640px) {
+  .dhead { grid-template-columns: 0 repeat(4, minmax(0, 1fr)); gap: 0 .5rem; margin-left: -.5rem; }
+  .dhead .colh { font-size: .82rem; }
+  .diagrams .fgrid { min-width: 0; }
+  .setsecs { grid-template-columns: minmax(0, 1fr); }
+}
+.layers .bandstart { margin-top: .9rem; }
+.layers .axis.bandstart { border-top: 1px dashed var(--line); padding-top: .4rem; }
+.ochip { white-space: normal; overflow-wrap: anywhere; } .prow .pm { min-width: 0; }
+.tree summary { flex-wrap: wrap; } .tree summary .c { flex: 1 1 14rem; min-width: 0; }
