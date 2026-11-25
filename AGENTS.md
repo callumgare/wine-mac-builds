@@ -42,6 +42,8 @@ projects.
   [tests/regress/README.md](tests/regress/README.md).
 - `build/`: the build steps (compile, package, smoke, regress, manifest,
   check, archive) and the VM runner.
+- `tools/site.py` generates the website; its pages, stylesheet, script and
+  fonts are in `tools/sitegen/`.
 
 ## Fixing a bug
 
@@ -121,6 +123,18 @@ projects.
 - Rare or timing bugs need counts, not single runs. Compare builds on the
   same games, in the same session and on the same Mac. Report "n of m"
   launches, not "works".
+- The website: `python3 tests/site/check.py` generates it from made-up
+  releases (`tests/site/releases.json`, no network) and checks the HTML,
+  links, assets, `_headers` and `_redirects`; `--keep <dir>` leaves the
+  site there, and `--site <dir>` checks one generated already. Preview with
+  `python3 tools/site.py --out site --releases tests/site/releases.json
+  --include-drafts` and `npx wrangler dev`, which applies `_headers`,
+  `_redirects`, the trailing-slash handling and the 404 page as Cloudflare
+  does (`python3 -m http.server` does none of these). Headless Chrome's
+  window can't be narrower than about 500 px, so for phone-width
+  screenshots set the width over the DevTools protocol
+  (`Emulation.setDeviceMetricsOverride`, with `Emulation.setEmulatedMedia`
+  for `prefers-color-scheme`) rather than with `--window-size`.
 
 ## Debugging techniques that have worked
 
