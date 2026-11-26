@@ -188,6 +188,17 @@ projects.
   (`wine_dbg_printf`) hang; 11.x copes. Use `write(2, ...)` there. Found
   with `sample <pid>` on a process that should have exited: the thread
   sat in `wine_dbg_printf` (`ntdll-exit-with-server`'s 10.0 copy).
+- Rosetta's behaviour can often be measured without Wine: a native
+  x86_64 program (`clang -arch x86_64`) that forks a child, gets its task
+  port (set a receive port as the bootstrap special port before `fork`;
+  the child sends `mach_task_self()` to it), and acts on it as wineserver
+  does. Seconds per case, against minutes in Wine. Found this way (macOS
+  26.7.2): after a `mach_vm_write` into a page the child has run, Rosetta
+  keeps the old translation until the child itself changes the page's
+  protection; an `mprotect` to the protection it already has does nothing.
+  To turn off a Rosetta workaround keyed on `is_apple_silicon()` in a
+  build, interpose `sysctlbyname("sysctl.proc_translated")` to fail in
+  Wine processes but not in wineserver (`DYLD_INSERT_LIBRARIES`).
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS
