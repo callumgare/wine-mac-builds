@@ -56,7 +56,10 @@ Status: 10.0: 2026-11-26: a lock per context instead of one for all.
  10.0: 2026-11-26: quick 20261126T044550 (macOS 26.7.2, M1 Max): the
  regression suite passed (GL and window tests in a GUI session); smoke
  stopped at its audio step, which failed for every build and for afplay
- while meeka's audio output was wedged
+ while meeka's audio output was wedged.
+ 10.0: 2026-11-26: quick 20261126T072237 (macOS 26.7.2, M1 Max): the
+ smoke test passed, sound included, once a pending microphone prompt
+ was answered.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 4a6ae6f..fe516ec 100644

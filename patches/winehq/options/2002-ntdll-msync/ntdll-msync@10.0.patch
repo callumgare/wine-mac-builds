@@ -93,7 +93,10 @@ Status: 10.0: 2026-11-26: abandoned mutex after its last handle is closed
  regression suite passed (GL and window tests in a GUI session); smoke
  stopped at its audio step, which failed for every build and for afplay
  while meeka's audio output was wedged; msync-abandoned-mutex,
- esync-abandoned-mutex and msync pass (i686, x86_64)
+ esync-abandoned-mutex and msync pass (i686, x86_64).
+ 10.0: 2026-11-26: quick 20261126T072237 (macOS 26.7.2, M1 Max): the
+ smoke test passed, sound included, once a pending microphone prompt
+ was answered.
 
 diff --git a/README.esync b/README.esync
 new file mode 100644

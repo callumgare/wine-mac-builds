@@ -14,19 +14,40 @@ BUILD-INFO.json can't hold these: it's written, and archived, before the
 tests run. This file is a separate record, uploaded with the release; it
 isn't in SHA256SUMS (archive.sh writes that while the tests run). Each
 section lists test names; a test with several architectures appears once per
-run (`name (i686)`), as regress.sh names them.
+run (`name (i686)`), as regress.sh names them. "guards" maps each regression
+test (by its name, without the architecture) to the patches its Guards line
+names, as the tests were when the build ran them, so the site can say which
+builds a patch's tests passed in.
 """
 
 import json
 import pathlib
+import re
 import sys
 
-SCHEMA_VERSION = 1
+# 2: "guards" added.
+SCHEMA_VERSION = 2
+REGRESS = pathlib.Path(__file__).resolve().parent.parent / "tests" / "regress"
 
 
 def load(path):
     p = pathlib.Path(path)
     return json.loads(p.read_text()) if p.is_file() else None
+
+
+def guards():
+    """Each regression test's Guards names, as regress.sh reads them: the
+    first " * Guards:" or "# Guards:" line in a test's first 40 lines."""
+    out = {}
+    for t in sorted(REGRESS.glob("*")):
+        if t.suffix not in (".c", ".sh"):
+            continue
+        for line in t.read_text(errors="replace").splitlines()[:40]:
+            m = re.match(r"^(?: \*|#) Guards: (.*)$", line)
+            if m:
+                out[t.stem] = m.group(1).split()
+                break
+    return out
 
 
 def main(argv):
@@ -44,6 +65,7 @@ def main(argv):
             # Filled in by add-opengl when a VM build's OpenGL tests run on
             # the host afterwards; null when they ran in the build itself.
             "regress_opengl": None,
+            "guards": guards(),
         }
         out.mkdir(parents=True, exist_ok=True)
         (out / f"{build_id}.tests.json").write_text(json.dumps(data, indent=2) + "\n")
