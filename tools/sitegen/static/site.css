@@ -355,7 +355,7 @@ details.conf summary { cursor: pointer; color: var(--wine); font-size: 1rem; }
 details.conf pre { margin: .6rem 0 0; font: 1rem/1.7 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); }
 .pfilters { display: flex; flex-direction: column; gap: .7rem; padding: 1rem 1.1rem; margin-bottom: 1.5rem; border-radius: 14px; background: var(--sunk); }
 .pfrow { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; }
-.pflabel { font: 600 1rem/1 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); width: 3.5rem; }
+.pflabel { font: 600 1rem/1 var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); min-width: 6.5rem; }
 .pfsearch { flex: 1 1 14rem; min-width: 0; }
 .pfsearch input { width: 100%; font: 1rem var(--f-body); padding: .5rem .8rem; border-radius: 999px; border: 0; box-shadow: inset 0 0 0 1px var(--line); background: var(--surface); color: var(--fg); }
 .pfsearch input:focus-visible { outline: 2px solid var(--hl-ink); outline-offset: 1px; }
@@ -378,7 +378,7 @@ details.conf pre { margin: .6rem 0 0; font: 1rem/1.7 var(--f-mono); white-space:
 .plist { list-style: none; margin: 0; padding: 0; counter-reset: p; }
 .prow { border-bottom: 1px solid var(--line); transition: opacity .25s; }
 .prow.out { display: none; }
-.prow summary { list-style: none; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: .2rem 1rem; align-items: baseline; padding: .8rem .5rem; border-radius: 0; cursor: pointer; transition: background .15s; }
+.prow summary { list-style: none; display: grid; grid-template-columns: 2rem minmax(0, 1fr) fit-content(45%); gap: .2rem 1rem; align-items: baseline; padding: .8rem .5rem; border-radius: 0; cursor: pointer; transition: background .15s; }
 .prow summary::-webkit-details-marker { display: none; }
 .prow summary:hover { background: var(--hl); }
 .prow summary:focus-visible { outline: 2px solid var(--hl-ink); outline-offset: -2px; }
@@ -387,8 +387,8 @@ details.conf pre { margin: .6rem 0 0; font: 1rem/1.7 var(--f-mono); white-space:
 .prow .pt { font-size: 1rem; }
 .prow .pf { font: 1rem var(--f-mono); color: var(--faint); overflow-wrap: anywhere; }
 .prow .pm { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; align-items: center; }
-.ochip { font: 500 1rem/1 var(--f-body); padding: .3rem .55rem; border-radius: 999px; color: var(--fg); background: color-mix(in srgb, var(--oc) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc) 45%, transparent); white-space: nowrap; }
-.ochip small { font: 1rem var(--f-mono); color: var(--muted); }
+.ochip { font: 500 1rem/1.25 var(--f-body); padding: .2rem .55rem; border-radius: 10px; color: var(--fg); background: color-mix(in srgb, var(--oc) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--oc) 45%, transparent); white-space: nowrap; }
+.ochip small { font: 400 1rem/1.25 var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
 .pbadge { font: 500 1rem/1 var(--f-body); padding: .28rem .5rem; border-radius: 999px; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); white-space: nowrap; }
 .pbadge.unc { color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
 .pbadge.up { color: var(--hl-ink); }
