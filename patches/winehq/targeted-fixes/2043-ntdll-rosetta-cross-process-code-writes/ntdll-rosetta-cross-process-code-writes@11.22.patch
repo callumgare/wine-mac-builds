@@ -45,8 +45,8 @@ Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
 Status: 11.22: 2026-11-26: toggles only regions whose current protection
  has execute rights, region by region, and only after a write that
- succeeded; not yet in a build (the 2026-11-25 quick build had
- CrossOver's version)
+ succeeded; macfixes 11.22 quick20261126T002454 passed cross-process-data-write
+ and cross-process-code-write, i686 and x86_64 (macOS 26.7.2, M1 Max)
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

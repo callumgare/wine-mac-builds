@@ -11,41 +11,44 @@ Origin: crossover
     NtQueryVirtualMemory and NtProtectVirtualMemory twice after the server
     call (disassembly; no strings of its own, so the string inventory
     missed it)
-  Changes: verbatim, apart from is_apple_silicon(), which
-    ntdll-is-apple-silicon adds
+  Changes: decides region by region from each region's current protection,
+    not the first region's AllocationProtect, and skips the toggle when the
+    write failed; is_apple_silicon() is in ntdll-is-apple-silicon
 Upstream: no
 Why: NtWriteVirtualMemory writes another process's memory with
  mach_vm_write from wineserver, and Rosetta doesn't notice code changed
- that way: the target keeps running its old translation. After the write,
- if the target allocation's original protection (AllocationProtect) is
- executable, change the written range's protection to PAGE_NOACCESS and
- back from inside the target (NtProtectVirtualMemory on the process
- handle), so Rosetta retranslates. Armadillo, the DRM in Big Fish games,
- writes "jmp $" (EB FE) over its child's entry point, waits for the child
- to reach it, then writes the original bytes back; without this the child
- spins on the stale "jmp $" for ever and activation fails. Toggling the
- entry page's protection by hand inside a stuck gmActivator child (lldb,
- mprotect) let it continue as on Sikarugir 10.0_8 (2026-11-15).
+ that way: the target keeps running its old translation. After a write
+ that succeeded, walk the written range region by region, and for each
+ region whose current protection has execute rights, change that part's
+ protection to PAGE_NOACCESS and back from inside the target
+ (NtProtectVirtualMemory on the process handle), so Rosetta retranslates.
+ Armadillo, the DRM in Big Fish games, writes "jmp $" (EB FE) over its
+ child's entry point, waits for the child to reach it, then writes the
+ original bytes back; without this the child spins on the stale "jmp $"
+ for ever and activation fails. Toggling the entry page's protection by
+ hand inside a stuck gmActivator child (lldb, mprotect) let it continue
+ as on Sikarugir 10.0_8 (2026-11-15). CrossOver's version decides from the
+ first region's AllocationProtect, which is PAGE_EXECUTE_WRITECOPY for
+ every page of an image, so a write into an image's data made the page
+ PAGE_NOACCESS for a moment and killed the target when another thread
+ touched it (a child written every 5 ms died after 4-5 writes, 12 of 12).
 Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
  child spins for ever on a stale "jmp $"
 Seen on: macOS 26.7.2 (M1 Max): cross-process-code-write fails 3 of 3 with
  the toggle turned off (an interposer hiding sysctl.proc_translated)
-Known issues: every page of an image has AllocationProtect
- PAGE_EXECUTE_WRITECOPY, so a write into an image's data (a trainer,
- launcher or DRM parent writing a running program's .data) also makes the
- page PAGE_NOACCESS for a moment, and another thread of the target that
- touches it faults: the child died after 4-5 writes, 12 of 12
- (cross-process-data-write; 10.0 build0 and the 11.22 quick build). Only
- the first page's protection is restored over a range that spans pages
- of different protection. The 11.22 copy fixes both; not yet ported.
+Uncertain: a thread of the target that runs code on a page while it's
+ being toggled can still fault (inherent to toggling; toggling to the same
+ protection minus execute instead would narrow it, but whether that still
+ reaches Rosetta in a 32-bit process with DEP off, where Wine keeps
+ PROT_EXEC on every readable page, isn't checked)
 Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
-Status: 11.21: not yet in a build
+Status: 11.21: 2026-11-26: ported from 11.22 (same code); not yet in a build
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c
 +++ b/dlls/ntdll/unix/virtual.c
-@@ -6498,6 +6498,38 @@
+@@ -6498,6 +6498,52 @@
      }
  
      return apple_silicon_status;
@@ -58,39 +61,53 @@ diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 + * NtWriteVirtualMemory), Rosetta won't notice the change and will execute the "old" code.
 + *
 + * To work around this, after the write completes,
-+ * toggle the executable bit (from inside the target process) on/off for any executable
-+ * pages that were modified, to force Rosetta to re-translate it.
++ * toggle the protection (from inside the target process) off and back on for any
++ * executable pages that were modified, to force Rosetta to re-translate them.
++ *
++ * wine-mac-builds: decide region by region from each region's current protection.
++ * CrossOver's version looks only at the first region's AllocationProtect, which is
++ * PAGE_EXECUTE_WRITECOPY for every page of an image, so a write into an image's data
++ * made the page PAGE_NOACCESS for a moment, and the target's other threads faulted.
 + */
 +static void toggle_executable_pages_for_rosetta( HANDLE process, void *addr, SIZE_T size )
 +{
 +    MEMORY_BASIC_INFORMATION info;
-+    NTSTATUS status;
++    char *ptr = addr, *end = (char *)addr + size;
 +    SIZE_T ret;
 +
 +    if (!is_apple_silicon())
 +        return;
 +
-+    status = NtQueryVirtualMemory( process, addr, MemoryBasicInformation, &info, sizeof(info), &ret );
-+
-+    if (!status && (info.AllocationProtect & 0xf0))
++    while (ptr < end)
 +    {
-+        DWORD origprot, noexec;
-+        noexec = info.AllocationProtect & ~0xf0;
-+        if (!noexec) noexec = PAGE_NOACCESS;
++        char *region_end;
 +
-+        NtProtectVirtualMemory( process, &addr, &size, noexec, &origprot );
-+        NtProtectVirtualMemory( process, &addr, &size, origprot, &noexec );
++        if (NtQueryVirtualMemory( process, ptr, MemoryBasicInformation, &info, sizeof(info), &ret ))
++            break;
++        region_end = (char *)info.BaseAddress + info.RegionSize;
++        if (region_end <= ptr) break;
++
++        if (info.State == MEM_COMMIT && (info.Protect & 0xf0))
++        {
++            void *base = ptr;
++            SIZE_T len = (region_end < end ? region_end : end) - ptr;
++            ULONG origprot, prot;
++
++            if (!NtProtectVirtualMemory( process, &base, &len, PAGE_NOACCESS, &origprot ))
++                NtProtectVirtualMemory( process, &base, &len, origprot, &prot );
++        }
++        ptr = region_end;
 +    }
  }
  #endif
  
-@@ -6521,6 +6553,10 @@
+@@ -6521,6 +6567,10 @@
              size = reply->written;
          }
          SERVER_END_REQ;
 +
 +#ifdef __APPLE__
-+        toggle_executable_pages_for_rosetta( process, addr, size );
++        if (!status) toggle_executable_pages_for_rosetta( process, addr, size );
 +#endif
      }
      else
