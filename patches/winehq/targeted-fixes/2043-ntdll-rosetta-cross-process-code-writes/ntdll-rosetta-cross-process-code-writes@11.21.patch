@@ -36,11 +36,20 @@ Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
  child spins for ever on a stale "jmp $"
 Seen on: macOS 26.7.2 (M1 Max): cross-process-code-write fails 3 of 3 with
  the toggle turned off (an interposer hiding sysctl.proc_translated)
-Uncertain: a thread of the target that runs code on a page while it's
- being toggled can still fault (inherent to toggling; toggling to the same
- protection minus execute instead would narrow it, but whether that still
- reaches Rosetta in a 32-bit process with DEP off, where Wine keeps
- PROT_EXEC on every readable page, isn't checked)
+Uncertain: a thread of the target that touches a toggled page (runs code
+ on it or reads it) while it's PAGE_NOACCESS faults. Toggling to the same
+ protection minus execute instead doesn't reach Rosetta in every case:
+ Rosetta retranslates only when the page's host protection really changes,
+ and with DEP off in a 32-bit process Wine keeps PROT_EXEC, so
+ PAGE_EXECUTE_READ to PAGE_READONLY and back changes nothing (new code
+ seen 0 of 10 on 11.22 and on 10.0; 10 of 10 with DEP on, and with DEP off
+ on PAGE_EXECUTE_READWRITE). Toggling to the protection plus write
+ (PAGE_EXECUTE_READ to PAGE_EXECUTE_READWRITE and back) reached Rosetta in
+ every case measured, with no faults while two threads ran code on the
+ page (10 of 10 each: i686 with DEP on and off, x86_64, both protections;
+ 11.22 quick build, macOS 26.7.2, M1 Max, 2026-11-26), but isn't tried with
+ image views (PAGE_EXECUTE_WRITECOPY), views of read-only sections, which
+ refuse it, or a real program
 Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
 Status: 11.21: 2026-11-26: ported from 11.22 (same code)
