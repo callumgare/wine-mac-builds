@@ -109,7 +109,7 @@ summary = "What CodeWeavers' tree needs to work as this project packages it."
 
 # Rows of the Flavours page's comparison table, after the rows it works out
 # from the builds (status, source, wine --version, versions built), before the
-# patch sets diagram.
+# patch sets diagram. `after = "<label>"` puts a row after that one instead.
 [[comparison]]
 label = "msync"
 wine = "No"
@@ -133,6 +133,7 @@ cx = "Yes"
 
 [[comparison]]
 label = "Versioned by"
+after = "Source"
 wine = "Wine version"
 macfixes = "Wine version"
 staging = "Wine version"

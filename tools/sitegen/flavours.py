@@ -206,7 +206,11 @@ def comparison(d, flavours, per_version):
                                       for v, bl in sorted(versions[f], key=lambda x: version_key(x[0]))), ", ")
                                 if versions[f] else "—" for f in cols])]
     for r in content.load().get("comparison", []):
-        rows.append((r["label"], [inline_safe(r.get(f, "—")) for f in cols]))
+        row = (r["label"], [inline_safe(r.get(f, "—")) for f in cols])
+        # `after` places the row after the named one (a worked-out row or an
+        # earlier content row); without it the row goes at the end.
+        at = next((i + 1 for i, (label, _) in enumerate(rows) if label == r.get("after")), len(rows))
+        rows.insert(at, row)
     body = [el("tr", el("th", label, scope="row"), *[el("td", v) for v in vals]) for label, vals in rows]
     if per_version:
         newest_v = next(iter(per_version))
