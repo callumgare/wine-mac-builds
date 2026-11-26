@@ -48,11 +48,11 @@ Matches: exe Battle.net.exe, EADesktop.exe, GalaxyClient.exe, GalaxyClient
 Risk: always on: changes the command line of the seven named programs,
  forcing software GL; --no-sandbox turns off steamwebhelper's renderer
  sandbox, which in Wine isolates nothing anyway (CX did the same)
-Uncertain: whether any entry is still needed on Wine 11.x or with current
- launcher versions: each needs retesting with the launcher in a GUI
- session (review decision 14). Only the Steam and Big Fish entries can
- be tested here; the others are kept on their sources' word, untested
- (2026-11-26).
+Uncertain: whether the other entries are still needed on Wine 11.x or
+ with current launcher versions: each needs retesting with the launcher in
+ a GUI session (review decision 14). The steamwebhelper entry is (Status,
+ 2026-11-26); the Big Fish entry can be tested here too; the others are
+ kept on their sources' word, untested (2026-11-26).
  CrossOver dropped the function after 24.x (26.3.0 has none); why isn't
  known. Sikarugir's reasons for the EA, GOG and Social Club flags aren't
  recorded.
@@ -69,6 +69,12 @@ Status: 11.21, 11.22: 2026-11-26: matches the program's file name with
  M1 Max): smoke and the regression suite passed
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
  M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: Steam (client current on 2026-11-26), signed in, in a
+ Screen Slots login (macOS 26.7.2, M1 Max): with quick 20261126T040125 the
+ sign-in window, Store, Library and Friends List render; with plain
+ wine-11.22-build1 (no patch), same prefix, steamwebhelper's GPU process
+ crashed once and the Steam, Friends List and Special Offers windows stayed
+ black. 1 run each.
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index a9bd78e..27b97f3 100644
