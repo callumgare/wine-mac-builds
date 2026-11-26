@@ -41,7 +41,9 @@ Messages: TRACE lines on the macdrv_d3dmtl channel, such as "get_win_data %p"
 Risk: exposes winemac internals to any dylib in the process, by design; the
  registry calls run PE advapi32 from whichever thread the renderer calls them
  on
-Status: 10.0: 2026-11-26: header only. In build0
+Status: 10.0: 2026-11-26: a failed calloc in my_get_win_data returns NULL
+ instead of crashing (as the 11.x copies); not yet in a build. Earlier
+ form in build0
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 index a9ce724..6e613e6 100644
@@ -69,7 +71,7 @@ new file mode 100644
 index 0000000..84085ac
 --- /dev/null
 +++ b/dlls/winemac.drv/d3dmetal.c
-@@ -0,0 +1,404 @@
+@@ -0,0 +1,408 @@
 +/*
 + * Mac graphics driver hooks used by D3DMetal (part of the Apple Game Porting Toolkit)
 + *
@@ -179,7 +181,11 @@ index 0000000..84085ac
 +    if (!data)
 +        return NULL;
 +
-+    d3dm_data = calloc(1, sizeof(*d3dm_data));
++    if (!(d3dm_data = calloc(1, sizeof(*d3dm_data))))
++    {
++        release_win_data(data);
++        return NULL;
++    }
 +
 +    d3dm_data->hwnd = data->hwnd;
 +    d3dm_data->cocoa_window = data->cocoa_window;
