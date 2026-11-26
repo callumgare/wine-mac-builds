@@ -31,7 +31,12 @@ Known issues: WH_GETMESSAGE hooks and the program's own loop never see the
 Uncertain: which program CrossOver wrote it for, and whether Windows behaves
  this way. The flags must match exactly: PM_QS_INPUT as Windows 8+ headers
  define it (with QS_TOUCH and QS_POINTER), so programs built with older
- headers, or passing PM_REMOVE alone, are unaffected.
+ headers, or passing PM_REMOVE alone, are unaffected. None of the likely
+ candidates reaches the code path: Big Fish Game Manager, Iji, Icy
+ Tower's Inno 5.1.2 installer, and the Webmaster and Bioscopia Director
+ projectors made no PeekMessage call with those flags (or the pre-Windows
+ 8 value) and had no WS_EX_COMPOSITED window (relay probe, Sikarugir
+ 10.0_8, macOS 26.7.2, 2026-11-26); Steam's client wasn't tried.
 Status: 10.0: 2026-11-15: not yet built (no later record)
 
 diff --git a/dlls/win32u/message.c b/dlls/win32u/message.c
