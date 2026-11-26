@@ -8,11 +8,20 @@ Origin: reconstructed
     0x174014120-0x1740146a3)
   Note: no published source; behaviour read from the compiled binary
 Upstream: no
-Why: DLSS-capable games (NVIDIA's Streamline/NGX loader) open c:\windows\system32\nvngx.dll directly with CreateFileW(GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING) to read it; that open is redirected to D3DMetal's copy at $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that file exists. Any other open, or a missing/unset path, goes through unchanged.
- Nothing happens unless CX_D3DMETALPATH is set (as for the D3DMetal
- patches) and D3DMetal's nvngx.dll is there.
+Why: DLSS-capable games (NVIDIA's Streamline/NGX loader) open
+ c:\windows\system32\nvngx.dll directly with CreateFileW(GENERIC_READ,
+ FILE_SHARE_READ, OPEN_EXISTING) to read it; that open is redirected to
+ D3DMetal's copy at $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that
+ file exists. Any other open, or a missing/unset path, goes through unchanged.
+ Nothing happens unless CX_D3DMETALPATH is set (as for the D3DMetal patches) and
+ D3DMetal's nvngx.dll is there. D3DMetal 3.0 needs Wine 10.4's GSBASE model, so
+ it is supported on 10.0 only: from Wine 10.5 (WineHQ 3a16aabb) GSBASE points at
+ the TEB while PE code runs, and D3DMetal 3.0 crashes when a program creates a
+ DXGI factory (measured on 11.22). So this patch has no copy for 11.x.
 Programs: none known
 Uncertain: the path suffix is hard-coded to x86_64-windows in both of 10.0_8's x86_64 and i386 kernelbase, kept as is. 10.0_8 looks up wine_unix_to_nt_file_name with GetProcAddress; this calls ntdll's export directly (same function). Only exact access/sharing/disposition values trigger it, as in 10.0_8; ntdll's LoadLibrary path is not affected.
+Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
+ can't run there)
 
 diff --git a/dlls/kernelbase/file.c b/dlls/kernelbase/file.c
 index f0dedfe..c543e86 100644

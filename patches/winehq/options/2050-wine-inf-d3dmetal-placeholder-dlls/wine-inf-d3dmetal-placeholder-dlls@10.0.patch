@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Install stub AMD and NVIDIA DLLs in 64-bit prefixes, for D3DMetal
+Summary: Install placeholder AMD and NVIDIA DLLs in 64-bit prefixes, for D3DMetal and DXMT
 Category: graphics
 Kind: feature
 Origin: crossover
@@ -9,16 +9,20 @@ Origin: crossover
   Note: CrossOver 26.3.0 CW HACK 22435, the wine.inf part (loader/wine.inf.in)
     Source: (sources/wine/loader/wine.inf.in)
 Upstream: no
-Why: Have wineboot put fake (stub) atidxx64.dll, nvapi64.dll and nvngx.dll
- in a 64-bit prefix's system32. CX's comment says only "for D3DMetal";
- presumably D3DMetal, or games running on it, check that these AMD/NVIDIA
- DLLs exist. No builtin DLLs have those names, so setupapi writes generic
- fake DLLs.
+Why: Have wineboot put placeholder atidxx64.dll, nvapi64.dll and nvngx.dll in a
+ 64-bit prefix's system32. CX's comment says only "for D3DMetal". No builtin
+ DLLs have those names, so setupapi writes generic placeholder DLLs; with one in
+ system32, a DLL of that name on a renderer's DLL path (D3DMetal's three; DXMT
+ ships nvapi64.dll and nvngx.dll) can be loaded, which Wine otherwise refuses
+ outside prefix setup. D3DMetal 3.0 needs Wine 10.4's GSBASE model, so it is
+ supported on 10.0 only: from Wine 10.5 (WineHQ 3a16aabb) GSBASE points at the
+ TEB while PE code runs, and D3DMetal 3.0 crashes when a program creates a DXGI
+ factory (measured on 11.22). The 11.x copy has DXMT's two only.
 Programs: none known
 Evidence: Sikarugir 10.0_8: its share/wine/wine.inf has these lines with this
  comment; it is the only difference in share/.
 Port: 10.0: CX 25.1.1 lacks this; CX 26.3's lines added to 10.0's [FakeDllsWin64] unchanged.
-Status: not yet built (2026-11-15).
+Status: 10.0: 2026-11-26: header only (the 11.x copy is now separate). In build0
 
 diff --git a/loader/wine.inf.in b/loader/wine.inf.in
 index 9288b58..7c491f5 100644
