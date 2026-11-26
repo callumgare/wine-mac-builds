@@ -141,7 +141,8 @@ def diagram(version, builds, flavours, shown):
                                     class_=f"layer src {pos}" + (" planned" if planned else "")))
                     continue
                 fs = x["flavours"]
-                cls = "own " + flavour_class(fs[0]) if len(fs) == 1 else "bp"
+                # A set isn't tied to a flavour: every box looks the same.
+                cls = "set"
                 if x["planned"]:
                     cls += " planned"
                     sub = "planned"
