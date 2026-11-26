@@ -25,15 +25,14 @@ Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
 Port: to 10.0: placed just before FlsSlots is set up. Its context was
  version-label's testing-version warning, since dropped, so it now applies
  only with fuzz.
-Expects before it: ntdll-cef-binary-patches, ntdll-export-wine-unix-call;
- context only
-Status: not yet built (2026-11-15).
+Status: not yet built (2026-11-15). 10.0: 2026-11-26: diff refreshed against the
+ current stack (ntdll-cef-binary-patches split up), so it applies at fuzz 0 and
+ needs no other patch as context; code unchanged
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
-index f10caaa..7839c4f 100644
 --- a/dlls/ntdll/loader.c
 +++ b/dlls/ntdll/loader.c
-@@ -4913,6 +4913,18 @@ static void release_address_space(void)
+@@ -4930,6 +4930,18 @@
  #endif
  }
  
@@ -52,10 +51,11 @@ index f10caaa..7839c4f 100644
  /******************************************************************
   *		loader_init
   *
-@@ -5026,6 +5038,24 @@ void loader_init( CONTEXT *context, void **entry )
-     else
-         WARN_(winediag)(WINE_BUILD_NAME " %s is a testing version containing experimental patches.\n", wine_get_version());
- 
+@@ -5028,6 +5040,24 @@
+ #endif
+         wm = get_modref( NtCurrentTeb()->Peb->ImageBaseAddress );
+     }
++
 +#if defined(__x86_64__) && !defined(__arm64ec__)
 +        if (is_macos() && !NtCurrentTeb()->WowTebOffset)
 +        {
@@ -73,7 +73,6 @@ index f10caaa..7839c4f 100644
 +                while (RtlFindClearBitsAndSet(NtCurrentTeb()->Peb->TlsBitmap, 1, 1) != ~0U);
 +        }
 +#endif
-+
+ 
      NtCurrentTeb()->FlsSlots = fls_alloc_data();
  
-     if (!attach_done)  /* first time around */

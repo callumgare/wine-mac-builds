@@ -100,8 +100,8 @@ that Wine 11's own fix still holds.
   - `ntdll-invalid-gsbase` (gs_base, 10.0): Rosetta keeps the gs base on a null selector and refuses any other.
   - `wow64cpu-rosetta-lretq` (wow64 transition race, Iji): no crash in 12 attempts at provoking it.
 - **Needs something we can't ship or reproduce.**
-  - `ntdll-d3dmetal-code-regions`, `ntdll-d3dmetal-ms-abi-thunks` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
-  - `ntdll-cef-binary-patches`: specific CEF and Qt builds.
+  - `ntdll-d3dmetal-code-regions` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
+  - `ntdll-cef-gs-stack-base`, `ntdll-cef-command-line-args` and `ntdll-cohtml-branch`: specific CEF, Qt and cohtml builds.
   - `advapi32-launcher-acls`: Battle.net.
   - `winemac-force-opengl-backing-store`: flicker.
   - `nsiproxy-macos-change-notifications`, `winhttp-cache-autoproxy`: need a network change.
