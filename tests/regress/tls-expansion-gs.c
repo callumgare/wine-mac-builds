@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
+ * Versions: 10.0
  * Timeout: 30
  * Guards: ntdll-preallocate-tls-expansion
  *
