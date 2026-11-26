@@ -36,8 +36,8 @@ Programs: Nancy Drew games (Shadow Ranch, Old Clock, Crystal Skull, Castle
  and failed CI's host GL tests
 Seen on: macOS 26.7.2 (M1 Max): d3d8-up-draw-speed crashed 4 of 115 runs,
  gl-context-dealloc 5 of 5, on 11.22-build12
-Related: winemac-gl-update-on-main-thread,
- winemac-serialise-gl-context-changes; the same viewWillDraw and GL thread
+Expects before it: winemac-serialise-gl-context-changes (context)
+Related: winemac-gl-update-on-main-thread; the same viewWillDraw and GL thread
  interplay
 Status: 11.22: 2026-11-18: a winemac.so built with it, swapped into
  11.22-build12 (macOS 26.7.2): d3d8-up-draw-speed 200 of 200 runs passed,
@@ -47,10 +47,10 @@ Status: 11.22: 2026-11-18: a winemac.so built with it, swapped into
  tarballs; no separate run.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
-index 5bb2850..1d5616e 100644
+index 08a55f3..8b12d45 100644
 --- a/dlls/winemac.drv/cocoa_opengl.m
 +++ b/dlls/winemac.drv/cocoa_opengl.m
-@@ -55,7 +55,11 @@ @implementation WineOpenGLContext
+@@ -78,7 +78,11 @@ - (instancetype) initWithCGLContextObj:(CGLContextObj)context
  
      - (void) dealloc
      {
@@ -61,9 +61,9 @@ index 5bb2850..1d5616e 100644
 +           call finds no view. */
 +        [self clearDrawable];
          [latentView release];
+         pthread_mutex_destroy(&changeLock);
          [super dealloc];
-     }
-@@ -156,14 +160,28 @@ - (void) setView:(NSView*)newView
+@@ -180,14 +184,28 @@ - (void) setView:(NSView*)newView
          [oldView release];
      }
  
