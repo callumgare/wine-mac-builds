@@ -3,17 +3,36 @@ Summary: Let Wine's Vulkan find MoltenVK (portability enumeration)
 Category: graphics
 Kind: fix
 Origin: gcenx
+  Commit: 83ca5d2b3104
   URL: https://github.com/Gcenx/macports-wine/blob/fc0301b4896daf29bdf7140d7c67ed01f12aaacd/emulators/wine-devel/files/0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
   File: emulators/wine-devel/files/0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
   Changes: verbatim (context differs: 10.20 has no
     get_physical_device_properties2 line)
-Upstream: no: pending as MR !11538 (Gcenx, opened 2026-07-31, open on
- 2026-11-25); not in master (11.22).
-Why: as the 11.x patch. MoltenVK is a "portability" Vulkan driver, and the
- bundled Vulkan loader hides it unless the instance asks for portability
- enumeration, so Vulkan finds no device.
-Programs: none known
+Upstream: pending (MR !11538; Gcenx, opened 2026-07-31, open on 2026-11-25; not
+ in master at 11.22)
+Needed until: MR !11538 is merged
+Why: MoltenVK is a "portability" Vulkan driver: the Vulkan loader offers it
+ only to an instance created with VK_KHR_portability_enumeration and
+ VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR. Wine's host instance
+ (win32u) asks for neither, so with the loader this project bundles
+ (libvulkan.1.dylib) vkCreateInstance fails with VK_ERROR_INCOMPATIBLE_DRIVER
+ and Vulkan, and anything layered on it, has no device. Gcenx added this
+ (macports-wine 83ca5d2b3104) when his builds moved from MoltenVK as libvulkan
+ to the loader. When the host offers the extension, it's now enabled and the
+ flag set.
+Programs: none known; every Vulkan user (DXVK, vkd3d, wined3d's Vulkan
+ renderer) would find no device
+Seen on: macOS 26.7.2 (a native x86_64 program with the 11.22 build0's bundled
+ loader and MoltenVK manifest: vkCreateInstance returns
+ VK_ERROR_INCOMPATIBLE_DRIVER without portability enumeration, and finds one
+ GPU with it)
+References: https://gitlab.winehq.org/wine/wine/-/merge_requests/11538
+Related: ntdll-vulkan-bundled-driver; that one makes the loader find
+ MoltenVK's manifest, this one makes it offer the driver
+No test: build/smoke.sh's Vulkan step creates an instance and finds a GPU,
+ which fails without this
 
+diff --git a/dlls/win32u/vulkan.c b/dlls/win32u/vulkan.c
 --- a/dlls/win32u/vulkan.c
 +++ b/dlls/win32u/vulkan.c
 @@ -448,6 +448,11 @@
