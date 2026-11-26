@@ -108,18 +108,30 @@ the full review of every patch (2026-11-25) found missing at least once.
 
 ### Recording it
 
-- **`Expects before it`.** Name every patch yours needs, in code or only
-  as diff context (say which, after `; `). `tools/patch deps <flavour>
-  <version> <name>` finds them: it applies your patch without each earlier
-  patch that touches the same files. The review found 52 undeclared pairs.
+- **`Expects before it`.** Name every patch yours needs, and mark each
+  name that's needed only as diff context `(context)`, or only for its
+  behaviour `(run time)`. `tools/patch deps <flavour> <version> <name>`
+  finds the code and context ones: it applies your patch without each
+  earlier patch that touches the same files. The review found 52
+  undeclared pairs; CI now fails on one. A helper that two patches call
+  goes in a small patch of its own that both name
+  (`ntdll-is-apple-silicon`), so dropping one doesn't break the other.
+  Patches that touch the same code path without needing each other go in
+  `Related`.
 - **Exact scope.**
   - `Programs` names each program and what goes wrong without the patch.
   - `Why` says which macOS and Wine versions have the problem, and what
-    the patch does about it.
-  - `Uncertain` says what wasn't shown.
-- **`Status` stays short.** One dated line per version and event: built,
-  confirmed, measured n of m. The investigation's story belongs in the
-  commit message, not in a header the build ships.
+    the patch does about it. `Seen on` and `Fine on` record the macOS
+    versions and Macs it was and wasn't seen on.
+  - `Needed until` says when it can go, if that's known.
+  - `Uncertain` says what wasn't shown; `Known issues` what's known to go
+    wrong with it.
+  - An option says how it's switched on in `Enable`, and a patch for
+    named programs what it recognises in `Matches`.
+- **`Status` stays short.** The current state per version, in two or
+  three lines each: built, confirmed, measured n of m. The
+  investigation's story belongs in the commit message, not in a header
+  the build ships.
 - **The test must catch the bug.** A regression test has to fail without
   the fix and pass with it, and it should test the bug, not how the fix
   works. The review found twelve tests that passed either way:
@@ -128,30 +140,38 @@ the full review of every patch (2026-11-25) found missing at least once.
   - a test helper that set exactly the patch's mask, so the gap the
     patch left could never show
   - a test that checked a log line printed whether or not the fix worked
+
+  When no test can be written, say why in `No test`.
 - **Upstream.** If WineHQ would want it, write a draft in
-  `.local/bug-reports/`, and say `Upstream: no (candidate; draft in
+  `.local/bug-reports/`, and say `Upstream: candidate (draft in
   .local/bug-reports/)`.
 
 ## Maintaining patches
 
 - **A new Wine version.** `tools/pin <flavour> <version>` carries over
-  every copy that still applies without fuzz. For each one listed as not
-  carried, check first whether WineHQ fixed the problem. Port only what's
-  still needed.
+  every copy that still applies without fuzz, except one whose `Needed
+  until` is that version or earlier; it lists copies whose `Needed until`
+  is a condition, to check by hand. For each one listed as not carried,
+  check first whether WineHQ fixed the problem. Port only what's still
+  needed.
 - **Changing a patch on one version.** `tools/patch split <name>
   <version>` gives that version its own copy. Change it, build, confirm,
   then port it to the others and merge copies that come out the same.
 - **Dropping or changing a patch others build on.** Run `tools/patch
   refresh <flavour> <version>` for each version, so the later copies apply
-  at fuzz 0 again. Check where every hunk landed. A diff that relied on
-  the dropped patch's lines needs those context lines removed first.
+  at fuzz 0 again: builds apply at fuzz 0, and CI fails on a copy that
+  needs fuzz. Check where every hunk landed. A diff that relied on the
+  dropped patch's lines needs those context lines removed first. A copy
+  for several versions can't be refreshed against one; if their contexts
+  really differ, split it, and otherwise trim its context to the lines
+  every version shares.
 - **Renaming before launch.** `tools/patch rename <old> <new>` moves the
   folder and copies and updates references. Names are frozen once a
   published build has applied the patch.
 - **Review now and then.** Patches that work around someone else's bug
   (Rosetta, macOS, a program, an older WineHQ) go stale. When a macOS or
-  Wine release lands, retest the patches whose headers name the affected
-  versions, and drop what's no longer needed. The 2026-11-25 review's
+  Wine release lands, retest the patches whose `Seen on` and `Fine on`
+  name the affected versions, and drop what's no longer needed. The 2026-11-25 review's
   per-patch notes are in `.local/patch-review/` on the machine it ran on.
 
 ## The rules
@@ -169,59 +189,116 @@ it on every push:
 - each set's README starts with `Summary:` and `Range:` lines
 - every set a flavour lists exists, the list is in layer order, the layer
   rule holds, and every version a flavour lists is pinned
-- every name a regression test `Guards` is a patch
+- every name in `Expects before it` and `Related` is a patch; the ones in
+  `Expects before it` have lower numbers and a copy for every version
+- every `Feature` is in [features.md](features.md), every feature there is
+  named by a patch, and it gives a status for every version its patches
+  cover
+- every name a regression test `Guards` is a patch, and its `Fails without
+  on` entries have the form in
+  [tests/regress/README.md](../tests/regress/README.md)
 - nothing is left of the old `patches/<flavour>/<version>/` layout
   (`tools/patch-migrate` converts a patch written that way), and no
   `.orig` or `.rej` files
 
-It warns, without failing, about copies of one patch whose `Why` or
-`Uncertain` differ, and about copies with no `Port` saying how they
-differ from the others.
+It warns, without failing, about:
+
+- copies of one patch whose `Why` or `Uncertain` differ
+- a copy that differs from the patch's other copies with no `Changes` in
+  an Origin block and no `wine-mac-builds` block with a `Version`
+- a `fix` or `workaround` that no regression test's `Guards` names and
+  that has no `No test`
+- a copy that covers a version at or after its `Needed until`
+- old four-digit patch numbers in prose (refer to patches by name),
+  brackets that don't balance, URLs that don't parse, a `Note` with a
+  `Source:` left from the old format, a `Summary` that names a Wine
+  version, a `Why` that starts "as" another copy, a `Status` over 15
+  lines, a `Docs` file that doesn't name the patch, and a file in the diff
+  without a `diff --git` line
+
+CI also applies every flavour's patches to every pinned version at fuzz 0,
+as builds do, and runs `tools/patch deps` there: it fails when a copy
+needs fuzz or when a patch needs an earlier one its `Expects before it`
+doesn't name (`tools/patch check`).
 
 ## Header format
 
-Every copy starts with a header: `Key: value`
-lines, then one blank line, then the diff. A value continues onto following
-lines that start with a space. `Origin` starts a block of its own (below). `build/patch_header.py` checks the format:
-`build/compile.sh` runs it before applying a build's patches, and CI runs it
-on every push. `build/manifest.py` records each patch's header in
-`BUILD-INFO.json`, and the website shows it on the build's page.
+Every copy starts with a header: `Key: value` lines, then one blank line,
+then the diff. A value continues onto following lines that start with a
+space. `Origin` starts a block of its own (below). `build/patch_header.py`
+checks the format: `build/compile.sh` runs it before applying a build's
+patches, and CI runs it on every push. `build/manifest.py` records each
+patch's header in `BUILD-INFO.json`, and the website shows it on the
+build's page.
 
 ```text
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: report success when setting debug registers instead of failing
+Summary: Rosetta 2: emulate XGETBV, which it rejects before macOS 26
 Category: cpu
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
-  CW-Hacks: 22131
+  CW-Hacks: 23427
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
-Upstream: partly (the wineserver half)
-Why: Rosetta 2 cannot set or read x86 debug registers; report success from
- NtSetContextThread instead of failing, so anti-debug/DRM checks don't abort.
-
-diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Changes: the call in segv_handler goes through leave_handler(), as
+    WineHQ 11.x's segv_handler requires
+Upstream: no
+Why: XGETBV with ECX = 0 reads XCR0, which programs check before using
+ AVX. Rosetta 2 on macOS 15 raises an invalid-opcode fault for it; the
+ fault handler now emulates it and steps over it.
+Programs: none known; programs that run XGETBV without checking CPUID's
+ OSXSAVE bit first
+Seen on: macOS 15 (tests/regress/rosetta-xgetbv)
+Fine on: macOS 26.7.2 (M1 Max): Rosetta runs XGETBV itself
+Expects before it: ntdll-rosetta-cet-rdssp (context), ntdll-rosetta-mxcsr (context)
+Status: 11.22: 2026-11-16: built in wine-macfixes-11.22-build4
 ```
 
 Keys must appear in this order. Each may appear only once, except
-`Origin`.
+`Origin`. A value that differs between a patch's versions says so with
+the version first, as `Status` does: `10.0: ...`.
 
 | Key | Required | Value |
 | --- | --- | --- |
-| `SPDX-License-Identifier` | yes | The patch's licence. |
-| `Summary` | yes | One line, at most 100 characters, no full stop. What the patch does, for the build page's patch list. |
+| `SPDX-License-Identifier` | yes | The patch's licence, as an SPDX licence expression: `LGPL-2.1-or-later`, or `LGPL-2.1-or-later AND (MIT OR Unlicense)` for a patch that adds a third-party file under its own licence. |
+| `Summary` | yes | One line, at most 100 characters, no full stop. What the patch does, for the build page's patch list. Every copy shares it, so it doesn't name a Wine version. |
 | `Category` | yes | What part of Wine it changes, one of the values below. The build page filters patches by it. |
 | `Kind` | yes | What sort of change it is: one or more of the values below, comma-separated, e.g. `fix, performance`. |
+| `Feature` | no | The feature the patch is part of, by name: an entry in [features.md](features.md), which says once, per Wine version, whether the feature works. For a capability several patches make up, such as `d3dmetal`. |
 | `Origin` | yes | Where the change comes from: one block per source (see "Origin blocks"). |
-| `Upstream` | yes | `yes`, `no` or `partly`, then optional detail: is the change in WineHQ's own tree? |
-| `Why` | yes | What problem it fixes, and how. |
-| `Programs` | yes | The programs that led to the patch, each with what went wrong in it, so a later problem with the patch has something to test against: `Iji: about 3x slower with software vertex processing`. Name them even when the patch helps everything. `none known` when the source doesn't name one; `none (build)` for patches that change only how Wine builds. |
+| `Upstream` | yes | Whether WineHQ has it: one of the values below, then optionally a detail in brackets or after `; `. `pending (MR !11538)`, `yes (Wine 10.8)`, `differently (d87fb2f5, after Wine 11.22)`. |
+| `Needed until` | no | The first Wine version that doesn't need the patch, then optionally a detail: `11.23 (WineHQ d87fb2f5)`. Or, when it ends with something else, that condition in words: `MR !11538 is merged`. `tools/pin` doesn't carry a copy to that version or later, and asks you to check a condition. |
+| `Why` | yes | What problem it fixes, and how. Which macOS and Wine versions have the problem. |
+| `Programs` | yes | The programs that led to the patch, each with what went wrong in it, so a later problem with the patch has something to test against: `Iji: about 3x slower with software vertex processing`. Name only programs the patch fixes something in. `<program> (WineHQ bug N): <what goes wrong>` for one reported upstream and not tried here; `none known; <who would hit it>` when no program was reported; `none (build)` for patches that change only how Wine builds, `none (tests)` for ones that add only tests. |
+| `Matches` | no | What the patch recognises in a program, for patches that act only on some: entries separated by `; `, each a kind and what it matches. Kinds: `exe`, `dll`, `path`, `cmdline`, `bytes`, `window`, `other`. `exe steamwebhelper.exe, Battle.net.exe; dll libcef.dll`. |
+| `Seen on` | no | Where the problem was seen: macOS version, Mac and how, entries separated by `; `. `macOS 14 (WineHQ bug 56441)`, `macOS 15.6 (M3, CrossOver's report)`. |
+| `Fine on` | no | Where it was looked for and not seen, in the same form: `macOS 26.7.2 (M1 Max): Rosetta runs XGETBV itself`. With `Seen on`, it says when the patch can go. |
+| `Enable` | in `options` | How the patch is switched on, one entry per line: `env NAME=value`, `reg <key>\<value> = <data> (<type>)`, `see <patch> (<its setting>)` for a patch another one's setting switches, or `by <what turns it on>`. Where it applies goes after, in brackets: `(wineserver and every process)`, `(per program: AppDefaults\<exe>\...)`, `(processes started by CreateProcess)`. Required for a patch in the `options` set; elsewhere, for a fix's tunables. |
+| `Messages` | no | The exact strings the patch prints, quoted, and which `WINEDEBUG` channel, if any, hides them, so a line in someone's log leads to the patch. |
+| `Risk` | no | What the patch loads, opens or trusts that Wine otherwise wouldn't, and who can turn that on. The build page flags these patches. |
+| `Known issues` | no | Known problems with the patch, or its option, switched on. (What isn't known goes in `Uncertain`.) |
 | `Uncertain` | no | What isn't known for sure. The build page flags these patches. |
-| `Evidence` | no | What shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
-| `Port` | no | How it was adapted to this Wine version. |
-| `Expects before it` | no | The patches it depends on, by name, comma-separated, then optionally `; ` and a note: `ntdll-rosetta-refuse-ldt-entries; NtSetLdtEntries refuses entries under Rosetta 2`. Each must have a lower number and a copy for every version this copy covers. |
-| `Status` | no | Short dated notes: built, confirmed, measured n of m. One line per version and event; the story of the investigation goes in the commit message. Not published: it can be out of date in a build. In a copy for several versions, each entry starts with the version it's about: `11.21: 2026-11-22: passes in a local test build`. |
+| `Evidence` | no | Only with an `Origin: reconstructed` block: what shows the behaviour exists in the build it reproduces, e.g. strings in Sikarugir 10.0_8's binaries. |
+| `References` | no | URLs that support what the header says about Windows or other software: Microsoft's documentation, WineHQ's tests, bug reports. Entries separated by `, ` or new lines, each a URL optionally followed by a note in brackets. |
+| `Docs` | no | This repository's documents the patch implements, by path from the top, comma-separated: `docs/app-embedded-protocol.md`. Each must exist and should name the patch. |
+| `Build-env` | no | Build variables the patch reads, comma-separated: `WINE_VERSION_LABEL`. `build/compile.sh` must set each. |
+| `Expects before it` | no | The patches it needs, by name, comma-separated, each followed by how it needs it: nothing for code (it calls or changes the other's code), ` (context)` when only its diff's context needs the other's lines, ` (run time)` when it needs the other's behaviour. Then optionally `; ` and a note. `ntdll-is-apple-silicon, ntdll-rosetta-mxcsr (context); is_apple_silicon()`. Each must have a lower number and a copy for every version this copy covers. `tools/patch deps` finds the code and context ones. |
+| `Related` | no | Patches that act on the same code path without needing each other, by name, comma-separated, then optionally `; ` and a note. No order; the website links them. |
+| `No test` | no | Why no regression test guards the patch: `needs Apple's D3DMetal`, `timing only`. Without it, the checker warns about a `fix` or `workaround` that no test's `Guards` names. |
+| `Status` | no | The current state, per version, in two or three lines each: built in, confirmed, measured n of m. Each entry starts with the version it's about: `11.21: 2026-11-22: passes in a local test build`. The history goes in the commit message. Not published: it can be out of date in a build. |
+
+`Upstream` values:
+
+| Value | Meaning |
+| --- | --- |
+| `no` | Not in WineHQ, and not offered |
+| `candidate` | WineHQ would likely take it; not offered yet (say where a draft is: `candidate (draft in .local/bug-reports/)`) |
+| `pending` | Offered and not yet merged: `pending (MR !11538)` |
+| `declined` | Offered or reported, and turned down: `declined (bug 56441 closed NOTOURBUG)` |
+| `partly` | Part of it is in WineHQ; the detail says which |
+| `differently` | WineHQ fixed the problem another way: `differently (3a16aabb, Wine 10.5)` |
+| `yes` | In WineHQ: `yes (Wine 10.8)`. A backport. |
 
 ## Origin blocks
 
@@ -236,30 +313,56 @@ CrossOver hack has an `Origin: wine-staging` block and an
 
 ```text
 Origin: wine-staging
+  Version: v11.21
   URL: https://github.com/wine-staging/wine-staging/blob/v11.21/patches/winemac.drv-no-flicker-patch/0001-winemac.drv-No-Flicker-patch.patch
-  Note: wine-staging patch winemac.drv-no-flicker-patch (Ken Thomases)
+  Authors: Ken Thomases
 Origin: crossover
+  Version: 26.3.0
   CW-Hacks: 14364
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
 ```
 
 | Project | Its own sub-keys |
 | --- | --- |
 | `winehq` | `Commit`, `Bugs`, `MR` |
+| `winehq-bugzilla` | `Bugs`, `Attachment` (the attachment numbers) |
 | `wine-staging` | `Patchset`, `Files` |
 | `crossover` | `CW-Hacks` (CodeWeavers' "CW HACK" numbers), `Files` |
+| `proton` | `Commit`, `CW-Bug-Id` (the numbers Proton's commits carry, separate from CrossOver's CW HACK numbers) |
 | `gcenx` | `Commit`, `File` |
-| `reconstructed` | `Binary`, `Functions` |
-| `other` | `Name` |
-| `wine-mac-builds` | only `Version`, `Changes` and `Note` |
+| `reconstructed` | `Binary` (the file), `Functions` (and their offsets) |
+| `other` | `Name` (required: which project) |
+| `wine-mac-builds` | only `Version`, `Covers`, `Changes` and `Note` |
 
-Every project may also have `Version` (the source's version: `26.3.0`,
-`v11.21`; for `wine-mac-builds`, the version of our own copy this one was
-ported from), `Authors`, `URL` (one or more, comma-separated), `Note` and
-`Changes` (how our copy differs from the source's code, or `verbatim`).
-Several values are comma-separated. The headers were converted to blocks
-on 2026-11-25 with the old `From` text kept as `Note`; the patch review
-(stage 3 of the patch-sets plan) fills in the rest, and turns `Port` into
-`Changes` and `wine-mac-builds` blocks.
+Every project may also have:
+
+- `Version`: the source's version (`26.3.0`, `v11.21`). For `winehq`, the
+  first WineHQ release with the commits, so it agrees with `Upstream: yes
+  (Wine 10.8)`. For `wine-mac-builds`, our own copy this one was ported
+  from (below).
+- `Authors`.
+- `URL`: one or more, comma-separated. A `crossover` URL is the source
+  tarball of its `Version`. On a `winehq` block it's optional: the
+  website builds it from `Commit`.
+- `Covers`: which part of the patch this source is for, when its parts
+  come from several: `the mechanism and the Steam and Battle.net
+  entries`.
+- `Note`.
+- `Changes`: how our copy differs from the source's code, or `verbatim`.
+  A "left out" list goes here too.
+
+Several values are comma-separated. Every block other than
+`wine-mac-builds` has a `Version` or a `URL`, so its claim can be checked.
+A file list belongs in `Files` (`Binary` for a reconstructed patch); a
+`wine-mac-builds` block has none, as the diff shows the files.
+
+A port is a chain. A copy that was ported from another copy of ours gets
+a `wine-mac-builds` block whose `Version` names that copy, with
+`Changes` saying what the port changed; the blocks the other copy has
+stay as they are. So the 11.22 copy of a CrossOver 26.3.0 hack, ported
+from our 11.21 copy, has the `crossover` block (how 11.21 differs from
+CrossOver) and a `wine-mac-builds` block with `Version: 11.21` (how 11.22
+differs from 11.21).
 
 `Category` values: what part of Wine a patch changes, whoever it was
 written for. (Which patches act only on named programs is the `programs`
@@ -289,8 +392,10 @@ patch set.)
 | Value | Meaning |
 | --- | --- |
 | `winehq` | A commit from WineHQ's own tree, copied back to an older release |
+| `winehq-bugzilla` | A patch attached to a WineHQ bug, not committed |
 | `wine-staging` | From the wine-staging patch set |
 | `crossover` | From CodeWeavers' published CrossOver source |
+| `proton` | From Valve's Proton Wine tree |
 | `gcenx` | From Gcenx's macports-wine overlay |
 | `other` | From another public project; its `Name` says which |
 | `reconstructed` | Rebuilt from a compiled binary with no published source |

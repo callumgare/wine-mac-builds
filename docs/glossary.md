@@ -50,6 +50,13 @@ holds sets taken by the same flavours. Sets taken by more flavours are in
 lower layers, so a patch never depends on one that some of its flavours
 lack.
 
+**Feature.** A capability that several patches make up, such as running
+D3DMetal or showing a program's windows in a host app. Each of those
+patches names it in its `Feature` key, and
+[patches/features.md](../patches/features.md) says, per Wine version,
+whether the feature works. BUILD-INFO records the status for the build's
+version.
+
 **Flavour.** A source plus the patch sets applied to it. Flavours built
 from the same source are configured and packaged the same way, so their
 patch sets are the only difference between them.

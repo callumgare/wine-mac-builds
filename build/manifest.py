@@ -109,12 +109,25 @@ def patch_entry(f):
         "name": c.patch.name, "set": c.patch.set, "number": c.patch.number, "file": f,
         "versions": c.versions, "sha256": sha256(ROOT / f), "diff_sha256": diff_sha256(f),
         "summary": header.get("summary"), "category": header.get("category"),
-        "kinds": header.get("kinds"),
+        "kinds": header.get("kinds"), "feature": header.get("feature"),
         # One entry per source the patch comes from (the header's Origin
         # blocks): project, ported_here, and its sub-keys in snake_case.
         "origins": header.get("origins", []),
         "header": header,
     }
+
+
+def feature_entries(applied):
+    """The features the build's patches make up (their headers' Feature), each
+    with its status for this Wine version from patches/features.md."""
+    known = patchsets.features()
+    out = []
+    for name in sorted({p["feature"] for p in applied if p.get("feature")}):
+        f = known.get(name, {})
+        out.append({"name": name, "summary": f.get("summary"),
+                    "status": f.get("status", {}).get(env["WINE_VERSION"]),
+                    "patches": [p["name"] for p in applied if p.get("feature") == name]})
+    return out
 
 
 def patch_set_entry(name):
@@ -236,6 +249,9 @@ info = {
     # under components (wine).
     "patch_base": env["PATCH_BASE"],
     "patch_sets": [patch_set_entry(s) for s in env["PATCH_SETS_LIST"].split()],
+    # Features several patches make up (patches/features.md), with whether
+    # each works on this Wine version.
+    "features": feature_entries(components[0]["patches"]),
     "wine_version": env["WINE_VERSION"],
     # What `wine --version` prints: WineHQ's version string, plus the
     # flavour's label from the version-label patch set (the smoke test

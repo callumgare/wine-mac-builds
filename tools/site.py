@@ -253,9 +253,9 @@ def downloads_table(e, repo):
             f"</table></div><p class=muted>Check where a file came from: <code>{esc(verify)}</code></p>")
 
 
-ORIGINS = {"winehq": "WineHQ", "wine-staging": "wine-staging", "crossover": "CrossOver",
-           "gcenx": "Gcenx", "other": "other project", "reconstructed": "reconstructed",
-           "wine-mac-builds": "this project"}
+ORIGINS = {"winehq": "WineHQ", "winehq-bugzilla": "WineHQ Bugzilla", "wine-staging": "wine-staging",
+           "crossover": "CrossOver", "proton": "Proton", "gcenx": "Gcenx", "other": "other project",
+           "reconstructed": "reconstructed", "wine-mac-builds": "this project"}
 
 
 def patch_row(p, rec, commit):

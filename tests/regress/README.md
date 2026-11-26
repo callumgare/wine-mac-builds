@@ -164,6 +164,7 @@ run it:
      * Log: ^msync: up and running  a regex Wine's own output must match
      * Screenshot: centred ff00ff   see below
      * Guards: ntdll-rosetta-refuse-ldt-entries   the patches it guards
+     * Fails without on: wine-11.22-build3, macOS 26.7.2, M1 Max, 2026-11-16
      *
      * What the game did, what went wrong, and what passing means.
      */
@@ -172,6 +173,18 @@ A test runs on every build whose flavour takes the patch set of a patch it
 guards, whether or not that version has a copy of the patch, and
 `Versions` narrows that. They say where the fix is meant to be, not where
 a patch file happens to be: a fix that's needed but missing should fail.
+Several names in `Guards` mean any of them: the test runs when the
+flavour takes any one, and a failure can come from any of them. The
+checker warns about a `fix` or `workaround` patch that no test's `Guards`
+names, unless its header gives a `No test` reason.
+
+`Fails without on` records where the test was last seen to fail on a
+build without the fix: the build, then `macOS <version>`, the Mac and the
+date, comma-separated; several such entries are separated by `; `.
+`wine-11.22-build3, macOS 26.7.2, M1 Max, 2026-11-16`. A test can stop
+failing without its fix when macOS or Rosetta changes (see "Where a test
+can't see its bug"), so this says when it last caught the bug, and where.
+The checker checks its form; the runner ignores it.
 
 A `Screenshot:` test prints `<name>: SCREENSHOT` once its window is up and
 then keeps it up for a few seconds. The runner captures the screen and runs

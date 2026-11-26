@@ -28,7 +28,9 @@
 #                                flavour takes one of their patch sets, whether
 #                                or not this version has the patch (a fix that's
 #                                needed but missing should fail); without it, on
-#                                every build
+#                                every build. Several names mean any of them
+#   Fails without on: ...        where it last failed without the fix (not read
+#                                here; tests/regress/README.md)
 #   Versions: <glob> ...         run only for these Wine versions (default all)
 #   Env: <NAME=value> ...        set for the run
 #   Wrapper: <helper> [args]     run "tests/regress/helpers/<helper> [args] <wine>
