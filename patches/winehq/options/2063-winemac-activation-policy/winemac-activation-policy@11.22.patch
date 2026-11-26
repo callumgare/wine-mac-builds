@@ -2,25 +2,25 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: winemac: ActivationPolicy option; "accessory" gives no Dock icon and never activates
 Category: input
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/cocoa_app.m, transformProcessToForeground and
-    tryToActivateIgnoringOtherApps; written for wine-mac-builds after the
-    behaviour of CrossOver's CW HACK 24141, generalised to an option. None of
-    that hack's code is used.
+  Note: after the behaviour of CrossOver's CW HACK 24141, generalised to an
+    option; none of that hack's code is used
 Upstream: no
 Why: A program run as a helper of an app that embeds Wine shouldn't put a
  Dock icon or a menu bar on screen, or take focus from the app. The Mac
  Driver "ActivationPolicy" value, read the usual two ways
  (HKCU\Software\Wine\Mac Driver, overridden by AppDefaults\<exe>\Mac
- Driver), takes "regular" (the default, Wine's behaviour) or "accessory".
+ Driver), takes "regular" (the default, Wine's behaviour) or "accessory"
+ (a string, either case; any other value means regular).
  The environment variable WINEMAC_ACTIVATION_POLICY, set to either,
  overrides the registry, so a launcher can set it for the programs it runs
  (installers during a build, say) without changing the prefix. With
  "accessory", topmost (WS_EX_TOPMOST) windows also stay at the normal
  window level, since the process is never active: TopmostFloatInactive is
- treated as none, and -adjustWindowLevels doesn't raise them to its floor
- for floating windows (above the Dock, level 21), which otherwise applies
- whatever TopmostFloatInactive says.
+ treated as none whatever it's set to, and -adjustWindowLevels doesn't
+ raise them to its floor for floating windows (above the Dock, level 21),
+ which otherwise applies whatever TopmostFloatInactive says.
  macOS also shows an accessory app's windows over another app's fullscreen
  Space, even while the accessory app is inactive; a regular app's windows
  aren't. Of the collection behaviours tried on a native accessory window
@@ -33,52 +33,27 @@ Why: A program run as a helper of an app that embeds Wine shouldn't put a
  still shown. Any other value, or none, changes nothing.
 Programs: Second Chance (an app that embeds Wine): wants its helper
  processes run without a Dock icon or menu bar and without taking focus
-Uncertain: macOS can still activate an accessory process when its window is
- clicked; the driver only stops activating it itself. With FullScreenNone,
- an accessory process's windows can't use macOS's own fullscreen (a Space
- of their own); Wine's usual fullscreen (a window covering the display)
- isn't affected, but this hasn't been tested with a game run as accessory.
-Expects before it: winemac-cocoa-start-wait;
- context only
-Status: 2026-11-20: in 11.22-build0 (a local host build of this commit
- on meeka; suite 51 passed, 2 skipped, 0 failed). Second Chance's
- integration run on meeka, its installer wizards (ten different ones,
- AutoIt-driven, run as accessory) building while other games ran
- fullscreen: a wizard came in front of a game 0 times in 10, against 3 on
- 11.22-build15 in a comparable run. The wizards still worked off the
- game's Space: every patch step moved on and those games built. Nothing
- in that run needed a click on a wizard, so reaching one that does wasn't
- tested.
- 2026-11-19 (later): FullScreenNone for accessory windows added. In
- a host quick build of 11.22 on meeka (macOS 26.7.2), in a Screen Slots
- login session: a native app fullscreen in its own Space and staying
- active, then a Wine dialog-style window (WS_POPUP|WS_CAPTION) shown with
- WINEMAC_ACTIVATION_POLICY=accessory, with and without SetForegroundWindow.
- Without this change the Wine window was on screen over the fullscreen
- window in every run; with it, it wasn't, in 4 of 4 runs (both modes
- among them). Removing only FullScreenAuxiliary, and ordering new windows to the
- back instead of the front, changed nothing. Not yet shown with a game or
- with Second Chance's installer wizards; not yet in a CI build.
- 2026-11-19: WINEMAC_ACTIVATION_POLICY and the topmost level added.
- In a host quick build of 11.22 on meeka (macOS 26.7.2; the topmost change
- swapped in as a rebuilt winemac.so): winemac-activation-policy passes, all
- six cases, the variable reaching notepad started by cmd included; on
- 11.22-build14 its three variable cases fail. A program with a normal and a
- topmost window, started while Calculator was up: on build14, with
- ActivationPolicy=accessory or with nothing set, the topmost window was at
- layer 21, above everything; with this patch and the variable, both windows
- were at layer 0 behind Calculator's. That session wasn't the console's,
- and no app became active there, so "behind the active app" was shown only
- as "behind another app's window".
- 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
- smoke and the host OpenGL tests pass). On meeka (macOS 26.7, in a GUI
- session that didn't hold the screen): notepad became Foreground with
- nothing set and UIElement with the global or the notepad.exe value;
- winemac-activation-policy passes there and fails on 11.22-build9. In
- 11.22-build10 (CI): the suite passes, this test included (in the build
- VM). On meeka, a Big Fish trial (White Wolf) ran with the value set for
- bfgclient.exe alongside an embedding app's own hidden-windows helper: no
- harm shown, but that doesn't show the value hides the Dock icon by itself.
+Seen on: macOS 26.7.2 (a native accessory app, and a Wine dialog in a
+ Screen Slots session): an accessory app's windows show over another app's
+ fullscreen Space; macOS 26.7 (Second Chance's installer wizards in front
+ of a fullscreen game 3 times in 10 on 11.22-build15)
+Enable: reg HKCU\Software\Wine\Mac Driver\ActivationPolicy = accessory (REG_SZ)
+ reg HKCU\Software\Wine\AppDefaults\<exe>\Mac Driver\ActivationPolicy = accessory (REG_SZ) (per program)
+ env WINEMAC_ACTIVATION_POLICY=accessory (overrides the registry; inherited by child processes)
+Known issues: macOS can still activate an accessory process when its
+ window is clicked; the driver only stops activating it itself. With
+ FullScreenNone, an accessory process's windows can't use macOS's own
+ fullscreen (a Space of their own); Wine's usual fullscreen (a window
+ covering the display) isn't affected.
+Uncertain: not tested with a game run as accessory. In Second Chance's
+ run nothing needed a click on a wizard kept off a game's Space, so
+ reaching one that does wasn't tested. The regression test covers the
+ activation policy only, not the topmost level or FullScreenNone.
+Expects before it: winemac-cocoa-start-wait (context)
+Status: 11.22: 2026-11-20: in 11.22-build0 (a local host build on meeka;
+ suite 51 passed, 2 skipped, 0 failed). Second Chance's installer wizards,
+ run as accessory beside fullscreen games, came in front of a game 0 times
+ in 10, against 3 on 11.22-build15; every wizard still finished.
 
 diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
 --- a/dlls/winemac.drv/cocoa_app.m

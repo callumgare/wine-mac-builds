@@ -8,12 +8,22 @@ Origin: other
   URL: https://github.com/dblark/macos-wine-build/blob/71877c1/patches/0004-add-winemetal-stub.patch
   Changes: configure regenerated with autoconf 2.72 (tools/make_makefiles),
     as WineHQ's own new-DLL commits do
+  Note: CX 26 has no winemetal stub (CrossOver doesn't ship DXMT). Sikarugir
+    10.0_8 ships it: lib/wine/{x86_64,i386}-windows/winemetal.dll, whose only
+    export is WineMetalEntry (a stub)
 Upstream: no
-Why: DXMT's d3d11/dxgi import winemetal.dll; the stub lets the builtin load until the
- user drops in DXMT's own winemetal.dll/.so.
+Why: DXMT's d3d11.dll and dxgi.dll import winemetal.dll, which DXMT ships
+ (PE and Unix parts) on its DLL path (WINEDLLPATH_DXMT). Outside prefix
+ setup, Wine loads a builtin DLL only if a file of that name is in the
+ prefix (find_builtin_without_file in dlls/ntdll/loader.c), so without one
+ DXMT's winemetal.dll and d3d11.dll fail with error 126 (shown on 10.0
+ build0). Building a stub winemetal.dll makes wineboot put one in system32
+ and syswow64; with DXMT's on the DLL path, loading the name loads DXMT's.
+ Without DXMT, the stub loads and exports only WineMetalEntry.
 Programs: none known
-Evidence: Sikarugir 10.0_8: lib/wine/{x86_64,i386}-windows/winemetal.dll, whose only export is
- WineMetalEntry (a stub)
+Enable: by WINEDLLPATH_DXMT (ntdll-renderer-dll-paths) naming DXMT's DLLs; the stub file is in every prefix
+Related: wine-inf-d3dmetal-placeholder-dlls; the same loader rule, met with
+ wine.inf placeholders
 
 diff --git a/configure b/configure
 index c33c4e9..f3f4d7b 100755

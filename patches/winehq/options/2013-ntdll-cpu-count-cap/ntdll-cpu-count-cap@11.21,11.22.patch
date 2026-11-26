@@ -6,16 +6,31 @@ Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 24711
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 24711 (dlls/ntdll/unix/system.c), adapted
-    Source: (sources/wine/dlls/ntdll/unix/system.c)
-  Changes: SystemProcessorPerformanceInformation's macOS branch also
-    returns no more entries than the capped count (CX's returned one per
-    real processor when the buffer had room)
+  Files: dlls/ntdll/unix/system.c
+  Changes: the create_logical_proc_info() hunks are CX's. 11.21's
+    init_cpu_info() no longer sets peb->NumberOfProcessors from a local
+    "num" (CX's Wine 11.0 code does): the count lives in the global
+    cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical
+    processor info), so the WINENCPU override lowers cpu_count.
+    SystemProcessorPerformanceInformation's macOS branch also returns no
+    more entries than the capped count (CX's returned one per real
+    processor when the buffer had room).
+  Note: Sikarugir 10.0_8 ships it: ntdll.so has "WINENCPU", "Restricting
+    number of processors to %ld."
 Upstream: no
-Why: WINENCPU=n caps the reported processor count (for games that break with many cores); the logical processor info and the processor performance information are kept consistent.
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so: "WINENCPU", "Restricting number of processors to %ld."
-Port: to 11.21: the create_logical_proc_info() hunks are CX's. 11.21's init_cpu_info() no longer sets peb->NumberOfProcessors from a local "num": the count lives in the global cpu_count (used for the PEB, SYSTEM_CPU_INFORMATION and the logical processor info), so the WINENCPU override now lowers cpu_count.
+Why: Off unless WINENCPU is set. WINENCPU=<n>, with n at least 1 and below
+ the Mac's logical processor count, makes Wine report n processors (macOS
+ only): in GetSystemInfo, GetActiveProcessorCount, the affinity masks, the
+ processor registry keys, the logical processor information (packages and
+ cores clamped to n, cache sharing kept consistent) and the processor
+ performance information. For programs that break with many cores.
+ Threads still run on every core.
+Programs: none known; programs that size thread pools or per-core buffers
+ from the processor count and fail with many cores
+Enable: env WINENCPU=<n> (per process; 1 <= n < the Mac's logical processor count)
+Messages: "Restricting number of processors to %ld." (WARN, shown only
+ with WINEDEBUG=warn+ntdll)
+Uncertain: which program CrossOver added it for (CW HACK 24711).
 Status: 11.21: 2026-11-26: SystemProcessorPerformanceInformation capped too; not yet in a build
  11.22: 2026-11-26: SystemProcessorPerformanceInformation capped too; not yet in a build
 

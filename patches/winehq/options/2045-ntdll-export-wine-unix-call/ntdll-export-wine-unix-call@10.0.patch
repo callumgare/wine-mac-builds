@@ -2,23 +2,27 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Export __wine_unix_call from ntdll.dll for D3DMetal's DLLs
 Category: graphics
 Kind: feature
+Feature: d3dmetal
 Origin: crossover
   Version: 26.3.0
   CW-Hacks: 22435
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22435, the ntdll part (dlls/ntdll/ntdll.spec, loader.c)
-    Source: (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
+  Files: dlls/ntdll/ntdll.spec, dlls/ntdll/loader.c
+  Changes: verbatim (the ntdll part of CW HACK 22435)
+  Note: the winemac.drv part of CW HACK 22435 is
+    winemac-export-macdrv-functions, the wine.inf part
+    wine-inf-d3dmetal-placeholder-dlls. Sikarugir 10.0_8 ships it: its x86_64
+    and i386 ntdll.dll export __wine_unix_call; ours didn't (the only export
+    difference across the PE DLLs, 2026-11-15)
 Upstream: no
-Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it as a
- wrapper of the inline __wine_unix_call. winemac-export-macdrv-functions carries
- the winemac part of the same hack. DXMT doesn't use it. D3DMetal 3.0 needs Wine
- 10.4's GSBASE model, so it is supported on 10.0 only: from Wine 10.5 (WineHQ
- 3a16aabb) GSBASE points at the TEB while PE code runs, and D3DMetal 3.0 crashes
- when a program creates a DXGI factory (measured on 11.22). So this patch has no
- copy for 11.x.
+Why: D3DMetal's PE DLLs (d3d12, dxgi and nvngx in D3DMetal 3.0) import
+ __wine_unix_call from ntdll.dll by name to reach their Unix side; WineHQ
+ exports only __wine_unix_call_dispatcher, so they fail to load. This
+ exports a function of that name that wraps the inline __wine_unix_call.
+ Nothing calls it unless such a DLL is loaded; DXMT doesn't use it. No copy
+ for Wine 11.x, where D3DMetal 3.0 can't run.
 Programs: none known
-Evidence: Sikarugir 10.0_8: its x86_64 and i386 ntdll.dll export __wine_unix_call;
- ours didn't (the only export difference across the PE DLLs, 2026-11-15).
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_D3DMETAL)
 Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
  can't run there). In build0
 

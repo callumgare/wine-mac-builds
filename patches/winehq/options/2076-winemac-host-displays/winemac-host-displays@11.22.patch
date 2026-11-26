@@ -2,75 +2,59 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: winemac: in host mode, the displays and current mode come from the host
 Category: graphics
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/cocoa_host.m, cocoa_display.m, display.c; written for
-    wine-mac-builds, implementing displays_get from
-    docs/app-embedded-protocol.md.
 Upstream: no
-Why: With HostWindows (winemac-host-windows) the host shows the program's windows, and it
- may show them on less than the whole screen: Second Chance keeps them
- below a MacBook's notch. Until now the driver still took its monitors from
- NSScreen and its current mode from CGDisplayCopyDisplayMode, so Wine
- thought the screen was the full height, and Second Chance needed a helper
- injected into Wine that changed what those calls return. Now, in host
- mode, the driver asks the host (displays_get) when it enumerates the
- displays: each monitor's rect and work area are the host's display, the
- current mode's size is that display's size (refresh rate and depth stay
- the real mode's), that size is listed among the modes, and setting it
- changes nothing real. A screen the host doesn't report is left out. The
- host's first display must be at the protocol's origin; when it isn't, or
- the host doesn't answer or answers unsupported, the driver uses the real
- displays. A host that answers unsupported isn't asked again by that
- process; one that doesn't answer within the call timeout (2 s) is asked
- again at the next enumeration, so a host that was slow once still gets
- its displays used. DISPLAYS_CHANGED
- from the host already reached Wine's display-change handling, which
- enumerates again. Plain mode is unchanged.
+Why: With HostWindows (winemac-host-windows) the host shows the program's
+ windows, and it may show them on less than the whole screen: Second
+ Chance keeps them below a MacBook's notch. Until now the driver still
+ took its monitors from NSScreen and its current mode from
+ CGDisplayCopyDisplayMode, so Wine thought the screen was the full height,
+ and Second Chance needed a helper injected into Wine that changed what
+ those calls return. Now, in host mode, the driver asks the host
+ (displays_get) when it enumerates the displays: each monitor's rect and
+ work area are the host's display, the current mode's size is that
+ display's size (refresh rate and depth stay the real mode's), that size
+ is listed among the modes, and setting it changes nothing real. A screen
+ the host doesn't report is left out. The host's first display must be at
+ the protocol's origin; when it isn't, or the host doesn't answer or
+ answers unsupported, the driver uses the real displays. A host that
+ answers unsupported isn't asked again by that process; one that doesn't
+ answer within the call timeout (2 s) is asked again at the next
+ enumeration, so a host that was slow once still gets its displays used.
+ DISPLAYS_CHANGED from the host already reached Wine's display-change
+ handling, which enumerates again. Plain mode is unchanged.
+ With tools/wmh-testhost answering 1512x945 (work area 1512x920), a test
+ program saw that monitor, work area, current mode and SM_CX/CYSCREEN,
+ and after DISPLAYS_CHANGED to 1440x900 it saw 1440x900 throughout.
 Programs: Second Chance (an app that embeds Wine): every program shown
  below the notch of a 14" MacBook Pro (1512x945 points there, not
  1512x982).
+Enable: see winemac-host-windows (HostWindows and WINEMAC_HOST_SERVICE)
+ by a host that answers displays_get
+Messages: "host: the first display isn't at the origin (%g,%g); using the
+ real displays", "host: display %u has no size; using the real displays"
+ (warn:macdrv; shown only with WINEDEBUG=warn+macdrv)
+Known issues: without EmulateModeset, the real modes are still listed and
+ can be set, including ones taller than the host's display.
 Uncertain: Host displays are matched to real screens: the first to the
  primary, the others by overlap with the real screen's rect. Without
- EmulateModeset, the real modes are still listed and can be set, including
- ones taller than the host's display. Also without EmulateModeset: after
- the host's display changed (1512x945 to 1440x900 in the test host), Wine
- logged "No matching mode found 1512x945x32 @60" once, most likely
- restoring the test program's temporary (CDS_FULLSCREEN) mode at exit, a
- size the display no longer had; nothing visible came of it.
-Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
- host mode, a test program printing its monitors and current mode (1 run
- each). Answering one display 0,0 1512x945 with work area 1512x920: the
- program saw monitor (0,0)-(1512,945), work (0,0)-(1512,920), current mode
- and SM_CX/CYSCREEN 1512x945, that size among the modes, and setting it
- returned DISP_CHANGE_SUCCESSFUL. After the host answered 1440x900 and sent
- DISPLAYS_CHANGED, the program saw 1440x900 throughout. Answering
- unsupported: the real display (2560x1440, work (0,30)-(2560,1351)), and
- each process asked once.
-Expects before it: winemac-host-windows; it extends cocoa_host.m and cocoa_host.h,
- which winemac-host-windows creates
+ EmulateModeset: after the host's display changed (1512x945 to 1440x900
+ in the test host), Wine logged "No matching mode found 1512x945x32 @60"
+ once, most likely restoring the test program's temporary
+ (CDS_FULLSCREEN) mode at exit, a size the display no longer had; nothing
+ visible came of it. Not tested with a real host: a real display
+ rearrangement (DISPLAYS_CHANGED), clicks, or RetinaMode.
+Docs: docs/app-embedded-protocol.md
+Expects before it: winemac-host-windows; it extends cocoa_host.m and
+ cocoa_host.h, which winemac-host-windows creates
 Status: 11.22: 2026-11-26: a displays_get that timed out (or failed) is
  retried at the next enumeration; only "unsupported" stops the process
- asking (it used to give up after any failure). Not yet in a build.
- 2026-11-22 (evening): host16 passed Second Chance's full hosted
- integration run on meeka (2560x1440, no notch), one run each: disc 36/36,
- download 6/6, Her downloads 3/3 (one on a rerun; the failure was in
- Second Chance's launcher), Steam 11/11, Big Fish trials 30/30, Big Fish
- owned 1/1. Its host has answered displays_get since main 62dcc9a2; which
- games asked for a display mode wasn't checked.
- 2026-11-22 (later): confirmed by Second Chance on kiya (14" MacBook
- Pro, macOS 15.6.1; built-in screen 1512x982 points made main, notch strip
- 37; a 2560x1440 display beside it), host16 (host15 + this patch) through
- its host (main 62dcc9a2) with no Wine helpers loaded, one run of a test
- program that opens a popup over the primary monitor: Wine saw monitor
- 0,0-1512,945, work area 0,1-1512,877, current mode and SM_CX/CYSCREEN
- 1512x945 at 120 Hz, and the second display at 1512,-37-4072,1403; the
- popup got 0,0-1512,945 and the host's window for it sat at Cocoa 0,0
- 1512x945, filling the screen up to the notch strip. Without the helper,
- the 945 could only have come from displays_get. Not tested: a real
- display rearrangement (DISPLAYS_CHANGED) or clicks.
- 2026-11-22: not yet in a build. Tested by swapping a winemac.so
- built with it into the host15 tree (see Evidence). The full suite on
- that tree: 56 passed, 0 failed, 2 skipped (the screen-taking tests).
+ asking. Not yet in a build.
+ 11.22: 2026-11-22: confirmed by Second Chance on a 14" MacBook Pro
+ (macOS 15.6.1), host16 with no Wine helpers loaded: Wine saw 1512x945,
+ and a popup over the primary monitor filled the screen up to the notch.
+ host16 also passed Second Chance's full hosted integration run on meeka.
 
 diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
 index bbc47e0..fe717fe 100644

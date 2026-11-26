@@ -2,49 +2,63 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: D3DMetal and DXMT: export winemac's function table for Metal views
 Category: graphics
 Kind: feature
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 22435
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22435 (dlls/winemac.drv/d3dmetal.c, d3dmetal_objc.[hm] and
-    the hooks in cocoa_window.m, event.c, window.c, macdrv.h, macdrv_cocoa.h, Makefile.in);
-    not its registry callbacks in dllmain.c, macdrv_main.c, unixlib.h, which only D3DMetal uses)
-    Source: (10.0 form: CrossOver 25.1.1; dblark 0003-d3dmetal-hacks.patch)
+  Files: dlls/winemac.drv/d3dmetal.c, dlls/winemac.drv/d3dmetal_objc.h,
+    dlls/winemac.drv/d3dmetal_objc.m, dlls/winemac.drv/cocoa_window.m,
+    dlls/winemac.drv/event.c, dlls/winemac.drv/window.c,
+    dlls/winemac.drv/macdrv.h, dlls/winemac.drv/macdrv_cocoa.h,
+    dlls/winemac.drv/Makefile.in
+  Changes: CX 26 (Wine 11.0) reworked the hack for Wine 11's client
+    surfaces: get_win_data() makes a client surface per DXGI swapchain and
+    hands the renderer its view; a WineMetalLayer subclass posts
+    CLIENT_SURFACE_PRESENTED from nextDrawable so win32u's
+    client_surface_present() runs. Adapted to WineHQ 11.21: Objective-C types
+    (WineWindow *, WineContentView *, WineMetalView *, MTLDevice_id,
+    CAMetalLayer *) instead of the macdrv_* opaque typedefs; the surface comes
+    from macdrv_CreateClientSurface(hwnd, 0, FALSE); DestroyWindow releases
+    the surfaces after dropping the win_data lock (releasing takes win32u's
+    surfaces lock, which present takes before win_data). Left out, as only
+    D3DMetal uses them: CX's registry callbacks (dllmain.c, macdrv_main.c,
+    unixlib.h, the advapi32 delay import) and user32 entries; the table ends
+    after on_main_thread and the window data after client_cocoa_view (DXMT's
+    own declarations of both stop there). Added: nextDrawable returns at once
+    until a view has been given a client surface, and a failed calloc in
+    get_win_data returns NULL instead of crashing.
+  Note: the wine.inf part of CW HACK 22435 is
+    wine-inf-d3dmetal-placeholder-dlls. Sikarugir 10.0_8 ships the Wine 10.0
+    form: winemac.so exports _macdrv_functions; trace strings
+    my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
+    my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;
+    winemac.drv contains macdrv_regqueryvalueexa and delay-imports
+    advapi32.dll
 Upstream: no
 Why: DXMT draws into Wine's windows through winemac: it looks up the table
  winemac.so exports as macdrv_functions (with dlsym) to get a window's client
  view, make a Metal view and layer in it, and release them (DXMT v0.74 calls
- get_win_data, release_win_data and the three metal_view functions). In Wine 11,
- each such swapchain gets a win32u client surface, and the Metal layer reports
- each frame (CLIENT_SURFACE_PRESENTED) so win32u composites it. Every Metal
- view's layer is a WineMetalLayer; until a renderer has asked for a client
- surface, its nextDrawable returns at once. D3DMetal uses the same table, with
- registry and user32 entries after these and a larger window data structure;
- those are left out here: D3DMetal 3.0 needs Wine 10.4's GSBASE model, so it is
- supported on 10.0 only (from Wine 10.5, WineHQ 3a16aabb, it crashes when a
- program creates a DXGI factory; measured on 11.22).
+ get_win_data, release_win_data and the three metal_view functions). In Wine
+ 11, each such swapchain gets a win32u client surface, and the Metal layer
+ reports each frame (CLIENT_SURFACE_PRESENTED) so win32u composites it. Every
+ Metal view's layer, MoltenVK's included, is a WineMetalLayer; until a
+ renderer has asked for a client surface, its nextDrawable returns at once.
+ D3DMetal uses the same table, with registry and user32 entries after these
+ and a larger window data structure; this copy leaves those out, as this
+ build doesn't support D3DMetal on Wine 11.x.
 Programs: none known
-Uncertain: the Wine 11 adaptation hasn't run with DXMT (it needs a GUI session).
- Client surfaces made per get_win_data call stay in the window's list until the
- window is destroyed.
-Evidence: Sikarugir 10.0_8: winemac.so exports _macdrv_functions; trace strings
- my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
- my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;
- winemac.drv contains macdrv_regqueryvalueexa and delay-imports advapi32.dll
-Port: taken from CX 26 (Wine 11.0), which reworked the hack for Wine 11's client
- surfaces: get_win_data() makes a client surface per DXGI swapchain and hands
- the renderer its view; a WineMetalLayer subclass posts CLIENT_SURFACE_PRESENTED
- from nextDrawable so win32u's client_surface_present() runs. Adapted to 11.21:
- ObjC types (WineWindow *, WineContentView *, WineMetalView *, MTLDevice_id,
- CAMetalLayer *) instead of the macdrv_* opaque typedefs, the surface comes from
- macdrv_CreateClientSurface(hwnd, 0, FALSE), and DestroyWindow releases the
- surfaces after dropping the win_data lock (releasing takes win32u's surfaces
- lock, which present takes before win_data). The table ends after on_main_thread
- and the window data after client_cocoa_view (DXMT's own declarations of both
- stop there): CX's registry callbacks (dllmain.c, macdrv_main.c, unixlib.h, the
- advapi32 delay import) and user32 entries are left out. nextDrawable returns at
- once until a view has been given a client surface, and a failed calloc in
- get_win_data returns NULL instead of crashing.
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_DXMT)
+Messages: TRACE lines on the macdrv_d3dmtl channel, such as "get_win_data %p"
+ and "macdrv_view_create_metal_view %p %p" (hidden unless WINEDEBUG has
+ +macdrv_d3dmtl)
+Risk: exposes winemac internals to any dylib in the process, by design
+Uncertain: the Wine 11 adaptation hasn't run with DXMT (it needs a GUI
+ session). Client surfaces made per get_win_data call stay in the window's
+ list until the window is destroyed, so a program that recreates its
+ swapchain often collects them. Once any view has a client surface, every
+ Metal layer's nextDrawable reads its view's superview and window on the
+ renderer's thread, as CX's does; AppKit doesn't document those getters as
+ thread-safe.
 Status: 11.21: 2026-11-26: D3DMetal-only parts removed, the per-frame check
  skipped until a view is marked, calloc checked; not yet in a build
 

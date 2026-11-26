@@ -1,27 +1,73 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: msync and, on 10.0, esync: waits without wineserver round trips, off unless enabled
+Summary: msync (and esync where CrossOver had it): waits without wineserver round trips, off unless enabled
 Category: sync
 Kind: feature, performance
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] verbatim, and the msync hunks of dlls/ntdll/{Makefile.in,unix/{loader,sync}.c}, server/{Makefile.in,inproc_sync.c,main.c,thread.c,protocol.def}); no CodeWeavers hack number. include/wine/server_protocol.h, server/request_{handlers,trace}.h regenerated with tools/make_requests.
+  Files: server/msync.c, server/msync.h, dlls/ntdll/unix/msync.c,
+    dlls/ntdll/unix/msync.h, dlls/ntdll/Makefile.in,
+    dlls/ntdll/unix/loader.c, dlls/ntdll/unix/sync.c, server/Makefile.in,
+    server/inproc_sync.c, server/main.c, server/thread.c,
+    server/protocol.def
+  Changes: msync.[ch] as CX has them, and the msync hunks of the others;
+    include/wine/server_protocol.h, server/request_{handlers,trace}.h
+    regenerated with tools/make_requests. CX 26.3.0 re-implements msync as
+    a macOS backend of Wine 11's in-process sync framework (inproc_sync,
+    used with Linux ntsync) instead of carrying its own wait and object
+    plumbing; this copy takes that form, not the 10.0 copy's. Against CX:
+    server/inproc_sync.c's macOS object_ops uses 11.21's
+    designated-initialiser form (CX's positional table matches Wine 11.0's
+    struct object_ops). dlls/ntdll/unix/sync.c: the macOS
+    linux_wait_objs() takes 11.21's WAIT_TYPE and passes type != WaitAll
+    to msync_wait_objs() (CX passes the WAIT_TYPE straight into a BOOLEAN,
+    which works only because WaitAll is 0). dlls/ntdll/unix/thread.c (not
+    in CX): pthread_exit_wrapper() no longer close()s data->alert_fd when
+    msync is on, because it then holds an msync shm index, not a file
+    descriptor (CX 26.3.0 closes whatever fd has that number).
+    SERVER_PROTOCOL_VERSION bumps to 980 (972 on 11.21) (shm_idx added to the get_inproc_sync_fd reply).
+    dlls/ntdll/unix/msync.c: msync_release_mutex_obj() returns 1 minus the
+    recursion count as NtReleaseMutant's previous count, as Windows and the
+    server path do (CX returns the recursion count; ntdll's sync test
+    failed); msync_init()'s exits on a server/client mismatch print with
+    MESSAGE, not ERR, so they show under WINEDEBUG=-all (a mismatched
+    process used to exit with status 1 and print nothing). server/msync.c:
+    a mutex whose server object is destroyed (last handle closed) stays on
+    an orphan list while its shm is still referenced, so
+    msync_abandon_mutexes() still abandons it when its owner dies (CX frees
+    it, and a thread waiting on it hung for ever: kernel32's sync test, 3
+    of 3 on 11.22). esync (WINEESYNC) is left out: CX 26.3.0 dropped it.
+  Note: no CodeWeavers hack number. Sikarugir 10.0_8 ships msync (CX
+    25.1.1's form, with esync): wineserver has "WINEMSYNC",
+    "WINEMSYNC_QLIMIT", "/wine-%lx-msync", "msync: bootstrapped mach port
+    on %s.", "msync: up and running."; ntdll.so has "Server is running
+    with WINEMSYNC but this process is not, ...".
 Upstream: no
-Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach messages plus shared memory and __ulock waits, CodeWeavers' macOS-native variant of esync). Off unless the variable is set.
-Programs: none known
+Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach
+ messages plus shared memory and __ulock waits, CodeWeavers' macOS-native
+ variant of esync), so most waits on events, mutexes and semaphores make
+ no wineserver request. Off unless WINEMSYNC=1 is set for wineserver and
+ every Wine process of the prefix; a process whose setting differs from
+ its wineserver's exits. esync, which the 10.0 copy also has, isn't here:
+ CrossOver 26.3.0 dropped it, and on macOS its pipe-based fallback was the
+ slow path anyway.
+Programs: none known; a general performance option for programs that
+ synchronise many threads (games)
+Enable: env WINEMSYNC=1 (wineserver and every process)
+ env WINEMSYNC_QLIMIT=<n> (wineserver; the Mach message queue limit)
+Messages: "wine: the server is running with WINEMSYNC but this process is
+ not, please enable WINEMSYNC or restart wineserver.", "wine: msync:
+ failed bootstrap_look_up for %s; is the server running without
+ WINEMSYNC? Set it for the server and every process, or restart
+ wineserver." (MESSAGE, shown whatever WINEDEBUG says); "msync: up and
+ running." (wineserver, on stderr, when on)
+Known issues: with WINEMSYNC=1, a Windows program that starts a child with
+ its own environment block (no WINEMSYNC) gets a child that exits at once
+ (each process reads the variable itself).
 Uncertain: the mutex fixes are written from the review's measurements and
- compiled (syntax only); not yet run. With WINEMSYNC=1, a Windows program
- that starts a child with its own environment block (no WINEMSYNC) gets a
- child that exits at once (each process reads the variable itself).
-Evidence: Sikarugir 10.0_8: wineserver has "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-msync", "msync: bootstrapped mach port on %s.", "msync: up and running."; ntdll.so has "Server is running with WINEMSYNC but this process is not, ...". (10.0_8 also carries esync; see below.)
-Port: replaces the 10.0 patch (CX 25.1.1's esync + msync, ~7700 lines). Wine 11 has upstream's in-process sync framework (inproc_sync, used with Linux ntsync), and CX 26.3.0 re-implements msync as a macOS backend of that framework instead of carrying its own wait/object plumbing; this patch takes CX 26.3.0's form. Changes against CX 26.3.0:
- - server/inproc_sync.c: the macOS object_ops uses 11.21's designated-initialiser form (CX's positional table matches Wine 11.0's struct object_ops).
- - dlls/ntdll/unix/sync.c: the macOS linux_wait_objs() takes 11.21's WAIT_TYPE and passes type != WaitAll to msync_wait_objs() (CX passes the WAIT_TYPE straight into a BOOLEAN, which works only because WaitAll is 0).
- - dlls/ntdll/unix/thread.c (not in CX): pthread_exit_wrapper() no longer close()s data->alert_fd when msync is on, because it then holds an msync shm index, not a file descriptor. CX 26.3.0 closes it unconditionally, which closes whatever fd has that number.
- - SERVER_PROTOCOL_VERSION bumps to 980 (shm_idx added to the get_inproc_sync_fd reply; 972 on 11.21).
- - dlls/ntdll/unix/msync.c (wine-mac-builds): msync_release_mutex_obj() returns 1 minus the recursion count as NtReleaseMutant's previous count, as Windows and the server path do (CX returns the recursion count; ntdll's sync test failed). msync_init()'s exits on a server/client mismatch print with MESSAGE, not ERR, so they show under WINEDEBUG=-all (a mismatched process used to exit with status 1 and print nothing).
- - server/msync.c (wine-mac-builds): a mutex whose server object is destroyed (last handle closed) stays on an orphan list while its shm is still referenced, so msync_abandon_mutexes() still abandons it when its owner dies. CX frees it, and a thread waiting on it hung for ever (kernel32's sync test, 3 of 3 on 11.22).
- esync (WINEESYNC) is gone: CX 26.3.0 dropped it and 11.21 has no esync; on macOS its pipe-based fallback was the slow path anyway. Not compiled or run here.
+ compiled (syntax only); not yet run. Performance against plain
+ wineserver waits isn't measured.
+Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
 Status: 11.22: 2026-11-26: NtReleaseMutant previous count, abandoned mutex
  after its last handle is closed, mismatch printed with MESSAGE; not yet in a build
 

@@ -3,6 +3,7 @@ Summary: Per-program extra command-line arguments from the registry (CommandLine
 Category: system
 Kind: feature
 Origin: reconstructed
+  Version: Sikarugir 10.0_8
   Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64)
   Functions: sikarugir_append_command_line, inlined into
     CreateProcessInternalW (x86_64 0x174015cc8-0x174015ed6)
@@ -25,10 +26,19 @@ Why: Lets a user or a host add a program's options without editing its
  kernelbase-replace-launchers swaps for the game, set it for the
  launcher's name.
 Programs: none known
+Enable: reg HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend = <arguments> (REG_SZ or REG_EXPAND_SZ) (per program; processes started by CreateProcess, not the one `wine <exe>` starts)
+Messages: "Sikarugir: appended %s to the command line of %s" (FIXME, channel
+ process; WINEDEBUG=-all or fixme-all hides it)
+Risk: adds the value's text to the program's command line; any program in
+ the prefix can set it for another exe (same user and prefix, so no
+ boundary is crossed)
 Uncertain: limits copied from 10.0_8: exe names of 260+ characters are
  skipped and values over 2048 bytes (1023 characters), or over 1023
  characters once expanded, are ignored.
-Expects before it: kernelbase-replace-launchers, kernelbase-cef-append-flags; context only
+Expects before it: kernelbase-replace-launchers (context),
+ kernelbase-cef-append-flags (context)
+Related: ntdll-cef-command-line-args; Epic Games Launcher's and Ubisoft
+ Connect's CEF take switches from the command line only with it
 Status: 10.0: 2026-11-26: runs after the CEF flags (review decision
  15); accepts REG_EXPAND_SZ; not yet in a build
 

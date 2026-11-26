@@ -2,10 +2,10 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: winemac: load plugin libraries named in WINEMAC_PLUGINS before Cocoa starts
 Category: system
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/macdrv_main.c, macdrv_init(); written for
-    wine-mac-builds after Second Chance's weak-dylib load command patched into
-    winemac.so.
+  Note: after Second Chance's weak-dylib load command patched into
+    winemac.so
 Upstream: no
 Why: An app that embeds Wine may need code of its own inside the Mac driver
  (Objective-C hooks on Wine's windows, say). Without a hook it has to add a
@@ -23,13 +23,21 @@ Why: An app that embeds Wine may need code of its own inside the Mac driver
  be deferred (dispatch_async to the main queue runs once Cocoa does).
 Programs: Second Chance (an app that embeds Wine): had to patch a load
  command into winemac.so and re-sign it to load its in-process helpers
+Enable: env WINEMAC_PLUGINS=/abs/a.dylib:/abs/b.dylib (inherited by child processes)
+Messages: "plugin path %s isn't absolute; skipped", "couldn't load plugin
+ %s: %s" (err:macdrv; WINEDEBUG=err-macdrv or -all hides them)
+Risk: loads native code (dlopen, RTLD_NOW | RTLD_GLOBAL) into every Wine
+ process that starts the Mac driver, from the paths in WINEMAC_PLUGINS.
+ Whoever sets the environment Wine starts in turns it on, and child
+ processes inherit it. Unsigned plugins load (Wine isn't hardened-runtime).
 Uncertain: a plugin that needs to run before the Mac Driver options are
  read, or after Cocoa has started, isn't served by this point; none known.
+Related: winemac-cocoa-start-wait, winemac-activation-policy; they also
+ change setup_options and macdrv_init
 Status: 11.22: 2026-11-26: the Plugins registry value dropped and relative
  paths refused (review decision 21); not yet in a build. The earlier form
- (variable and registry value) passed winemac-plugins in 11.22-build9 and
- on meeka (macOS 26.7), where Second Chance loaded its helpers through
- WINEMAC_PLUGINS with winemac.so unpatched.
+ (variable and registry value) passed winemac-plugins in 11.22-build9, and
+ Second Chance loaded its helpers through it on meeka (macOS 26.7).
 
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 index db14f64..591042a 100644

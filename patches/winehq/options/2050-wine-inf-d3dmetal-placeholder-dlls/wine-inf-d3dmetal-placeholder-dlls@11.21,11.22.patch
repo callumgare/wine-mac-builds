@@ -6,21 +6,26 @@ Origin: crossover
   Version: 26.3.0
   CW-Hacks: 22435
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22435, the wine.inf part (loader/wine.inf.in)
-    Source: (sources/wine/loader/wine.inf.in)
+  Files: loader/wine.inf.in
+  Changes: CX 26.3.0's lines without atidxx64.dll, which only D3DMetal ships
+  Note: the wine.inf part of CW HACK 22435; the winemac.drv part is
+    winemac-export-macdrv-functions. Sikarugir 10.0_8 ships it: its
+    share/wine/wine.inf has CX's three lines with CX's comment; it is the only
+    difference in share/
 Upstream: no
 Why: Have wineboot put placeholder nvapi64.dll and nvngx.dll in a 64-bit
- prefix's system32. No builtin DLLs have those names, so setupapi writes generic
- placeholder DLLs; with one in system32, DXMT's nvapi64.dll and nvngx.dll on its
- DLL path (WINEDLLPATH_DXMT) can be loaded, which Wine otherwise refuses outside
- prefix setup. The 10.0 copy also adds atidxx64.dll, for D3DMetal: D3DMetal 3.0
- needs Wine 10.4's GSBASE model, so it is supported on 10.0 only (from Wine
- 10.5, WineHQ 3a16aabb, it crashes when a program creates a DXGI factory;
- measured on 11.22).
+ prefix's system32. No builtin DLLs have those names, so setupapi writes
+ generic placeholder DLLs. Outside prefix setup, Wine loads a builtin DLL
+ only if a file of that name is in the prefix (find_builtin_without_file in
+ dlls/ntdll/loader.c); with a placeholder in system32, DXMT's nvapi64.dll and
+ nvngx.dll on its DLL path (WINEDLLPATH_DXMT) can be loaded. Without a
+ renderer path supplying them, loading these names fails with error 126 as
+ before (shown on 11.22 build0); programs can only see that the files exist.
+ The 10.0 copy also adds atidxx64.dll, for D3DMetal, which this build
+ doesn't support on Wine 11.x.
 Programs: none known
-Evidence: Sikarugir 10.0_8: its share/wine/wine.inf has these lines with this
- comment; it is the only difference in share/.
-Port: the 10.0 copy's lines without atidxx64.dll, which only D3DMetal ships
+Enable: by WINEDLLPATH_DXMT (ntdll-renderer-dll-paths) supplying DXMT's nvapi64.dll and nvngx.dll; the files are in every 64-bit prefix
+Related: ntdll-renderer-dll-paths, winemetal-stub
 Status: 11.21, 11.22: 2026-11-26: atidxx64.dll dropped (D3DMetal can't run on
  11.x); not yet in a build
 

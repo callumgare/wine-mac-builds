@@ -2,11 +2,9 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: winemac: HostWindows option; a native host application shows the windows
 Category: graphics
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv (new cocoa_host.m; hooks in cocoa_window.m,
-    cocoa_app.m, macdrv_main.c, surface.c, window.c, opengl.c); the OpenGL
-    part grew out of the IOSurface probe of 2026-11-17. Written for
-    wine-mac-builds.
+  Note: the OpenGL part grew out of the IOSurface probe of 2026-11-17
 Upstream: no
 Why: An app that embeds Wine wants a program's windows inside its own
  windows, scaled or letterboxed as it likes, and the input back, without
@@ -45,41 +43,51 @@ Why: An app that embeds Wine wants a program's windows inside its own
  program is asked to quit.
  Covered: the handshake, windows, GDI surfaces, OpenGL views, cursor,
  size limits, keys, mouse, focus, close and quit; displays_get is
- winemac-host-displays. Metal and Vulkan aren't: no Metal view is
- attached, so programs drawing through DXVK, vkd3d, D3DMetal or Vulkan
- show nothing in the host. Not yet either: animated cursors, window shape
- and alpha, the resize-size query, and window_get_frame as a call (the
- driver keeps the frame it last set or the host last reported).
+ winemac-host-displays.
 Programs: Second Chance (an app that embeds Wine): shows a program inside
  its own window
-Uncertain: each present waits for glFinish. Windows of other processes as
- owners aren't supported (v1). The GL remap covers glBindFramebuffer(EXT),
- glDrawBuffer(s), glReadBuffer and glGetIntegerv; a program that asks
- about framebuffer 0 another way (glGetBooleanv, glGetFloatv,
- glGetInteger64v, glGetIntegeri_v) sees the FBO. A destroyed window's FBO
- is deleted only in the context current when it's destroyed; other
- contexts' stay until those contexts go, and a drawable used by more than
- 8 contexts forgets the oldest one's (logged).
-Expects before it: winemac-centre-fullscreen-gdi, winemac-export-macdrv-functions, winemac-plugins, winemac-activation-policy;
- centre-fullscreen-gdi for the surface offset it extends, the others
- context only
-Status: 11.22: 2026-11-26: review fixes: the GL FBO table is keyed by a
- per-context id (a reused context pointer found a dead context's FBO); a
- receive error ends host mode through host_lost() (the thread used to
- stop silently); the pointer is read and written under host_lock; a
- destroyed drawable's FBO is deleted in the current context; probe_*
- renamed host_gl_*; copyright lines on the new files, and wmh_protocol.h
- offered under LGPL-2.1-or-later OR MIT (identical to
- docs/app-embedded-protocol.h apart from comments). Not yet in a build.
- Before these, in host8 (2026-11-22) and test builds: Second Chance's
- integration tests of every bundle passed with games' windows hosted;
- with tools/wmh-testhost and Second Chance's host: windows, GDI surfaces
- (EmulateModeset padding painted black), OpenGL and Direct3D 9 views
- (d3d9test 18.3 s for 279 frames, 19.9 s on the plain driver), cursor,
- size limits, minimize and maximize, drag and drop, and input methods
- (scripted). Open: Japanese conversion with Kotoeri's prediction list
- showing, which plain mode shares. The dated history of those runs is in
- this file's git history (until 2026-11-26).
+Enable: reg HKCU\Software\Wine\Mac Driver\HostWindows = y (REG_SZ) (or per program: AppDefaults\<exe>\Mac Driver)
+ env WINEMAC_HOST_SERVICE=<the host's Mach service name> (needed as well; inherited by child processes)
+Messages: "HostWindows is on but WINEMAC_HOST_SERVICE isn't set; using
+ the plain driver", "host: no host named \"%s\" (%s); using the plain
+ driver" and the other "host: ...; using the plain driver" lines, "host:
+ the host has gone away; asking the program to quit", "host: receive
+ failed: %s (%x)" (err:macdrv; WINEDEBUG=err-macdrv or -all hides them)
+Risk: opens a Mach connection to the bootstrap service WINEMAC_HOST_SERVICE
+ names, sends it the program's window pictures and cursor, and takes the
+ program's input, focus, close and quit from it. A process of the same
+ user that holds that name gets them (it already runs as the user). It's
+ on when the prefix has HostWindows (which any program in the prefix can
+ write) and the environment Wine starts in names the service.
+Known issues: Metal and Vulkan aren't covered: no Metal view is attached,
+ so programs drawing through DXVK, vkd3d, D3DMetal or Vulkan show nothing
+ in the host. Not done yet: animated cursors (the first frame is sent),
+ window shape and alpha, the resize-size query, and window_get_frame as a
+ call (the driver keeps the frame it last set or the host last reported).
+ Windows of other processes as owners aren't supported (protocol v1). The
+ GL remap covers glBindFramebuffer(EXT), glDrawBuffer(s), glReadBuffer and
+ glGetIntegerv; a program that asks about framebuffer 0 another way
+ (glGetBooleanv, glGetFloatv, glGetInteger64v, glGetIntegeri_v) sees the
+ FBO. A destroyed window's FBO is deleted only in the context current when
+ it's destroyed; other contexts' stay until those contexts go, and a
+ drawable used by more than 8 contexts forgets the oldest one's (logged).
+Uncertain: what waiting for glFinish at each present costs a demanding
+ program; d3d9test drew 279 frames in 18.3 s hosted, 19.9 s on the plain
+ driver.
+Docs: docs/app-embedded-protocol.md
+Expects before it: winemac-centre-fullscreen-gdi,
+ winemac-export-macdrv-functions (context), winemac-plugins (context),
+ winemac-activation-policy (context); centre-fullscreen-gdi for the surface
+ offset it extends
+Related: winemac-clip-follows-window, winemac-cocoa-start-wait; cursor
+ clips go through macdrv_clip_cursor, which host mode hooks, and host mode
+ still waits for Cocoa to start
+Status: 11.22: 2026-11-26: review fixes (the GL FBO table keyed by a
+ per-context id, a receive error ends host mode, and others); not yet in
+ a build.
+ 11.22: 2026-11-22: in host8, Second Chance's integration tests of every
+ bundle passed with games' windows hosted. Open: Japanese conversion with
+ Kotoeri's prediction list showing, which plain mode shares.
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 index 5b633c2..26fccf9 100644

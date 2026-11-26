@@ -2,24 +2,38 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Redirect reads of nvngx.dll to D3DMetal's copy, for DLSS
 Category: graphics
 Kind: feature
+Feature: d3dmetal
 Origin: reconstructed
-  Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 kernelbase.dll
   Functions: redirect_nvngx_to_d3dmetal (inlined into CreateFileW; x86_64
     0x174014120-0x1740146a3)
-  Note: no published source; behaviour read from the compiled binary
+  Changes: calls ntdll's wine_unix_to_nt_file_name export directly, where
+    10.0_8 looks it up with GetProcAddress (the same function)
+  Note: Sikarugir-only: no CrossOver, wine-staging or WineHQ equivalent
 Upstream: no
 Why: DLSS-capable games (NVIDIA's Streamline/NGX loader) open
  c:\windows\system32\nvngx.dll directly with CreateFileW(GENERIC_READ,
- FILE_SHARE_READ, OPEN_EXISTING) to read it; that open is redirected to
- D3DMetal's copy at $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that
- file exists. Any other open, or a missing/unset path, goes through unchanged.
- Nothing happens unless CX_D3DMETALPATH is set (as for the D3DMetal patches) and
- D3DMetal's nvngx.dll is there. D3DMetal 3.0 needs Wine 10.4's GSBASE model, so
- it is supported on 10.0 only: from Wine 10.5 (WineHQ 3a16aabb) GSBASE points at
- the TEB while PE code runs, and D3DMetal 3.0 crashes when a program creates a
- DXGI factory (measured on 11.22). So this patch has no copy for 11.x.
+ FILE_SHARE_READ, OPEN_EXISTING) to read and check it before loading it. In a
+ prefix that file is a placeholder (wine-inf-d3dmetal-placeholder-dlls). With
+ CX_D3DMETALPATH set to D3DMetal's folder, exactly that open is redirected to
+ $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when that file exists. Any
+ other open, a missing file or an unset variable goes through unchanged, and
+ LoadLibrary isn't affected. No copy for Wine 11.x, where D3DMetal 3.0 can't
+ run.
 Programs: none known
-Uncertain: the path suffix is hard-coded to x86_64-windows in both of 10.0_8's x86_64 and i386 kernelbase, kept as is. 10.0_8 looks up wine_unix_to_nt_file_name with GetProcAddress; this calls ntdll's export directly (same function). Only exact access/sharing/disposition values trigger it, as in 10.0_8; ntdll's LoadLibrary path is not affected.
+Enable: env CX_D3DMETALPATH=<d3dmetal> (the folder holding wine/ and external/; each process that has it)
+Messages: "attempting to redirect nvngx.dll to D3DMetal file", "CX_D3DMETALPATH
+ not set", "wine_unix_to_nt_file_name(%s) failed with %lx" (TRACE on the file
+ channel, hidden unless WINEDEBUG has +file)
+Uncertain: whether any DLSS game works this way on D3DMetal (no game tested).
+ The path suffix is x86_64-windows in both of 10.0_8's x86_64 and i386
+ kernelbase, so 32-bit processes are redirected to the 64-bit DLL; kept as
+ is. Only the exact access, sharing and disposition values above trigger it,
+ as in 10.0_8. GetFinalPathNameByHandle on the handle gives the Unix path,
+ not system32's; whether NGX checks that isn't known.
+Related: wine-inf-d3dmetal-placeholder-dlls; reads of the nvngx.dll
+ placeholder it installs are redirected here
 Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
  can't run there)
 
