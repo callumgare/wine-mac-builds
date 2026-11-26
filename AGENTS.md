@@ -199,6 +199,14 @@ projects.
   To turn off a Rosetta workaround keyed on `is_apple_silicon()` in a
   build, interpose `sysctlbyname("sysctl.proc_translated")` to fail in
   Wine processes but not in wineserver (`DYLD_INSERT_LIBRARIES`).
+- If the smoke test's audio step times out and `afplay` fails too
+  ("AudioQueueStart failed (-66681)" after about 15 s), look for an
+  unanswered microphone prompt ("wine" would like to access the
+  Microphone) on the logged-in user's screen. A Wine run that opens the
+  default input (on meeka, Steam's streaming microphone) raises it, and
+  while it's pending, output won't start for any process. Restarting
+  coreaudiod doesn't clear it; answering the prompt (Don't Allow) does
+  (meeka, 2026-11-26).
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS
