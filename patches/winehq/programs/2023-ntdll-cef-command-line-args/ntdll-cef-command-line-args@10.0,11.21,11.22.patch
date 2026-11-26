@@ -8,28 +8,42 @@ Origin: crossover (ported here)
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Files: dlls/ntdll/loader.c
   Changes: only the command_line_args_disabled entries of CX's
-    apply_binary_patches (the same in 25.1.1 and 26.3.0), in a function of their
-    own called earlier in build_module, after the relay/snoop setup; the %gs and
-    cohtml entries are ntdll-cef-gs-stack-base and ntdll-cohtml-branch. The
-    bounds check counts the patch's size, and the protection change covers the
-    patched bytes rather than one page
+    apply_binary_patches (the same in 25.1.1 and 26.3.0), in a function of
+    their own called earlier in build_module, after the relay/snoop setup;
+    the %gs and cohtml entries are ntdll-cef-gs-stack-base and
+    ntdll-cohtml-branch. The bounds check counts the patch's size, and the
+    protection change covers the patched bytes rather than one page
+  Note: Sikarugir 10.0_8 ships it: ntdll.dll (x86_64) has 'CEF
+    cmd_line_args_disabled 90.6.7'; i386 ntdll.dll has 'CEF
+    cmd_line_args_disabled x86 111.2.7' and 'x86 135.0.20'
 Upstream: no
 Why: These libcef.dll builds copy command_line_args_disabled from the
- cef_settings_t a program passes to cef_initialize, and these programs set it,
- so CEF ignores switches given on the command line. When libcef.dll loads and
- the bytes at a known offset match (x86_64 CEF 90.6.7; 32-bit CEF 111.2.7 and
- 135.0.20), the copy is rewritten to store 0.
-Programs: Epic Games Launcher (CEF 90.6.7), Ubisoft Connect (32-bit CEF 111.2.7,
- 135.0.20): ignore command-line switches
-Uncertain: what CX passes these launchers on the command line; nothing in this
- build does (kernelbase-cef-append-flags has no Epic or Ubisoft entry), so it
- matters only with a user's CommandLineAppend (kernelbase-commandline-append)
- or the launcher's own switches. Not run with either program.
-Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has 'CEF cmd_line_args_disabled
- 90.6.7'; i386 ntdll.dll has 'CEF cmd_line_args_disabled x86 111.2.7' and 'x86
- 135.0.20'.
+ cef_settings_t a program passes to cef_initialize, and these programs set
+ it, so CEF ignores switches given on the command line. When libcef.dll
+ loads and the bytes at a known offset match (x86_64 CEF 90.6.7; 32-bit
+ CEF 111.2.7 and 135.0.20), the copy is rewritten to store 0.
+Programs: Epic Games Launcher (CEF 90.6.7), Ubisoft Connect (32-bit CEF
+ 111.2.7, 135.0.20): ignore command-line switches
+Matches: dll libcef.dll (exact case); bytes at fixed offsets: 0x3807
+ (x86_64 CEF 90.6.7), 0x114a43 (32-bit CEF 111.2.7), 0x11e92d (32-bit CEF
+ 135.0.20)
+Messages: "Found matching %s, applying patch '%s'", "%s doesn't match patch
+ '%s'", "%s too small to match patch '%s'" (TRACE, channel module; only
+ with +module)
+Risk: always on: rewrites code in third-party DLLs, but only on an exact
+ byte match at a fixed offset, so only in the builds CX tested
+Uncertain: what CX passes these launchers on the command line; nothing in
+ this build does (kernelbase-cef-append-flags has no Epic or Ubisoft
+ entry), so it matters only with a user's CommandLineAppend
+ (kernelbase-commandline-append) or the launcher's own switches. Not run
+ with either program.
+Related: ntdll-cef-gs-stack-base, kernelbase-cef-append-flags,
+ kernelbase-commandline-append; the other libcef.dll patch at load, and the
+ two that add switches to command lines
+No test: needs specific CEF builds
 Status: 10.0, 11.21, 11.22: 2026-11-26: split out of ntdll-cef-binary-patches
- (review decision 8), with the bounds and protection fixes; not yet in a build
+ (review decision 8), with the bounds and protection fixes; not yet in a
+ build
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

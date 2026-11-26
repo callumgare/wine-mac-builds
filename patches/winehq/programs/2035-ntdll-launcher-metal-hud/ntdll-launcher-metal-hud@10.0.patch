@@ -3,11 +3,13 @@ Summary: Hide the Metal performance HUD in launcher windows, but not in the game
 Category: graphics
 Kind: workaround
 Origin: reconstructed
-  Binary: Sikarugir WS12WineSikarugir10.0_8 ntdll.so
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 ntdll.so
   Functions: the launcher check at 0x21900
   Changes: the value is kept in WINE_LAUNCHER_MTL_HUD_ENABLED and restored in
-    processes that aren't launchers (10.0_8 drops it for the launcher's children too)
-  Note: no published source; behaviour read from the compiled binary
+    processes that aren't launchers (10.0_8 drops it for the launcher's
+    children too)
+  Note: Sikarugir-only: no CrossOver 26, wine-staging or WineHQ equivalent
 Upstream: no
 Why: With MTL_HUD_ENABLED set, macOS draws the Metal performance HUD over every
  Metal window, launchers' included. When a launcher or overlay process is kept
@@ -18,17 +20,27 @@ Why: With MTL_HUD_ENABLED set, macOS draws the Metal performance HUD over every
  it is kept as WINE_LAUNCHER_MTL_HUD_ENABLED, and a process that isn't a
  launcher puts it back in its own environment at start, so the games a launcher
  starts still get the HUD.
+ It happens only when at least one of WINEDLLPATH_D3DMETAL, WINEDLLPATH_D9VK or
+ WINEDLLPATH_DXVK has an entry, as in 10.0_8.
 Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
  launcher/Social Club, Steam web helper and overlay, Ubisoft Connect: the
  Metal performance HUD shows over their windows
-Uncertain: only happens when at least one of WINEDLLPATH_D3DMETAL,
- WINEDLLPATH_D9VK or WINEDLLPATH_DXVK has an entry, as in 10.0_8.
- SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0" also keeps the
- HUD. The game gets MTL_HUD_ENABLED back in its Unix environment, which Metal
- reads, but not in its Windows one (GetEnvironmentVariable), which comes from
- the launcher's.
-Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths() are
- unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
+Matches: exe Battle.net.exe, battlenet.overlay.runtime.exe,
+ BlizzardBrowser.exe, BlizzardError.exe, EACefSubProcess.exe,
+ EADesktop.exe, Link2EA.exe, EpicGamesLauncher.exe, EpicWebHelper.exe,
+ EOSOverlayRenderer-Win32-Shipping.exe,
+ EOSOverlayRenderer-Win64-Shipping.exe, GalaxyClient.exe, GalaxyClient
+ Helper.exe, GOG Galaxy Notifications Renderer.exe, steamwebhelper.exe,
+ gameoverlayui.exe, gameoverlayui64.exe, UbisoftConnect.exe,
+ UplayWebCore.exe, UpcElevationService.exe; path Rockstar
+ Games\Launcher\Launcher.exe, Rockstar Games\Social
+ Club\SocialClubHelper.exe
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_D3DMETAL, WINEDLLPATH_D9VK or WINEDLLPATH_DXVK with an entry)
+ env SIKARUGIR_KEEP_METAL_HUD=<anything> (turns it off: launchers keep the HUD)
+Known issues: SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0"
+ also keeps the HUD. The game gets MTL_HUD_ENABLED back in its Unix
+ environment, which Metal reads, but not in its Windows one
+ (GetEnvironmentVariable), which comes from the launcher's.
 Expects before it: ntdll-renderer-dll-paths
 Status: 10.0: 2026-11-26: the value is restored for processes a launcher starts
  (the review's bug, measured on 10.0 build0); not yet in a build

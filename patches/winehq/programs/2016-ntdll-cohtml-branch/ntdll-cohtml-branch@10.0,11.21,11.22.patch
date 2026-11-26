@@ -7,25 +7,40 @@ Origin: crossover (ported here)
   CW-Hacks: 22901
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Files: dlls/ntdll/loader.c
-  Changes: CX's apply_fuzzy_binary_patches, searching only the .text section and
-    patching only when the pattern matches there exactly once (CX patches the
-    first match anywhere in the image), with the protection change covering
-    the patched bytes rather than one page, and called earlier in build_module,
-    before the relay/snoop setup; the same in 25.1.1 and 26.3.0
+  Changes: CX's apply_fuzzy_binary_patches, searching only the .text
+    section and patching only when the pattern matches there exactly once
+    (CX patches the first match anywhere in the image), with the
+    protection change covering the patched bytes rather than one page, and
+    called earlier in build_module, before the relay/snoop setup; the same
+    in 25.1.1 and 26.3.0
+  Note: Sikarugir 10.0_8 ships it: ntdll.dll (x86_64) has
+    apply_fuzzy_binary_patches, 'Found %s %s byte pattern at %p; applying
+    patch' and cohtml_v1
 Upstream: no
-Why: When cohtml_Unity3DPlugin.dll (Coherent Gameface's Unity plugin, in Cities:
- Skylines II) loads in a 64-bit process, find a 16-byte instruction pattern in
- its code (int3; push; sub; cmp byte; mov; jz, most bytes wildcards) and turn the
- jz into a jnz. CX gives no reason. The search is limited to .text and to a
- unique match, so another version of the DLL whose code matches nowhere, or in
- more than one place, is left alone.
+Why: When cohtml_Unity3DPlugin.dll (Coherent Gameface's Unity plugin, in
+ Cities: Skylines II) loads in a 64-bit process, find a 16-byte instruction
+ pattern in its code (int3; push; sub; cmp byte; mov; jz, most bytes
+ wildcards) and turn the jz into a jnz. CX gives no reason. The search is
+ limited to .text and to a unique match, so another version of the DLL
+ whose code matches nowhere, or in more than one place, is left alone.
 Programs: Cities: Skylines II: what goes wrong isn't stated (CW HACK 22901)
+Matches: dll cohtml_Unity3DPlugin.dll (x86_64, exact case); bytes cc 40 ??
+ 48 ?? ?? ?? 80 ?? ?? ?? 48 ?? ?? 0f 84, exactly once in .text (the 0f 84
+ becomes 0f 85)
+Messages: "Found %s cohtml_v1 byte pattern at %p; applying patch", "%s
+ matches cohtml_v1 more than once; not patched", "%s doesn't match
+ cohtml_v1", "%s has no .text section" (TRACE, channel module; only with
+ +module)
+Risk: always on: rewrites code in any cohtml_Unity3DPlugin.dll whose .text
+ matches a mostly-wildcard pattern once, so another version (a Cities:
+ Skylines II update, or another Unity game using Coherent Gameface) that
+ happens to match once gets some other branch inverted, silently
 Uncertain: what the flipped branch decides, and whether current Cities:
  Skylines II versions still match (once, in .text). Not run with the game.
-Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has apply_fuzzy_binary_patches,
- 'Found %s %s byte pattern at %p; applying patch' and cohtml_v1.
+No test: needs a specific cohtml build
 Status: 10.0, 11.21, 11.22: 2026-11-26: split out of ntdll-cef-binary-patches
- (review decision 8), anchored to .text and a unique match; not yet in a build
+ (review decision 8), anchored to .text and a unique match; not yet in a
+ build
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

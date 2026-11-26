@@ -7,29 +7,49 @@ Origin: crossover (ported here)
   CW-Hacks: 16900, 18582, 19114, 21548, 22584
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Files: dlls/ntdll/loader.c
-  Changes: only the %gs entries of CX's apply_binary_patches, in a function of
-    their own; the command-line and cohtml entries are ntdll-cef-command-line-args
-    and ntdll-cohtml-branch. The bounds check counts the patch's size, and the
-    protection change covers the patched bytes rather than one page. CW HACK
-    22434's pe_module_loaded call, in the same place, is ntdll-d3dmetal-code-regions
-Upstream: no. Not needed from Wine 10.5: WineHQ 3a16aabb (Brendan Shanks) points
- GSBASE at the TEB while PE code runs on macOS.
-Why: On macOS before Wine 10.5, %gs in PE code is macOS's thread data, not the
- TEB, so code that reads TEB->StackBase as %gs:0x8 gets garbage. Old CEF and Qt
- WebEngine builds do, and crash. When libcef.dll or Qt5WebEngineCore.dll loads
- and the bytes at a known offset match, those reads are rewritten to go through
- TEB->Self at %gs:0x30. Measured on 10.0 build0: %gs:0x8 isn't the stack base
- there; on 11.22 it is, so this patch has no 11.x copy.
+  Changes: only the %gs entries of CX's apply_binary_patches, in a function
+    of their own; the command-line and cohtml entries are
+    ntdll-cef-command-line-args and ntdll-cohtml-branch. The bounds check
+    counts the patch's size, and the protection change covers the patched
+    bytes rather than one page. CW HACK 22434's pe_module_loaded call, in
+    the same place, is ntdll-d3dmetal-code-regions
+  Note: Sikarugir 10.0_8 ships it: ntdll.dll (x86_64) has
+    apply_binary_patches and every 'CEF %gs 85.3.11-0/1, 85.3.9.0,
+    72.0.3626.121-0..2, 72.0.3626.96-0..2', 'CEF/Qt5WebEngineCore %gs
+    5.15.2.0-0/1'
+Upstream: differently (3a16aabb, Wine 10.5: WineHQ points GSBASE at the TEB
+ while PE code runs on macOS)
+Needed until: 10.5 (WineHQ 3a16aabb, Brendan Shanks)
+Why: On macOS before Wine 10.5, %gs in PE code is macOS's thread data, not
+ the TEB, so code that reads TEB->StackBase as %gs:0x8 gets garbage. Old
+ CEF and Qt WebEngine builds do, and crash. When libcef.dll or
+ Qt5WebEngineCore.dll loads and the bytes at a known offset match, those
+ reads are rewritten to go through TEB->Self at %gs:0x30. Measured on
+ 10.0 build0: %gs:0x8 isn't the stack base there; on 11.22 it is, so this
+ patch has no 11.x copy.
 Programs: Rockstar Games Launcher/Social Club (CEF 85.3.9, 85.3.11),
- BeamNG.drive (CEF 72.0.3626.121), Wizard101 (CEF 72.0.3626.96), EA app/Origin
- (Qt WebEngine 5.15.2): crash at start
+ BeamNG.drive (CEF 72.0.3626.121), Wizard101 (CEF 72.0.3626.96), EA
+ app/Origin (Qt WebEngine 5.15.2): crash at start
+Matches: dll libcef.dll, Qt5WebEngineCore.dll (x86_64, exact case); bytes
+ at fixed offsets: 0x28c5190, 0x28c521a (CEF 85.3.11), 0x28c4b30 (CEF
+ 85.3.9), 0x23bb2ad, 0x23bb329, 0x23bb369 (CEF 72.0.3626.121), 0x23bb82d,
+ 0x23bb8a9, 0x23bb8e9 (CEF 72.0.3626.96), 0x2810f10, 0x2810f8d (Qt
+ WebEngine 5.15.2)
+Seen on: macOS 26.7.2 (M1 Max): on wine-macfixes-10.0-build0, %gs:0x8
+ isn't TEB->StackBase (probe program)
+Fine on: macOS 26.7.2 (M1 Max): on wine-macfixes-11.22-build0, %gs:0x8 is
+ TEB->StackBase (probe program)
+Messages: "Found matching %s, applying patch '%s'", "%s doesn't match patch
+ '%s'", "%s too small to match patch '%s'" (TRACE, channel module; only
+ with +module)
+Risk: always on: rewrites code in third-party DLLs, but only on an exact
+ byte match at a fixed offset, so only in the builds CX tested
 Uncertain: not run with any of the programs.
-Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has apply_binary_patches and
- every 'CEF %gs 85.3.11-0/1, 85.3.9.0, 72.0.3626.121-0..2, 72.0.3626.96-0..2',
- 'CEF/Qt5WebEngineCore %gs 5.15.2.0-0/1'.
-Expects before it: ntdll-d3dmetal-code-regions; context only
-Status: 10.0: 2026-11-26: split out of ntdll-cef-binary-patches (review decision
- 8), with the bounds and protection fixes; not yet in a build
+Expects before it: ntdll-d3dmetal-code-regions (context)
+Related: ntdll-cef-command-line-args; the other libcef.dll patch at load
+No test: needs specific CEF and Qt WebEngine builds
+Status: 10.0: 2026-11-26: split out of ntdll-cef-binary-patches (review
+ decision 8), with the bounds and protection fixes; not yet in a build
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

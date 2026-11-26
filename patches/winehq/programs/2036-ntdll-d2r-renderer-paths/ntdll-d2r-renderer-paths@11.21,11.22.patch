@@ -3,26 +3,32 @@ Summary: Diablo II: Resurrected: leave out the DXVK and DXMT DLL paths
 Category: graphics
 Kind: workaround
 Origin: reconstructed
-  Binary: Sikarugir WS12WineSikarugir10.0_8 ntdll.so
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 ntdll.so
   Functions: set_dll_path (inlined into init_paths, 0x1e4b3-0x1e760)
-  Note: no published source; behaviour read from the compiled binary
+  Changes: none: the same rules as 10.0_8
+  Note: Sikarugir-only: no CrossOver 26, wine-staging or WineHQ equivalent
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: without the WINEDLLPATH_D3DMETAL row and SIKARUGIR_D2R_FORCE_VKD3D:
+    a skip_for_d2r flag replaces the three-way rule
 Upstream: no
 Why: Diablo II: Resurrected (D2R.exe, matched by substring on argv[1]) never
- gets the WINEDLLPATH_DXVK or WINEDLLPATH_DXMT directories, so it falls through
- to vkd3d instead. Sikarugir (and the 10.0 copy) also skips WINEDLLPATH_D3DMETAL
- for it when SIKARUGIR_D2R_FORCE_VKD3D is set; 11.x doesn't search that path at
- all (D3DMetal 3.0 needs Wine 10.4's GSBASE model, so it is supported on 10.0
- only), so the variable has no effect here.
+ gets the WINEDLLPATH_DXVK or WINEDLLPATH_DXMT folders (unconditionally, as
+ in 10.0_8), so it runs on Wine's own d3d12 (vkd3d) and dxgi instead.
+ Sikarugir (and the 10.0 copy) also skips WINEDLLPATH_D3DMETAL for it when
+ SIKARUGIR_D2R_FORCE_VKD3D is set; this copy doesn't search that path at all,
+ so the variable has no effect here.
 Programs: Diablo II: Resurrected (D2R.exe): presumably because it uses
  Direct3D 12, which DXVK and DXMT don't provide, while their dxgi.dll would
  replace the one Wine's d3d12 needs
-Uncertain: The DXVK/DXMT exclusion for D2R is unconditional in 10.0_8 and is
- kept that way.
-Port: the 10.0 copy without the WINEDLLPATH_D3DMETAL row and
- SIKARUGIR_D2R_FORCE_VKD3D: a skip_for_d2r flag replaces the three-way rule.
- Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
-Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud;
- ntdll-launcher-metal-hud only as context
+Matches: exe D2R.exe
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_DXVK or WINEDLLPATH_DXMT set)
+Uncertain: why Sikarugir does this: 10.0_8 doesn't record a reason (Programs
+ gives the likely one).
+Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud (context)
+No test: none written yet; a D2R.exe copy of renderer-dll-paths' program under
+ WINEDLLPATH_DXVK, which must get Wine's d3d11, would cover it
 Status: 11.21, 11.22: 2026-11-26: WINEDLLPATH_D3DMETAL and
  SIKARUGIR_D2R_FORCE_VKD3D removed; not yet in a build
 

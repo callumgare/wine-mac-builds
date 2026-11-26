@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Battle.net: give its Agent the directory permissions it checks for
+Summary: Battle.net's Agent and Epic Games Launcher: report the folder owner and ACLs they check for
 Category: system
 Kind: workaround
 Origin: crossover (ported here)
@@ -12,13 +12,33 @@ Origin: crossover (ported here)
     CertDeleteCertificateFromStore hack are left out (not in 10.0_8).
     The DACL to extend is taken from the descriptor (CX uses *dacl,
     which crashes when the caller passes dacl NULL)
+  Note: Sikarugir 10.0_8 ships it: advapi32.dll (both arches): 'HACK:
+    adjusting owner and ACLs for a Battle.net directory', the five 'HACK:
+    ... error %08lx' strings, function name hack_battle_net_sd, UTF-16
+    Agent.exe, /ProgramData/Battle.net/Agent,
+    \ProgramData\Battle.net_components, /Program Files (x86)/Battle.net
 Upstream: no
-Why: Battle.net's Agent.exe refuses to run unless its directories report Administrators as owner and specific inheritable ACEs; GetNamedSecurityInfoW returns such a descriptor for those paths when called from Agent.exe. hack_battle_net_sd made static (CX leaves it extern without a prototype). CX's GetUserName 'crossover' hack and crypt32 is_bnet() CertDeleteCertificateFromStore hack are not in 10.0_8 and are left out.
+Why: Battle.net's Agent.exe refuses to run unless its folders report
+ Administrators as owner and particular inheritable ACEs, which Wine's
+ files don't have. When Agent.exe asks GetNamedSecurityInfoW for a file
+ under its folders, the returned descriptor has Administrators as owner
+ and full-access ACEs for Administrators, Users and Interactive added.
+ Nothing on disk changes.
 Programs: Battle.net: its Agent.exe refuses to run unless its directories
- report Administrators as owner and specific inheritable ACEs; Epic Games
- Launcher (EpicGamesLauncher.exe, CW HACK 27245, in the 11.21 and 11.22
- copies only): what goes wrong isn't stated
-Evidence: Sikarugir 10.0_8: advapi32.dll (both arches): 'HACK: adjusting owner and ACLs for a Battle.net directory', the five 'HACK: ... error %08lx' strings, function name hack_battle_net_sd, UTF-16 Agent.exe, /ProgramData/Battle.net/Agent, \ProgramData\Battle.net_components, /Program Files (x86)/Battle.net.
+ report Administrators as owner and specific inheritable ACEs;
+ 11.21, 11.22: Epic Games Launcher (EpicGamesLauncher.exe, CW HACK 27245):
+ what goes wrong isn't stated
+Matches: exe Agent.exe (any case); path /ProgramData/Battle.net/Agent,
+ \ProgramData\Battle.net_components, /Program Files (x86)/Battle.net
+ (substrings of the file asked about, exact case)
+Messages: "HACK: adjusting owner and ACLs for a Battle.net directory"
+ (WARN, channel advapi; only with warn+advapi); "HACK: MakeAbsoluteSD error
+ %08lx" and the like for SetSecurityDescriptorDacl,
+ SetSecurityDescriptorOwner, MakeSelfRelativeSD and SetEntriesInAclW (ERR,
+ channel advapi; WINEDEBUG=-all hides them)
+Risk: always on: changes only the security that's reported (owner and
+ DACL), only to a process named Agent.exe, for files under its folders
+Uncertain: whether Battle.net still needs it.
 Status: 10.0: 2026-11-26: takes the DACL from the descriptor instead of
  *dacl (crashed with dacl NULL); not yet in a build
 

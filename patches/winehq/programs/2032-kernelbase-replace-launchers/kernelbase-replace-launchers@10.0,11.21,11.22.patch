@@ -12,6 +12,12 @@ Origin: crossover (ported here)
     line (CX uses wcsstr on both); on the command line only its first word
     is replaced. Replaces only when the game's file exists. A replacement
     longer than MAX_PATH is skipped (CX's lstrcpyW overflows)
+  Note: Sikarugir 10.0_8 ships it: kernelbase.dll (both arches): 'HACK:
+    replacing %s with %s', 'app %s cmdline %s after all hacks', function
+    name hack_replace_command_line, and a 4-entry {substring, replacement}
+    table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE
+    VI, Baldurs Gate 3, and a fourth, Sikarugir's own (The Witcher 3's DX12
+    build to its DX11 one), which this patch leaves out
 Upstream: no
 Why: Start ELDEN RING and Armored Core VI without EasyAntiCheat's
  start_protected_game.exe, which doesn't work in Wine on macOS, and
@@ -24,18 +30,23 @@ Why: Start ELDEN RING and Armored Core VI without EasyAntiCheat's
 Programs: ELDEN RING and Armored Core VI: start through EasyAntiCheat's
  start_protected_game.exe; Baldur's Gate 3: starts through its Larian
  launcher
+Matches: path \ELDEN RING\Game\start_protected_game.exe, \ARMORED CORE VI
+ FIRES OF RUBICON\Game\start_protected_game.exe, \Baldurs Gate
+ 3\Launcher\LariLauncher.exe (the end of the started program's path, any
+ case)
+Messages: "HACK: replacing %s with %s", "HACK: not replacing %s: %s not
+ found" (FIXME, channel process; WINEDEBUG=-all or fixme-all hides them);
+ "app %s cmdline %s after all hacks" (TRACE, channel process; only with
+ +process)
+Risk: always on: changes which program CreateProcess starts, for these three
+ launcher paths only, and only when the game's file is there
 Uncertain: why CrossOver dropped these after 24.x (CX 26.3.0 has none), and
  whether each game still needs it. Skipping EasyAntiCheat leaves the game
  offline-only. Whether bg3_dx11.exe started this way still starts the
  launcher itself (reported on Windows after a 2023 patch), which would
  loop. A program started with an unquoted path containing spaces and an
  explicit application name keeps the launcher's name on its command line.
-Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): 'HACK: replacing %s
- with %s', 'app %s cmdline %s after all hacks', function name
- hack_replace_command_line, and a 4-entry {substring, replacement} table in
- .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE VI, Baldurs
- Gate 3, and a fourth (The Witcher 3's DX12 build to its DX11 one) that
- this patch leaves out.
+References: https://steamcommunity.com/app/1086940/discussions/0/3823048293507516727 (bg3_dx11.exe bringing the launcher up)
 Status: 10.0, 11.21, 11.22: 2026-11-26: Witcher 3 entry dropped (review
  decision 13); matches the program's own path case-insensitively, rewrites
  only the command line's first word, replaces only when the game exists;

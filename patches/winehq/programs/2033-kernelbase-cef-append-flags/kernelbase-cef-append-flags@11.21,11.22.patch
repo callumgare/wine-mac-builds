@@ -3,10 +3,11 @@ Summary: Add command-line flags so CEF-based launchers (Steam, Battle.net, EA ap
 Category: graphics
 Kind: workaround
 Origin: reconstructed
+  Version: Sikarugir 10.0_8
   Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64 and i386)
   Functions: hack_append_command_line's table (x86_64 file offset 0x9c1a0)
-  Note: the seven entries and their flags; EADesktop, the three GOG Galaxy
-    entries and the SocialClubHelper flags are Sikarugir's own
+  Covers: the table's seven entries and their flags; EADesktop, the three
+    GOG Galaxy entries and the SocialClubHelper flags are Sikarugir's own
   Changes: matches the program's file name, in any case (10.0_8 looks for
     the name anywhere in the path, case-sensitively)
 Origin: crossover (ported here)
@@ -14,12 +15,19 @@ Origin: crossover (ported here)
   CW-Hacks: 13322, 17315, 21883, 19610
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz
   Files: dlls/kernelbase/process.c
+  Covers: the mechanism (hack_append_command_line and its call) and the
+    steamwebhelper and Battle.net entries
   Changes: the function and its call; steamwebhelper and Battle.net entries
     as in CX. CX's other 15 entries left out (10.0_8 has none of them).
     Matches the file name with wcsicmp (CX: wcsstr on the path). The new
     command line is sized from tidy_cmdline and checked for failure (CX
     sizes it from cmd_line, which overflows when cmd_line is NULL or
     shorter). No FIXME when it appends (CX logs one; 10.0_8 doesn't)
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: the same code, re-placed by hand: 11.21's CreateProcessInternalW
+    lost the parent/machine locals the 10.0 hunk used as context, so the
+    'append' local now follows nt_flags
 Upstream: no
 Why: The Chromium (CEF) interfaces of Steam, Battle.net, the EA app, GOG
  Galaxy and Rockstar's Social Club render blank or crash in Wine unless
@@ -32,17 +40,27 @@ Why: The Chromium (CEF) interfaces of Steam, Battle.net, the EA app, GOG
  to the one `wine <exe>` starts: start that with `wine start` instead.
 Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their
  CEF UIs render blank or crash
+Matches: exe Battle.net.exe, EADesktop.exe, GalaxyClient.exe, GalaxyClient
+ Helper.exe, GOG Galaxy Notifications Renderer.exe, steamwebhelper.exe,
+ SocialClubHelper.exe (the started program's file name, any case); cmdline
+ --type=crashpad-handler (the GOG Galaxy and steamwebhelper entries skip a
+ command line containing it)
+Risk: always on: changes the command line of the seven named programs,
+ forcing software GL; --no-sandbox turns off steamwebhelper's renderer
+ sandbox, which in Wine isolates nothing anyway (CX did the same)
 Uncertain: whether any entry is still needed on Wine 11.x or with current
  launcher versions: each needs retesting with the launcher in a GUI
  session (review decision 14), and entries not shown to help dropped.
  CrossOver dropped the function after 24.x (26.3.0 has none); why isn't
  known. Sikarugir's reasons for the EA, GOG and Social Club flags aren't
  recorded.
-Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64 file offset 0x9c1a0) with exactly these strings and NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
-Port: same code as the 10.0 patch, re-placed by hand: 11.21's CreateProcessInternalW
- lost the parent/machine locals the 10.0 hunk used as context, so the 'append' local now
- follows nt_flags.
-Expects before it: kernelbase-replace-launchers; context only
+Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry
+ {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64
+ file offset 0x9c1a0) with exactly these strings and
+ NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
+Expects before it: kernelbase-replace-launchers (context)
+Related: ntdll-cef-command-line-args; it makes Epic's and Ubisoft's CEF
+ honour command-line switches (this table has no entry for either)
 Status: 11.21, 11.22: 2026-11-26: matches the program's file name with
  wcsicmp instead of wcsstr on the path; not yet in a build
 
