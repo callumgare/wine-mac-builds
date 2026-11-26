@@ -70,11 +70,12 @@ Summary: TODO one line, what the patch does, no full stop
 Category: TODO
 Kind: TODO
 Origin: wine-mac-builds
-  Note: TODO, or replace with the source's Origin block (patches/README.md)
+  Note: TODO, or replace with the source's Origin block; the other keys
+    you may need (Seen on, Enable, No test...) are in patches/README.md
 Upstream: no
 Why: TODO what problem it fixes, and how
 Programs: TODO the programs that led to it, each with what went wrong
-Status: {date}: written; not yet in a build.
+Status: {version}: {date}: written; not yet in a build
 
 """
 
@@ -125,7 +126,7 @@ def cmd_new(argv):
     d.mkdir()
     f = d / f"{name}@{version}.patch"
     import datetime
-    f.write_text(SKELETON.format(date=datetime.date.today().isoformat()))
+    f.write_text(SKELETON.format(version=version, date=datetime.date.today().isoformat()))
     print(f.relative_to(ROOT))
 
 
