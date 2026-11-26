@@ -207,6 +207,7 @@
   "patches/winehq/backports/2015-ntdll-important-free-space/ntdll-important-free-space@10.0.patch": {
    "category": "system",
    "diff_sha256": "e7128f272f5248d1cab15a7735f1bd7a6be0287d32dcc7a7cefcc27bbd58189b",
+   "feature": null,
    "file": "patches/winehq/backports/2015-ntdll-important-free-space/ntdll-important-free-space@10.0.patch",
    "header": {
     "category": "system",
@@ -273,6 +274,7 @@
   "patches/winehq/backports/2030-nsiproxy-macos-change-notifications/nsiproxy-macos-change-notifications@10.0.patch": {
    "category": "system",
    "diff_sha256": "504a1d34e667957be4b6651a03a5e92f57738865d584d683cd61b63a5712119b",
+   "feature": null,
    "file": "patches/winehq/backports/2030-nsiproxy-macos-change-notifications/nsiproxy-macos-change-notifications@10.0.patch",
    "header": {
     "category": "system",
@@ -358,6 +360,7 @@
   "patches/winehq/backports/2031-winhttp-cache-autoproxy/winhttp-cache-autoproxy@10.0.patch": {
    "category": "system",
    "diff_sha256": "8c4ae7db1af7aa5a927f13766f71f8f1d24052da708485a8c21c8797efb6b792",
+   "feature": null,
    "file": "patches/winehq/backports/2031-winhttp-cache-autoproxy/winhttp-cache-autoproxy@10.0.patch",
    "header": {
     "category": "system",
@@ -450,6 +453,7 @@
   "patches/winehq/backports/2047-winemac-no-mouseactivate-on-focus/winemac-no-mouseactivate-on-focus@10.0.patch": {
    "category": "input",
    "diff_sha256": "980ef6b004968a3a58f3e0131a4c5ad3c820f53784ebc60b1313d54d6103a7be",
+   "feature": null,
    "file": "patches/winehq/backports/2047-winemac-no-mouseactivate-on-focus/winemac-no-mouseactivate-on-focus@10.0.patch",
    "header": {
     "category": "input",
@@ -542,6 +546,7 @@
   "patches/winehq/backports/2049-winemac-ime-keydowns-only/winemac-ime-keydowns-only@10.0.patch": {
    "category": "input",
    "diff_sha256": "f6850812885e707a06359d61e5c91f5c7cfae2ebc3f122ea3f2d919871c46b42",
+   "feature": null,
    "file": "patches/winehq/backports/2049-winemac-ime-keydowns-only/winemac-ime-keydowns-only@10.0.patch",
    "header": {
     "category": "input",
@@ -614,6 +619,7 @@
   "patches/winehq/backports/2051-win32u-enable-mouse-in-pointer/win32u-enable-mouse-in-pointer@10.0.patch": {
    "category": "input",
    "diff_sha256": "39276d6d5335730e9bb607d1fe29071d4bd5ad57c7e359f7371a25a8d9badedf",
+   "feature": null,
    "file": "patches/winehq/backports/2051-win32u-enable-mouse-in-pointer/win32u-enable-mouse-in-pointer@10.0.patch",
    "header": {
     "category": "input",
@@ -688,6 +694,7 @@
   "patches/winehq/backports/2054-wbemprox-no-per-table-lock/wbemprox-no-per-table-lock@10.0.patch": {
    "category": "system",
    "diff_sha256": "a2f342c62d00234f58b9f233ca77649c85fec83130f58d5f1bcced4d31168233",
+   "feature": null,
    "file": "patches/winehq/backports/2054-wbemprox-no-per-table-lock/wbemprox-no-per-table-lock@10.0.patch",
    "header": {
     "category": "system",
@@ -753,6 +760,7 @@
   "patches/winehq/backports/2059-ntdll-exe-entry-after-base-taken/ntdll-exe-entry-after-base-taken@11.22.patch": {
    "category": "system",
    "diff_sha256": "08ef89bb99e504b589126dddcc0ab6630071b4d82aaddf874731d0b0cf75a4aa",
+   "feature": null,
    "file": "patches/winehq/backports/2059-ntdll-exe-entry-after-base-taken/ntdll-exe-entry-after-base-taken@11.22.patch",
    "header": {
     "category": "system",
@@ -812,6 +820,7 @@
   "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0-11.22.patch": {
    "category": "build",
    "diff_sha256": "d7324a3bf418e3606b98879ca1c68a6a373788fcc337f03edc7fc14767bd58e2",
+   "feature": null,
    "file": "patches/winehq/build/0003-winegcc-deterministic-temp-dir/winegcc-deterministic-temp-dir@10.0-11.22.patch",
    "header": {
     "category": "build",
@@ -856,6 +865,7 @@
   "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch": {
    "category": "build",
    "diff_sha256": "3aff7f9728a61edfbba04c19ea1097d7877652b25f09410f67395fb7ee36a00a",
+   "feature": null,
    "file": "patches/winehq/build/0004-dwrite-tests-fno-builtin/dwrite-tests-fno-builtin@10.0.patch",
    "header": {
     "category": "build",
@@ -898,6 +908,7 @@
   "patches/winehq/essential-fixes/2014-wow64cpu-rosetta-lretq/wow64cpu-rosetta-lretq@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "93e1d9a84e607b5b255096a0c08036b4c81a33eda8fcbf5e5798b875b4e031c2",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2014-wow64cpu-rosetta-lretq/wow64cpu-rosetta-lretq@10.0.patch",
    "header": {
     "category": "cpu",
@@ -965,6 +976,7 @@
   "patches/winehq/essential-fixes/2014-wow64cpu-rosetta-lretq/wow64cpu-rosetta-lretq@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "e5f02659027bd7781758a2859e9bd956147e8fe4e2a4fe2791fee6cbb7903b51",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2014-wow64cpu-rosetta-lretq/wow64cpu-rosetta-lretq@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -1033,6 +1045,7 @@
   "patches/winehq/essential-fixes/2039-ntdll-map-exec-then-mprotect/ntdll-map-exec-then-mprotect@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "632b687fd280a544846f9cfbb6f72d2a07f6ac52ace5ec756089cb574b2bfb9b",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2039-ntdll-map-exec-then-mprotect/ntdll-map-exec-then-mprotect@10.0.patch",
    "header": {
     "category": "cpu",
@@ -1094,6 +1107,7 @@
   "patches/winehq/essential-fixes/2041-winemac-cocoa-start-wait/winemac-cocoa-start-wait@10.0.patch": {
    "category": "system",
    "diff_sha256": "3b9b2c66fabb0e42816e9a15c5b70c585669da798410c9573419323365d0ab6f",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2041-winemac-cocoa-start-wait/winemac-cocoa-start-wait@10.0.patch",
    "header": {
     "category": "system",
@@ -1144,6 +1158,7 @@
   "patches/winehq/essential-fixes/2041-winemac-cocoa-start-wait/winemac-cocoa-start-wait@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "83c2c46906d54e9c90f44e13f0e3e5719dc28ada598a4e38461c7e14c574afbe",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2041-winemac-cocoa-start-wait/winemac-cocoa-start-wait@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -1199,6 +1214,7 @@
   "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0,11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "4e78c43ee598ef9fbc3f62b50ff2b11e29530771864b93831562f8bb611081de",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2058-winemac-gl-update-on-main-thread/winemac-gl-update-on-main-thread@10.0,11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -1248,6 +1264,7 @@
   "patches/winehq/essential-fixes/2066-winemac-gl-context-dealloc-off-main-thread/winemac-gl-context-dealloc-off-main-thread@10.0,11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "fe9dca6d090aa491718f19c26d2dd4a6d7d851c0bf0dfcd4d737c809fec3726e",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2066-winemac-gl-context-dealloc-off-main-thread/winemac-gl-context-dealloc-off-main-thread@10.0,11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -1300,6 +1317,7 @@
   "patches/winehq/essential-fixes/2068-ntdll-suspend-context-syscall-return/ntdll-suspend-context-syscall-return@10.0.patch": {
    "category": "system",
    "diff_sha256": "cfa1604c827b7e12edbb8a3d5ceb38df72353eadda9ffe8b8443c0ac52ee9e2e",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2068-ntdll-suspend-context-syscall-return/ntdll-suspend-context-syscall-return@10.0.patch",
    "header": {
     "category": "system",
@@ -1345,6 +1363,7 @@
   "patches/winehq/essential-fixes/2068-ntdll-suspend-context-syscall-return/ntdll-suspend-context-syscall-return@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "e671a2007072954b903dd0e20537703fdeb593495ef07e0b7d8c052ad8504335",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2068-ntdll-suspend-context-syscall-return/ntdll-suspend-context-syscall-return@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -1387,6 +1406,7 @@
   "patches/winehq/essential-fixes/2072-win32u-desktop-wait/win32u-desktop-wait@11.22.patch": {
    "category": "system",
    "diff_sha256": "3dcad040cd18be81ce44c56651b967c66dc7dfa8bbdc082d0937014cf5eac7f7",
+   "feature": null,
    "file": "patches/winehq/essential-fixes/2072-win32u-desktop-wait/win32u-desktop-wait@11.22.patch",
    "header": {
     "category": "system",
@@ -1431,6 +1451,7 @@
   "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "c5e1df2edebc2d61e8dc89803cb5221bb1375eef0ceb872813f4799dc799df50",
+   "feature": null,
    "file": "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@10.0.patch",
    "header": {
     "category": "graphics",
@@ -1515,6 +1536,7 @@
   "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@11.21.patch": {
    "category": "graphics",
    "diff_sha256": "25a698e180e1829cb1beeac0307fb65738d05d22eb3943ee5b417f8898e77628",
+   "feature": null,
    "file": "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@11.21.patch",
    "header": {
     "category": "graphics",
@@ -1599,6 +1621,7 @@
   "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "a6814005e62349c5bd25a4a5e318f1f19d71e3aea0391ea4d773c2a4163b5867",
+   "feature": null,
    "file": "patches/winehq/improvements/2025-wined3d-vulkan-on-moltenvk/wined3d-vulkan-on-moltenvk@11.22.patch",
    "header": {
     "category": "graphics",
@@ -1695,6 +1718,7 @@
   "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch": {
    "category": "sync",
    "diff_sha256": "96d592a617bab78a80ad690efa107fbf873e39388997720935d7f623e38dbbd6",
+   "feature": null,
    "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@10.0.patch",
    "header": {
     "category": "sync",
@@ -1832,6 +1856,7 @@
   "patches/winehq/options/2002-ntdll-msync/ntdll-msync@11.21.patch": {
    "category": "sync",
    "diff_sha256": "1a24921bd0b7806a351e8d047c575dcc027ea1e872f34b2985208e9156ed1994",
+   "feature": null,
    "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@11.21.patch",
    "header": {
     "category": "sync",
@@ -1920,6 +1945,7 @@
   "patches/winehq/options/2002-ntdll-msync/ntdll-msync@11.22.patch": {
    "category": "sync",
    "diff_sha256": "433297a60d03dd2413435acf1e982455cd6a9cae646e10dc2862114178eca10f",
+   "feature": null,
    "file": "patches/winehq/options/2002-ntdll-msync/ntdll-msync@11.22.patch",
    "header": {
     "category": "sync",
@@ -2008,6 +2034,7 @@
   "patches/winehq/options/2003-kernel32-tests-sync/kernel32-tests-sync@10.0.patch": {
    "category": "build",
    "diff_sha256": "b9198c3457b452b1f4fb91b0eec19b0a8a25f70a4cff1cde82bd2e3a750186b6",
+   "feature": null,
    "file": "patches/winehq/options/2003-kernel32-tests-sync/kernel32-tests-sync@10.0.patch",
    "header": {
     "category": "build",
@@ -2065,6 +2092,7 @@
   "patches/winehq/options/2003-kernel32-tests-sync/kernel32-tests-sync@11.21,11.22.patch": {
    "category": "build",
    "diff_sha256": "d7496debb34992fda65f490fbeac0668c6de464f2896430808741c49a7e52f94",
+   "feature": null,
    "file": "patches/winehq/options/2003-kernel32-tests-sync/kernel32-tests-sync@11.21,11.22.patch",
    "header": {
     "category": "build",
@@ -2135,6 +2163,7 @@
   "patches/winehq/options/2012-ntdll-simulate-writecopy/ntdll-simulate-writecopy@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "0ca51d1042265417444425ae0c286f1e5df94739d053e031e90c7e32e6331142",
+   "feature": null,
    "file": "patches/winehq/options/2012-ntdll-simulate-writecopy/ntdll-simulate-writecopy@10.0.patch",
    "header": {
     "category": "cpu",
@@ -2243,6 +2272,7 @@
   "patches/winehq/options/2012-ntdll-simulate-writecopy/ntdll-simulate-writecopy@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "2015df280008d59d3555de185c329c57ded228ea4878930ee7b5e9544ea5d673",
+   "feature": null,
    "file": "patches/winehq/options/2012-ntdll-simulate-writecopy/ntdll-simulate-writecopy@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -2352,6 +2382,7 @@
   "patches/winehq/options/2013-ntdll-cpu-count-cap/ntdll-cpu-count-cap@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "1c2dfdf92a4109ac617ee5033ec114f1d7741d06fb52c6841b70a3ce9583c1dd",
+   "feature": null,
    "file": "patches/winehq/options/2013-ntdll-cpu-count-cap/ntdll-cpu-count-cap@10.0.patch",
    "header": {
     "category": "cpu",
@@ -2416,6 +2447,7 @@
   "patches/winehq/options/2013-ntdll-cpu-count-cap/ntdll-cpu-count-cap@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "7d599213a5d92cfdd6c65a4a7c454ca896d7b0b4d8570321215b6e881bc9895a",
+   "feature": null,
    "file": "patches/winehq/options/2013-ntdll-cpu-count-cap/ntdll-cpu-count-cap@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -2481,6 +2513,7 @@
   "patches/winehq/options/2017-ntdll-d3dmetal-code-regions/ntdll-d3dmetal-code-regions@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "882194e289049f9627b33025f469cd15b515af5e569acdb81628326fd24a86c6",
+   "feature": "d3dmetal",
    "file": "patches/winehq/options/2017-ntdll-d3dmetal-code-regions/ntdll-d3dmetal-code-regions@10.0.patch",
    "header": {
     "category": "graphics",
@@ -2552,6 +2585,7 @@
   "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "7af64d7c82209070e8fa72ec0c296a5d988aca6278f430c033b275926f428027",
+   "feature": "d3dmetal",
    "file": "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@10.0.patch",
    "header": {
     "category": "graphics",
@@ -2642,6 +2676,7 @@
   "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@11.21.patch": {
    "category": "graphics",
    "diff_sha256": "623e1d7b9b90b660c8bf5464065031bab825a11cf637c87d516f8901237d072a",
+   "feature": null,
    "file": "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@11.21.patch",
    "header": {
     "category": "graphics",
@@ -2723,6 +2758,7 @@
   "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "49c979760a71787fce792a8d534c7fe39fe06e75acd4602d2fa395594d0d76fd",
+   "feature": null,
    "file": "patches/winehq/options/2020-winemac-export-macdrv-functions/winemac-export-macdrv-functions@11.22.patch",
    "header": {
     "category": "graphics",
@@ -2804,6 +2840,7 @@
   "patches/winehq/options/2021-winemetal-stub/winemetal-stub@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "3a2dacf7172467b7d92f2b5937cc3d350f2b064e057983f0c8fc464cbd67f47e",
+   "feature": null,
    "file": "patches/winehq/options/2021-winemetal-stub/winemetal-stub@10.0.patch",
    "header": {
     "category": "graphics",
@@ -2860,6 +2897,7 @@
   "patches/winehq/options/2021-winemetal-stub/winemetal-stub@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "b23fb07b1ea5e2d6e06a87276ccf640d6c282efefa57ceb128ea31c4a2facd16",
+   "feature": null,
    "file": "patches/winehq/options/2021-winemetal-stub/winemetal-stub@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -2917,6 +2955,7 @@
   "patches/winehq/options/2024-winemac-fwd-compat-gl-context/winemac-fwd-compat-gl-context@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "5c230d6e8de8e9754bf98a80e2497332babf9231d501e42f02e831bd1950679d",
+   "feature": null,
    "file": "patches/winehq/options/2024-winemac-fwd-compat-gl-context/winemac-fwd-compat-gl-context@10.0.patch",
    "header": {
     "category": "graphics",
@@ -2979,6 +3018,7 @@
   "patches/winehq/options/2034-ntdll-renderer-dll-paths/ntdll-renderer-dll-paths@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "8fc5142c6d796038102ca198a0e46b831d9cf17c48ea4421684cdb9188c9cd38",
+   "feature": null,
    "file": "patches/winehq/options/2034-ntdll-renderer-dll-paths/ntdll-renderer-dll-paths@10.0.patch",
    "header": {
     "category": "graphics",
@@ -3053,6 +3093,7 @@
   "patches/winehq/options/2034-ntdll-renderer-dll-paths/ntdll-renderer-dll-paths@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "6966c9c2ccd612a58148cc2a870f6194614c93079f44e55234d5ef2e335855b9",
+   "feature": null,
    "file": "patches/winehq/options/2034-ntdll-renderer-dll-paths/ntdll-renderer-dll-paths@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -3139,6 +3180,7 @@
   "patches/winehq/options/2037-kernelbase-commandline-append/kernelbase-commandline-append@10.0.patch": {
    "category": "system",
    "diff_sha256": "4726caa46f2e7400eee34c3f985f2493441cfe6dac9f557c62c5f51826d61bbb",
+   "feature": null,
    "file": "patches/winehq/options/2037-kernelbase-commandline-append/kernelbase-commandline-append@10.0.patch",
    "header": {
     "category": "system",
@@ -3214,6 +3256,7 @@
   "patches/winehq/options/2037-kernelbase-commandline-append/kernelbase-commandline-append@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "797f11f4849395ff4f2c9462c3191e3b3d4e9557d4cc62361af5ce35d9df9c83",
+   "feature": null,
    "file": "patches/winehq/options/2037-kernelbase-commandline-append/kernelbase-commandline-append@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -3302,6 +3345,7 @@
   "patches/winehq/options/2038-kernelbase-nvngx-d3dmetal/kernelbase-nvngx-d3dmetal@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "4302aba1630457baa1d30b445a48430af780453c133a743691cd79459ec0fc1e",
+   "feature": "d3dmetal",
    "file": "patches/winehq/options/2038-kernelbase-nvngx-d3dmetal/kernelbase-nvngx-d3dmetal@10.0.patch",
    "header": {
     "category": "graphics",
@@ -3365,6 +3409,7 @@
   "patches/winehq/options/2045-ntdll-export-wine-unix-call/ntdll-export-wine-unix-call@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "b4946072e94a95424a00e6c8546cb438d0d9c0f59d24e485e43c2aab9a66cb8e",
+   "feature": "d3dmetal",
    "file": "patches/winehq/options/2045-ntdll-export-wine-unix-call/ntdll-export-wine-unix-call@10.0.patch",
    "header": {
     "category": "graphics",
@@ -3430,6 +3475,7 @@
   "patches/winehq/options/2050-wine-inf-d3dmetal-placeholder-dlls/wine-inf-d3dmetal-placeholder-dlls@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "300fd12db879830c28cea3eb871f436fec6a5db110b448decae1edecd7e9cd32",
+   "feature": "d3dmetal",
    "file": "patches/winehq/options/2050-wine-inf-d3dmetal-placeholder-dlls/wine-inf-d3dmetal-placeholder-dlls@10.0.patch",
    "header": {
     "category": "graphics",
@@ -3498,6 +3544,7 @@
   "patches/winehq/options/2050-wine-inf-d3dmetal-placeholder-dlls/wine-inf-d3dmetal-placeholder-dlls@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "b8f26d0c1a28d819aa2bf34034f280df0e1a6c19c7cb62eaca57864e5cadc08e",
+   "feature": null,
    "file": "patches/winehq/options/2050-wine-inf-d3dmetal-placeholder-dlls/wine-inf-d3dmetal-placeholder-dlls@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -3565,6 +3612,7 @@
   "patches/winehq/options/2062-winemac-plugins/winemac-plugins@11.22.patch": {
    "category": "system",
    "diff_sha256": "d25b9f5fb730f997cda404840fa3abee6af45db1505874e0cd53485785ba9ab9",
+   "feature": "embedding",
    "file": "patches/winehq/options/2062-winemac-plugins/winemac-plugins@11.22.patch",
    "header": {
     "category": "system",
@@ -3618,6 +3666,7 @@
   "patches/winehq/options/2063-winemac-activation-policy/winemac-activation-policy@11.22.patch": {
    "category": "input",
    "diff_sha256": "0646a603baaa69a3a3ea6ed15be7cafd6aa3ab2d9f0ab4a85ae37616412cc1f5",
+   "feature": "embedding",
    "file": "patches/winehq/options/2063-winemac-activation-policy/winemac-activation-policy@11.22.patch",
    "header": {
     "category": "input",
@@ -3674,6 +3723,7 @@
   "patches/winehq/options/2064-gdi32-per-program-color-depth/gdi32-per-program-color-depth@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "873bc5fd82c12c1d4de71f7f27ebe02f5f8046fa56d312cbd2bc29e78b4435b6",
+   "feature": null,
    "file": "patches/winehq/options/2064-gdi32-per-program-color-depth/gdi32-per-program-color-depth@11.22.patch",
    "header": {
     "category": "graphics",
@@ -3719,6 +3769,7 @@
   "patches/winehq/options/2069-winemac-host-windows/winemac-host-windows@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "cbf8becb51f76f2a368f50845ab3ef0d2211d6b559655686dbd356acb3cb255f",
+   "feature": "embedding",
    "file": "patches/winehq/options/2069-winemac-host-windows/winemac-host-windows@11.22.patch",
    "header": {
     "category": "graphics",
@@ -3796,6 +3847,7 @@
   "patches/winehq/options/2076-winemac-host-displays/winemac-host-displays@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "0b293d99184a8fb91e71cdca179a29a330d2746e5c758571f5fbac6168d223b1",
+   "feature": "embedding",
    "file": "patches/winehq/options/2076-winemac-host-displays/winemac-host-displays@11.22.patch",
    "header": {
     "category": "graphics",
@@ -3853,6 +3905,7 @@
   "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "be792611ca61b205ecb10a287f9a3f83ce9c34dfdac3a034ba62928491069013",
+   "feature": null,
    "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.0.patch",
    "header": {
     "category": "graphics",
@@ -3915,6 +3968,7 @@
   "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.20.patch": {
    "category": "graphics",
    "diff_sha256": "7f39138b99577553a58cbb51b63168f2141f893fc04a13742ae8e1f3c849af69",
+   "feature": null,
    "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@10.20.patch",
    "header": {
     "category": "graphics",
@@ -3977,6 +4031,7 @@
   "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "058cb129014ab42b7ff5a47b23b6a065b613bcc3109038c6bef2fb03abbd5581",
+   "feature": null,
    "file": "patches/winehq/packaging/0001-vulkan-portability-enumeration/vulkan-portability-enumeration@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -4042,6 +4097,7 @@
   "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "d56601003808d69c1d3d6acb4d422df16aa3fe574b2d215c0ea017465239437b",
+   "feature": null,
    "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.0.patch",
    "header": {
     "category": "graphics",
@@ -4100,6 +4156,7 @@
   "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.20-11.22.patch": {
    "category": "graphics",
    "diff_sha256": "73fe9544ec05a8e1d03cff1ac04bcf8a52bf0de02fca404bcbf082a4b7330a5a",
+   "feature": null,
    "file": "patches/winehq/packaging/0002-ntdll-vulkan-bundled-driver/ntdll-vulkan-bundled-driver@10.20-11.22.patch",
    "header": {
     "category": "graphics",
@@ -4160,6 +4217,7 @@
   "patches/winehq/programs/2016-ntdll-cohtml-branch/ntdll-cohtml-branch@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "01a34609cea9468b2f74aec111007ceb904c2b47f3647a1b92c2c9bdca29ba3d",
+   "feature": null,
    "file": "patches/winehq/programs/2016-ntdll-cohtml-branch/ntdll-cohtml-branch@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -4229,6 +4287,7 @@
   "patches/winehq/programs/2022-setupapi-diablo4-gpu-luid/setupapi-diablo4-gpu-luid@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "2b9a93f67c340b26d6e926d71832c5876bce8217b50b9cbc93c7194c2d7d2f61",
+   "feature": "d3dmetal",
    "file": "patches/winehq/programs/2022-setupapi-diablo4-gpu-luid/setupapi-diablo4-gpu-luid@10.0.patch",
    "header": {
     "category": "graphics",
@@ -4300,6 +4359,7 @@
   "patches/winehq/programs/2023-ntdll-cef-command-line-args/ntdll-cef-command-line-args@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "c6b2eb187eadbbe1facd9c56d99536f02a31e3782241269abb00605d1ec84823",
+   "feature": null,
    "file": "patches/winehq/programs/2023-ntdll-cef-command-line-args/ntdll-cef-command-line-args@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -4379,6 +4439,7 @@
   "patches/winehq/programs/2026-ntdll-cef-gs-stack-base/ntdll-cef-gs-stack-base@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "54083c477c11018a9d223c7ddfa98c78b0269825aa8eaf4684d4aa6e45fb172e",
+   "feature": null,
    "file": "patches/winehq/programs/2026-ntdll-cef-gs-stack-base/ntdll-cef-gs-stack-base@10.0.patch",
    "header": {
     "category": "cpu",
@@ -4468,6 +4529,7 @@
   "patches/winehq/programs/2027-advapi32-launcher-acls/advapi32-launcher-acls@10.0.patch": {
    "category": "system",
    "diff_sha256": "ec0c7586e0e324b95e818dcc05de5bda0ab353efd07b77bf0722b59f481d167a",
+   "feature": null,
    "file": "patches/winehq/programs/2027-advapi32-launcher-acls/advapi32-launcher-acls@10.0.patch",
    "header": {
     "category": "system",
@@ -4534,6 +4596,7 @@
   "patches/winehq/programs/2027-advapi32-launcher-acls/advapi32-launcher-acls@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "c82c7864456e37293c68487e55480f5e6bac0106c50b67ed5800dda5977fda11",
+   "feature": null,
    "file": "patches/winehq/programs/2027-advapi32-launcher-acls/advapi32-launcher-acls@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -4603,6 +4666,7 @@
   "patches/winehq/programs/2032-kernelbase-replace-launchers/kernelbase-replace-launchers@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "d872eedfd3915821eacf64096e74e9f03e7c4dff9558a2b7d799f2f90b1ab525",
+   "feature": null,
    "file": "patches/winehq/programs/2032-kernelbase-replace-launchers/kernelbase-replace-launchers@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -4677,6 +4741,7 @@
   "patches/winehq/programs/2033-kernelbase-cef-append-flags/kernelbase-cef-append-flags@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "dd1e8586c2b82e586ada667f578483eafd4e06ffe947ec98115deb01a5f4e25e",
+   "feature": null,
    "file": "patches/winehq/programs/2033-kernelbase-cef-append-flags/kernelbase-cef-append-flags@10.0.patch",
    "header": {
     "category": "graphics",
@@ -4781,6 +4846,7 @@
   "patches/winehq/programs/2033-kernelbase-cef-append-flags/kernelbase-cef-append-flags@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "398188bb82803721d36a43cc371ab98d56c42d44a288402a2bc6117fef18dab7",
+   "feature": null,
    "file": "patches/winehq/programs/2033-kernelbase-cef-append-flags/kernelbase-cef-append-flags@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -4898,6 +4964,7 @@
   "patches/winehq/programs/2035-ntdll-launcher-metal-hud/ntdll-launcher-metal-hud@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "bb4b073b2dfad4e44bb614b56dd56d392b967131387677206b57055ce4a34c24",
+   "feature": null,
    "file": "patches/winehq/programs/2035-ntdll-launcher-metal-hud/ntdll-launcher-metal-hud@10.0.patch",
    "header": {
     "category": "graphics",
@@ -4966,6 +5033,7 @@
   "patches/winehq/programs/2035-ntdll-launcher-metal-hud/ntdll-launcher-metal-hud@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "f63fb57f8b7147f76b29eff46b4f1359a4501d2fd8de79dc58b5f162589e02e3",
+   "feature": null,
    "file": "patches/winehq/programs/2035-ntdll-launcher-metal-hud/ntdll-launcher-metal-hud@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -5055,6 +5123,7 @@
   "patches/winehq/programs/2036-ntdll-d2r-renderer-paths/ntdll-d2r-renderer-paths@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "5d8ec62e0e90d52cd8382b74700ff8c677c5ad325e7faff48c7ac4d87599586e",
+   "feature": null,
    "file": "patches/winehq/programs/2036-ntdll-d2r-renderer-paths/ntdll-d2r-renderer-paths@10.0.patch",
    "header": {
     "category": "graphics",
@@ -5130,6 +5199,7 @@
   "patches/winehq/programs/2036-ntdll-d2r-renderer-paths/ntdll-d2r-renderer-paths@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "46bc7c97e4b6f60bf6eb68b9ae6f0f6621142ec4f5ead8db768dd78069777233",
+   "feature": null,
    "file": "patches/winehq/programs/2036-ntdll-d2r-renderer-paths/ntdll-d2r-renderer-paths@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -5216,6 +5286,7 @@
   "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0,11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "cf2a5dd508e270a03bb0f2db340f580153a0a850af1f55c716c9975c28bcb59f",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2004-ntdll-rosetta-debug-registers/ntdll-rosetta-debug-registers@10.0,11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -5279,6 +5350,7 @@
   "patches/winehq/targeted-fixes/2005-ntdll-rosetta-cet-rdssp/ntdll-rosetta-cet-rdssp@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "855ab1f4683c0388129ae826576888522f8ad4441492a0fb44639fa432a87685",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2005-ntdll-rosetta-cet-rdssp/ntdll-rosetta-cet-rdssp@10.0.patch",
    "header": {
     "category": "cpu",
@@ -5342,6 +5414,7 @@
   "patches/winehq/targeted-fixes/2005-ntdll-rosetta-cet-rdssp/ntdll-rosetta-cet-rdssp@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "442ed3da2570da77c66fb8c2513409689d5b6af85838a7cb65fb154b64c49e79",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2005-ntdll-rosetta-cet-rdssp/ntdll-rosetta-cet-rdssp@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -5406,6 +5479,7 @@
   "patches/winehq/targeted-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "9ea6f9cd1dd563ad69eab021c17c2ffc54201d57dd2ddaa4dbd8e8ff52088e1d",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@10.0.patch",
    "header": {
     "category": "cpu",
@@ -5471,6 +5545,7 @@
   "patches/winehq/targeted-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "9f97a86fd5df0690705ec3c7d7c8bc1ecf021ff311143bacb2ed25f66c4af206",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2006-ntdll-rosetta-mxcsr/ntdll-rosetta-mxcsr@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -5537,6 +5612,7 @@
   "patches/winehq/targeted-fixes/2007-ntdll-rosetta-xgetbv/ntdll-rosetta-xgetbv@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "9174f9259c7ed1ab36e320996e377bc26a5e40285444d18580122ff6ac793071",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2007-ntdll-rosetta-xgetbv/ntdll-rosetta-xgetbv@10.0.patch",
    "header": {
     "category": "cpu",
@@ -5627,6 +5703,7 @@
   "patches/winehq/targeted-fixes/2007-ntdll-rosetta-xgetbv/ntdll-rosetta-xgetbv@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "241b7505aa83e55b7e2586bdf1fe68e448ffeead72fba05dd2efafb9e3d40279",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2007-ntdll-rosetta-xgetbv/ntdll-rosetta-xgetbv@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -5718,6 +5795,7 @@
   "patches/winehq/targeted-fixes/2008-ntdll-rosetta-fndisi/ntdll-rosetta-fndisi@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "fea5332e69b5aa5b55e68af6cb810cbd90b660701695aef8e08ac624b88946ca",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2008-ntdll-rosetta-fndisi/ntdll-rosetta-fndisi@10.0.patch",
    "header": {
     "category": "cpu",
@@ -5815,6 +5893,7 @@
   "patches/winehq/targeted-fixes/2008-ntdll-rosetta-fndisi/ntdll-rosetta-fndisi@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "0ffa1c5a7e420a20471baf887170c2e98441bb9d9d8348fea1b9cdf81a21c4e4",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2008-ntdll-rosetta-fndisi/ntdll-rosetta-fndisi@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -5913,6 +5992,7 @@
   "patches/winehq/targeted-fixes/2011-ntdll-write-fault-wx-retry/ntdll-write-fault-wx-retry@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "a5a8a9efd4a45d41324b1bbaf012df422676697d4111bc778988530e32b5a877",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2011-ntdll-write-fault-wx-retry/ntdll-write-fault-wx-retry@10.0.patch",
    "header": {
     "category": "cpu",
@@ -5975,6 +6055,7 @@
   "patches/winehq/targeted-fixes/2011-ntdll-write-fault-wx-retry/ntdll-write-fault-wx-retry@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "7e6f16990db8d1d3389ffe71ec7b747168ed1e2d53fcc31b883395fa83a75745",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2011-ntdll-write-fault-wx-retry/ntdll-write-fault-wx-retry@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -6038,6 +6119,7 @@
   "patches/winehq/targeted-fixes/2018-ntdll-is-apple-silicon/ntdll-is-apple-silicon@10.0,11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "24460223aaf0da7c51b09daf610986e4ca07e582ded4f63d05d47a1d52855653",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2018-ntdll-is-apple-silicon/ntdll-is-apple-silicon@10.0,11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -6098,6 +6180,7 @@
   "patches/winehq/targeted-fixes/2019-ntdll-peb-at-gs-0x60/ntdll-peb-at-gs-0x60@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "d50182ad97798b8c52e127afebe6f2baf525c41d2037c597fee1cc9f0cee4324",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2019-ntdll-peb-at-gs-0x60/ntdll-peb-at-gs-0x60@10.0.patch",
    "header": {
     "category": "cpu",
@@ -6163,6 +6246,7 @@
   "patches/winehq/targeted-fixes/2028-server-disable-hung-hooks/server-disable-hung-hooks@10.0.patch": {
    "category": "input",
    "diff_sha256": "a8b6283b9d4de1fafed20192472ce24f917b50a594533becc46a3c4ee6b26ad1",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2028-server-disable-hung-hooks/server-disable-hung-hooks@10.0.patch",
    "header": {
     "category": "input",
@@ -6225,6 +6309,7 @@
   "patches/winehq/targeted-fixes/2028-server-disable-hung-hooks/server-disable-hung-hooks@11.21,11.22.patch": {
    "category": "input",
    "diff_sha256": "d6ed76f2efbd77e822d461a570ef16738d3e81751afe6628d643d40836903d81",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2028-server-disable-hung-hooks/server-disable-hung-hooks@11.21,11.22.patch",
    "header": {
     "category": "input",
@@ -6300,6 +6385,7 @@
   "patches/winehq/targeted-fixes/2029-server-loopback-bind/server-loopback-bind@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "1ebfc1bc6a8fe8e8b2e57fdd217cd492339f1cb082f4235d9adb48e9d2f31487",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2029-server-loopback-bind/server-loopback-bind@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -6366,6 +6452,7 @@
   "patches/winehq/targeted-fixes/2040-ntdll-rosetta-fs-addr16/ntdll-rosetta-fs-addr16@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "7b5a622885443f320737861c3e299417dfca1ad6d6445e7c7a6674554e5f7e6d",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2040-ntdll-rosetta-fs-addr16/ntdll-rosetta-fs-addr16@10.0.patch",
    "header": {
     "category": "cpu",
@@ -6417,6 +6504,7 @@
   "patches/winehq/targeted-fixes/2040-ntdll-rosetta-fs-addr16/ntdll-rosetta-fs-addr16@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "7aa3dcae6022dc37bd7fdaaadb79b8880aa1115de1bb8b5a3e1d65af5debbe8e",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2040-ntdll-rosetta-fs-addr16/ntdll-rosetta-fs-addr16@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -6473,6 +6561,7 @@
   "patches/winehq/targeted-fixes/2042-ntdll-clear-inherited-exception-ports/ntdll-clear-inherited-exception-ports@10.0.patch": {
    "category": "system",
    "diff_sha256": "c00a08b641b9081be6f2d1a54d92addf54b8389d3c8f2fd5d0f190f6db61f133",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2042-ntdll-clear-inherited-exception-ports/ntdll-clear-inherited-exception-ports@10.0.patch",
    "header": {
     "category": "system",
@@ -6516,6 +6605,7 @@
   "patches/winehq/targeted-fixes/2042-ntdll-clear-inherited-exception-ports/ntdll-clear-inherited-exception-ports@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "85225f32b103935ff730377342e9d2502f9530374ed5233de1e73fe6d13d7c02",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2042-ntdll-clear-inherited-exception-ports/ntdll-clear-inherited-exception-ports@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -6564,6 +6654,7 @@
   "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "99d4875a5bbce2490d46cf904f97a9b70903a7bcb4f18082f4b67a3b87d1745c",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@10.0.patch",
    "header": {
     "category": "cpu",
@@ -6632,6 +6723,7 @@
   "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@11.21.patch": {
    "category": "cpu",
    "diff_sha256": "e1428d4549b63347cd63c3ddacc6f3b4ef64927fef8c001643b816b46cc15cb8",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@11.21.patch",
    "header": {
     "category": "cpu",
@@ -6700,6 +6792,7 @@
   "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@11.22.patch": {
    "category": "cpu",
    "diff_sha256": "ed712c0744d9e1f483fa098f22700db0f01f74ad4494f6f35d51f4b08eed48b6",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2043-ntdll-rosetta-cross-process-code-writes/ntdll-rosetta-cross-process-code-writes@11.22.patch",
    "header": {
     "category": "cpu",
@@ -6768,6 +6861,7 @@
   "patches/winehq/targeted-fixes/2044-win32u-composited-paint/win32u-composited-paint@10.0.patch": {
    "category": "input",
    "diff_sha256": "9cc55bf91af281827353b023e9755b05784e405f27573fa4d4986dd79bdb0fcb",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2044-win32u-composited-paint/win32u-composited-paint@10.0.patch",
    "header": {
     "category": "input",
@@ -6829,6 +6923,7 @@
   "patches/winehq/targeted-fixes/2044-win32u-composited-paint/win32u-composited-paint@11.21,11.22.patch": {
    "category": "input",
    "diff_sha256": "5b769af71bfda8592ec5d9e1682e2f0bc5c25311a1b40ba09cafff7a24eded3a",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2044-win32u-composited-paint/win32u-composited-paint@11.21,11.22.patch",
    "header": {
     "category": "input",
@@ -6891,6 +6986,7 @@
   "patches/winehq/targeted-fixes/2046-winemac-bc7-texture-decode/winemac-bc7-texture-decode@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "a4143f8d964326417db483ac3281df61f4e132c0811a0349eac13ccc669f71e4",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2046-winemac-bc7-texture-decode/winemac-bc7-texture-decode@10.0.patch",
    "header": {
     "category": "graphics",
@@ -6979,6 +7075,7 @@
   "patches/winehq/targeted-fixes/2046-winemac-bc7-texture-decode/winemac-bc7-texture-decode@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "c03b4600aca1a7f01c15f91f1a43ecd263d4db46915c429bb825bdc13d549aea",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2046-winemac-bc7-texture-decode/winemac-bc7-texture-decode@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -7068,6 +7165,7 @@
   "patches/winehq/targeted-fixes/2048-ntdll-preallocate-tls-expansion/ntdll-preallocate-tls-expansion@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "9e325250e0da414a173a41bd44409d787806ee72110517c39c285282b1dfdc83",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2048-ntdll-preallocate-tls-expansion/ntdll-preallocate-tls-expansion@10.0.patch",
    "header": {
     "category": "cpu",
@@ -7134,6 +7232,7 @@
   "patches/winehq/targeted-fixes/2052-winemac-raw-client-surface-backing/winemac-raw-client-surface-backing@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "edb673bbf2044b9092d9111fdf12c77fd7cc207780ab00b558efc917a0098773",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2052-winemac-raw-client-surface-backing/winemac-raw-client-surface-backing@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -7178,6 +7277,7 @@
   "patches/winehq/targeted-fixes/2053-ntdll-skip-9x-debugger-probes/ntdll-skip-9x-debugger-probes@10.0.patch": {
    "category": "cpu",
    "diff_sha256": "db9c4595e6b58f9e3064f0717c1feaa34dc03b3abd9eddf855cf455e131abcc5",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2053-ntdll-skip-9x-debugger-probes/ntdll-skip-9x-debugger-probes@10.0.patch",
    "header": {
     "category": "cpu",
@@ -7228,6 +7328,7 @@
   "patches/winehq/targeted-fixes/2053-ntdll-skip-9x-debugger-probes/ntdll-skip-9x-debugger-probes@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "5319ef025965dcd76797bf9585de0aaadb760c2c6c0eee4f068d13c07fd02e6e",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2053-ntdll-skip-9x-debugger-probes/ntdll-skip-9x-debugger-probes@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -7279,6 +7380,7 @@
   "patches/winehq/targeted-fixes/2055-ntdll-wow64-teb-top-down/ntdll-wow64-teb-top-down@11.21.patch": {
    "category": "cpu",
    "diff_sha256": "4c4a72f510c25d0ceef6b2ef0289483664fb3ad745d26c259a181821b53f7a07",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2055-ntdll-wow64-teb-top-down/ntdll-wow64-teb-top-down@11.21.patch",
    "header": {
     "category": "cpu",
@@ -7323,6 +7425,7 @@
   "patches/winehq/targeted-fixes/2055-ntdll-wow64-teb-top-down/ntdll-wow64-teb-top-down@11.22.patch": {
    "category": "cpu",
    "diff_sha256": "608de04d9e30f3955058905005e82dbff638bcac16f9a8f486eca4f9659c4394",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2055-ntdll-wow64-teb-top-down/ntdll-wow64-teb-top-down@11.22.patch",
    "header": {
     "category": "cpu",
@@ -7363,6 +7466,7 @@
   "patches/winehq/targeted-fixes/2056-winemac-centre-fullscreen-gdi/winemac-centre-fullscreen-gdi@11.21.patch": {
    "category": "input",
    "diff_sha256": "f363fc83598545f271d7a1ffc8f357d208b50891ae4a131d4a5cedefc5eccdcf",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2056-winemac-centre-fullscreen-gdi/winemac-centre-fullscreen-gdi@11.21.patch",
    "header": {
     "category": "input",
@@ -7411,6 +7515,7 @@
   "patches/winehq/targeted-fixes/2056-winemac-centre-fullscreen-gdi/winemac-centre-fullscreen-gdi@11.22.patch": {
    "category": "input",
    "diff_sha256": "53d86a4734c688f9c80b8870abd08b0372c17958b53d96883214e3c25949124e",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2056-winemac-centre-fullscreen-gdi/winemac-centre-fullscreen-gdi@11.22.patch",
    "header": {
     "category": "input",
@@ -7455,6 +7560,7 @@
   "patches/winehq/targeted-fixes/2057-ntdll-rosetta-refuse-ldt-entries/ntdll-rosetta-refuse-ldt-entries@11.21,11.22.patch": {
    "category": "cpu",
    "diff_sha256": "23ea9b1ecc8fb5439ed91dd6e758b33b969030941068239a43eb515207c41586",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2057-ntdll-rosetta-refuse-ldt-entries/ntdll-rosetta-refuse-ldt-entries@11.21,11.22.patch",
    "header": {
     "category": "cpu",
@@ -7504,6 +7610,7 @@
   "patches/winehq/targeted-fixes/2060-winemac-serialise-gl-context-changes/winemac-serialise-gl-context-changes@10.0.patch": {
    "category": "graphics",
    "diff_sha256": "f2a7dbdfbc8f444b4abb4fa83a18c7c76c48659b4cc663ad32e146d5c56d0531",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2060-winemac-serialise-gl-context-changes/winemac-serialise-gl-context-changes@10.0.patch",
    "header": {
     "category": "graphics",
@@ -7554,6 +7661,7 @@
   "patches/winehq/targeted-fixes/2060-winemac-serialise-gl-context-changes/winemac-serialise-gl-context-changes@11.21,11.22.patch": {
    "category": "graphics",
    "diff_sha256": "77122ae27490e14f99596605ab92cd3c602d6ae62421ace4f75abf6355c94a27",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2060-winemac-serialise-gl-context-changes/winemac-serialise-gl-context-changes@11.21,11.22.patch",
    "header": {
     "category": "graphics",
@@ -7601,6 +7709,7 @@
   "patches/winehq/targeted-fixes/2061-wined3d-exact-dirty-range-internal-buffers/wined3d-exact-dirty-range-internal-buffers@11.22.patch": {
    "category": "graphics",
    "diff_sha256": "57ae4498b0d64abd6e816b80b8f28a6d9bc70432862dc83880af55e71b773f23",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2061-wined3d-exact-dirty-range-internal-buffers/wined3d-exact-dirty-range-internal-buffers@11.22.patch",
    "header": {
     "category": "graphics",
@@ -7644,6 +7753,7 @@
   "patches/winehq/targeted-fixes/2065-krnl386-attach-without-16bit/krnl386-attach-without-16bit@10.0.patch": {
    "category": "system",
    "diff_sha256": "be52c1eac1f643ea45d74acbeab5ec1cf1192ef564201fe5df9c4ed8ad8317ae",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2065-krnl386-attach-without-16bit/krnl386-attach-without-16bit@10.0.patch",
    "header": {
     "category": "system",
@@ -7689,6 +7799,7 @@
   "patches/winehq/targeted-fixes/2065-krnl386-attach-without-16bit/krnl386-attach-without-16bit@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "cd2c610b3a7adc8a99b61e6b62027a6a0d2229193e4c8a38367f09dc4bd4ff08",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2065-krnl386-attach-without-16bit/krnl386-attach-without-16bit@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -7738,6 +7849,7 @@
   "patches/winehq/targeted-fixes/2067-ntdll-async-iosb-unwritable/ntdll-async-iosb-unwritable@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "5a9992d2c8562e7f0c51d63343845a800f68b57b864beaae7887a18355b9d4dc",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2067-ntdll-async-iosb-unwritable/ntdll-async-iosb-unwritable@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -7782,6 +7894,7 @@
   "patches/winehq/targeted-fixes/2070-imm32-composition-rect-at-current-pos/imm32-composition-rect-at-current-pos@11.22.patch": {
    "category": "input",
    "diff_sha256": "e7627c8f3783d7497dd7d26cdcb509fab9e4c2b6e236fa01ed7b09f56fa0a04f",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2070-imm32-composition-rect-at-current-pos/imm32-composition-rect-at-current-pos@11.22.patch",
    "header": {
     "category": "input",
@@ -7824,6 +7937,7 @@
   "patches/winehq/targeted-fixes/2071-ntdll-exit-with-server/ntdll-exit-with-server@10.0.patch": {
    "category": "system",
    "diff_sha256": "0f5e4a419e37afc374b966e17c74e1ff794f7ba87925d115fc7b664a47d42c45",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2071-ntdll-exit-with-server/ntdll-exit-with-server@10.0.patch",
    "header": {
     "category": "system",
@@ -7881,6 +7995,7 @@
   "patches/winehq/targeted-fixes/2071-ntdll-exit-with-server/ntdll-exit-with-server@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "e31f32449e6114f7c6a360ebc3df16b114025c6db67db2d3e088d307c009aaff",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2071-ntdll-exit-with-server/ntdll-exit-with-server@11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -7931,6 +8046,7 @@
   "patches/winehq/targeted-fixes/2073-winemac-fullscreen-space-click/winemac-fullscreen-space-click@11.22.patch": {
    "category": "input",
    "diff_sha256": "796a094ab0a35448563467bfc5ef389b1a46e52246e6e4d80c74fa063219025c",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2073-winemac-fullscreen-space-click/winemac-fullscreen-space-click@11.22.patch",
    "header": {
     "category": "input",
@@ -7974,6 +8090,7 @@
   "patches/winehq/targeted-fixes/2074-winemac-clip-follows-window/winemac-clip-follows-window@11.22.patch": {
    "category": "input",
    "diff_sha256": "7d7411f0c00a2bdf16270218ccb886239b0d47a958eb54fda82d225ce2196903",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2074-winemac-clip-follows-window/winemac-clip-follows-window@11.22.patch",
    "header": {
     "category": "input",
@@ -8017,6 +8134,7 @@
   "patches/winehq/targeted-fixes/2075-msi-database-path-length/msi-database-path-length@10.0,11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "810b18f5dd0b34b84a6d7240f3b7d9939415d7252caff9840a64cd6c4bb094df",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2075-msi-database-path-length/msi-database-path-length@10.0,11.21,11.22.patch",
    "header": {
     "category": "system",
@@ -8061,6 +8179,7 @@
   "patches/winehq/targeted-fixes/2077-server-keep-abandoned-mutex-alive/server-keep-abandoned-mutex-alive@10.0.patch": {
    "category": "sync",
    "diff_sha256": "7870ab0d0dfd4c09c4841bdaaa017503d6f8a807164ac3805c5d882b82f6ae44",
+   "feature": null,
    "file": "patches/winehq/targeted-fixes/2077-server-keep-abandoned-mutex-alive/server-keep-abandoned-mutex-alive@10.0.patch",
    "header": {
     "category": "sync",
@@ -8110,6 +8229,7 @@
   "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch": {
    "category": "system",
    "diff_sha256": "ed0be5cd65004b758ccc2f82e9e2b11cde39dffbe7505146928186fb14426437",
+   "feature": null,
    "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@10.0.patch",
    "header": {
     "build_env": [
@@ -8176,6 +8296,7 @@
   "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@11.21,11.22.patch": {
    "category": "system",
    "diff_sha256": "132f7146c61d094f69b21f5822420198207f1668a5930a54912bcfed2ec005d5",
+   "feature": null,
    "file": "patches/winehq/version-label/1001-ntdll-version-label/ntdll-version-label@11.21,11.22.patch",
    "header": {
     "build_env": [
@@ -8240,6 +8361,41 @@
     "11.22"
    ]
   }
+ },
+ "features": {
+  "macfixes/10.0": [
+   {
+    "name": "d3dmetal",
+    "patches": [
+     "ntdll-d3dmetal-code-regions",
+     "winemac-export-macdrv-functions",
+     "setupapi-diablo4-gpu-luid",
+     "kernelbase-nvngx-d3dmetal",
+     "ntdll-export-wine-unix-call",
+     "wine-inf-d3dmetal-placeholder-dlls"
+    ],
+    "status": "works as far as tested: with D3DMetal 3.0, a console probe on build0 created a DXGI factory and a D3D12 device (macOS 26.7.2, M1 Max, 2026-11-25); not yet tried with a game or on screen. Wine 11.x isn't supported: D3DMetal 3.0 needs the GSBASE model Wine had until 10.4, and from 10.5 (WineHQ 3a16aabb) it crashes when a program creates a DXGI factory (11.22 build0, 2026-11-25), so these patches have no 11.x copies.",
+    "summary": "Apple's D3DMetal (Game Porting Toolkit), supplied by the user, as the Direct3D renderer"
+   }
+  ],
+  "macfixes/11.21": [],
+  "macfixes/11.22": [
+   {
+    "name": "embedding",
+    "patches": [
+     "winemac-plugins",
+     "winemac-activation-policy",
+     "winemac-host-windows",
+     "winemac-host-displays"
+    ],
+    "status": "works: Second Chance's integration tests passed with games' windows hosted, in host8 (2026-11-22) and in host16, which added host displays (confirmed on a 14\" MacBook Pro). Metal and Vulkan renderers (DXVK, vkd3d, D3DMetal) show nothing in the host. The 2026-11-26 review fixes aren't in a build yet.",
+    "summary": "an app that embeds Wine shows a program's windows in its own, with input sent back, and can load helper code into the Mac driver and keep helper programs out of the Dock and off fullscreen games"
+   }
+  ],
+  "wine/10.0": [],
+  "wine/10.20": [],
+  "wine/11.21": [],
+  "wine/11.22": []
  },
  "flavours": {
   "macfixes": {
@@ -8321,5 +8477,5 @@
    ]
   }
  },
- "recipe_commit": "cb19f92eab073121a4db8752795101b092880b21"
+ "recipe_commit": "bf6fb62f036c3cdcaa9459a9b641a1e99641a372"
 }

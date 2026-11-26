@@ -11,10 +11,10 @@ share it. Links use the commit of the newest build that applied the copy.
 import collections
 
 from . import legacy
-from .buildpage import head, origin_chip, origin_detail, upstream_status, wrap
+from .buildpage import dl_rows, head, header_rows, origin_chip, patch_badges, wrap
 from .data import version_key
 from .markup import el, join
-from .parts import CATEGORIES, KIND_NAMES, ORIGINS, text, version_ranges
+from .parts import CATEGORIES, ORIGINS, text, version_ranges
 
 
 def source_builds(d):
@@ -61,7 +61,7 @@ def search_text(x):
     p = x["latest"]
     bits = [p.get("summary") or "", x["name"], *(c["file"] or "" for c in x["copies"].values())]
     for o in p.get("origins") or []:
-        bits += [str(n) for n in o.get("cw_hacks") or []]
+        bits += [str(n) for n in (o.get("cw_hacks") or []) + (o.get("cw_bug_id") or [])]
         if o.get("patchset"):
             bits.append(o["patchset"])
     return " ".join(bits).lower()
@@ -69,41 +69,22 @@ def search_text(x):
 
 def row(x, known):
     p = x["latest"]
-    h = p.get("header") or {}
-    badges = [el("span", KIND_NAMES.get(k, k), class_="kchip") for k in p.get("kinds") or []]
-    if h.get("uncertain"):
-        badges.append(el("span", "uncertain", class_="pbadge unc"))
-    up = upstream_status(p)
-    if up:
-        badges.append(el("span", f"in WineHQ: {up}", class_="pbadge up"))
-    rows = []
-
-    def add(label, value, cls=None):
-        if value:
-            rows.extend([el("dt", label), el("dd", value, class_=cls)])
-
-    add("Why", h.get("why"))
-    add("Uncertain", h.get("uncertain"), "unc")
-    add("Evidence", h.get("evidence"))
-    add("Programs", h.get("programs") if h.get("programs") not in ("none known", None) else None)
-    add("In WineHQ", h.get("upstream"))
-    add("Origin", join((origin_detail(o) for o in p.get("origins") or []), el("br")))
-    add("Category", CATEGORIES.get(p.get("category"), p.get("category")))
+    rows = header_rows(p)
     copies = []
     for c in x["copies"].values():
         link = f"{c['repo']}/blob/{c['commit']}/{c['file']}" if c["commit"] and c["repo"] and c["file"] else None
         name = (c["file"] or "").rsplit("/", 1)[-1]
         copies.append(el("span", el("a", el("code", name), href=link) if link else el("code", name), " ",
                          el("span", applied_text(c["applied"], known), class_="muted"), class_="pcopy"))
-    add("Copies" if len(copies) > 1 else "File", el("span", *copies, class_="pfiles"))
+    rows.append(("Copies" if len(copies) > 1 else "File", el("span", *copies, class_="pfiles"), None))
     projects = sorted({o.get("project") or "other" for o in p.get("origins") or []})
     return el("li", el("details",
         el("summary",
            el("span", x["number"] or "", class_="pn"),
            el("span", el("span", text(p.get("summary")), class_="pt"), el("code", x["name"], class_="pf"),
               el("span", applied_text(x["applied"], known), class_="pv"), class_="ps"),
-           el("span", *[origin_chip(o) for o in p.get("origins") or []], *badges, class_="pm")),
-        el("dl", *rows, class_="pd")),
+           el("span", *[origin_chip(o) for o in p.get("origins") or []], *patch_badges(p), class_="pm")),
+        el("dl", *dl_rows(rows), class_="pd")),
         class_="prow", id=f"p-{x['name']}", data_set=x["set"] or "", data_cat=p.get("category") or "", data_origins=" ".join(projects),
         data_search=search_text(x))
 

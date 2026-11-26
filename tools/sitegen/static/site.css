@@ -396,6 +396,11 @@ details.conf pre { margin: .6rem 0 0; font: .8rem/1.7 var(--f-mono); white-space
 .pbadge { font: 500 .72rem/1 var(--f-body); padding: .28rem .5rem; border-radius: 999px; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); white-space: nowrap; }
 .pbadge.unc { color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent); }
 .pbadge.up { color: var(--hl-ink); }
+.pbadge.risk { color: var(--warn); font-weight: 650; box-shadow: inset 0 0 0 1.5px var(--warn); }
+.pd ul.plain { margin: 0; padding: 0; list-style: none; }
+.features { display: grid; gap: .6rem; margin: 0 0 1.2rem; padding: 0; list-style: none; }
+.features li { padding: .7rem .9rem; border-radius: var(--r, 10px); box-shadow: inset 0 0 0 1px var(--line); }
+.features p { margin: .25rem 0 0; }
 .prow[open] summary { background: var(--hl); }
 .prow .pd { padding: .4rem .5rem 1.2rem 3.5rem; display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: .55rem 1.25rem; font-size: .9rem; animation: kids .25s var(--ease); }
 .prow .pd dt { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .07em; padding-top: .15rem; }
@@ -443,6 +448,8 @@ details.conf pre { margin: .6rem 0 0; font: .8rem/1.7 var(--f-mono); white-space
 .oc-wine-staging { --oc: color-mix(in srgb, var(--wine) 50%, var(--mac)); }
 .oc-gcenx { --oc: color-mix(in srgb, var(--wine) 45%, var(--fg)); }
 .oc-winehq { --oc: color-mix(in srgb, var(--wine) 60%, var(--bg)); }
+.oc-winehq-bugzilla { --oc: color-mix(in srgb, var(--wine) 40%, var(--bg)); }
+.oc-proton { --oc: color-mix(in srgb, var(--mac) 55%, var(--fg)); }
 .oc-other { --oc: var(--plan); }
 .tag.warn { color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); }
 .notice { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.2rem; border-radius: var(--r); background: var(--sunk); max-width: 46rem; }

@@ -194,6 +194,27 @@
  "builds[].experimental": [
   "boolean"
  ],
+ "builds[].features": [
+  "array"
+ ],
+ "builds[].features[]": [
+  "object"
+ ],
+ "builds[].features[].name": [
+  "string"
+ ],
+ "builds[].features[].patches": [
+  "array"
+ ],
+ "builds[].features[].patches[]": [
+  "string"
+ ],
+ "builds[].features[].status": [
+  "string"
+ ],
+ "builds[].features[].summary": [
+  "string"
+ ],
  "builds[].flavour": [
   "string"
  ],
@@ -249,6 +270,10 @@
   "string"
  ],
  "builds[].patches[].diff_sha256": [
+  "null",
+  "string"
+ ],
+ "builds[].patches[].feature": [
   "null",
   "string"
  ],

@@ -61,6 +61,13 @@ def sample_patches(flavour, version):
     return [SAMPLE["copies"][f] for f in SAMPLE["applied"][key]]
 
 
+def sample_features(flavour, version):
+    key = f"{flavour}/{version}"
+    if key not in SAMPLE["applied"]:
+        key = f"{flavour}/11.21"
+    return SAMPLE["features"][key]
+
+
 def legacy_patches(version):
     # The fields builds had before patch sets.
     return [
@@ -118,6 +125,7 @@ def release(flavour, version, number, platform, published, *, experimental=False
         info["patch_base"] = fl["base"]
         info["patch_sets"] = fl["sets"]
         info["wine_version_string"] = f"wine-{version}" + ("" if flavour == "wine" else f" ({flavour})")
+        info["features"] = sample_features(flavour, version)
         info["components"][0]["patches"] = sample_patches(flavour, version) + (
             [ODD_PATCH] if version == "11.0-rc2" else [])
     assets, sums = [], []

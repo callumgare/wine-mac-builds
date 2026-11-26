@@ -44,8 +44,9 @@ CATEGORIES = {"cpu": "CPU, Rosetta 2 and memory", "sync": "Thread synchronisatio
               "graphics": "Direct3D, D3DMetal, OpenGL and Vulkan", "input": "Windows, focus, mouse and keyboard",
               "system": "Files, network, processes and version", "apps": "Specific programs",
               "build": "How Wine builds, and its tests"}
-ORIGINS = {"winehq": "WineHQ", "wine-staging": "wine-staging", "crossover": "CrossOver", "gcenx": "Gcenx",
-           "reconstructed": "Reconstructed", "wine-mac-builds": "This project", "other": "Other project"}
+ORIGINS = {"winehq": "WineHQ", "winehq-bugzilla": "WineHQ Bugzilla", "wine-staging": "wine-staging",
+           "crossover": "CrossOver", "proton": "Proton", "gcenx": "Gcenx", "reconstructed": "Reconstructed",
+           "wine-mac-builds": "This project", "other": "Other project"}
 FILE_KINDS = {"build": "Wine itself, ready to run", "debug": "Debug symbols", "tests": "winetest",
               "sources": "Corresponding source", "build_info": "BUILD-INFO", "sbom": "Software Bill of Materials (SBOM)",
               "sha256sums": "Checksums", "test_results": "Test results"}

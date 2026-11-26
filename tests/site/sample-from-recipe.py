@@ -13,7 +13,8 @@ headers. Each distinct copy is stored once:
   {"recipe_commit": "…",
    "flavours": {"<flavour>": {"description", "base", "sets": [{name, summary, range}], "versions"}},
    "copies": {"<file>": <patch entry>},
-   "applied": {"<flavour>/<version>": ["<file>", …]}}
+   "applied": {"<flavour>/<version>": ["<file>", …]},
+   "features": {"<flavour>/<version>": [{name, summary, status, patches}]}}
 
 Run it again when the patches change, and commit the result.
 """
@@ -45,12 +46,13 @@ def main(checkout):
             "versions": c.versions, "sha256": hashlib.sha256(data).hexdigest(),
             "diff_sha256": hashlib.sha256(data.split(b"\n\n", 1)[1]).hexdigest(),
             "summary": header.get("summary"), "category": header.get("category"),
-            "kinds": header.get("kinds"), "origins": header.get("origins", []), "header": header,
+            "kinds": header.get("kinds"), "feature": header.get("feature"), "origins": header.get("origins", []), "header": header,
         }
 
     out = {"recipe_commit": subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
                                            text=True, check=True).stdout.strip(),
-           "flavours": {}, "copies": {}, "applied": {}}
+           "flavours": {}, "copies": {}, "applied": {}, "features": {}}
+    known = P.features()
     for name in P.flavours():
         fl = P.flavour(name)
         sets = []
@@ -65,6 +67,13 @@ def main(checkout):
             for c in copies:
                 out["copies"].setdefault(c.file, entry(c))
             out["applied"][f"{name}/{v}"] = [c.file for c in copies]
+            # As build/manifest.py's feature_entries() records them.
+            applied = [out["copies"][c.file] for c in copies]
+            out["features"][f"{name}/{v}"] = [
+                {"name": n, "summary": known.get(n, {}).get("summary"),
+                 "status": known.get(n, {}).get("status", {}).get(v),
+                 "patches": [p["name"] for p in applied if p.get("feature") == n]}
+                for n in sorted({p["feature"] for p in applied if p.get("feature")})]
     (HERE / "sample-patches.json").write_text(json.dumps(out, indent=1, sort_keys=True) + "\n")
     print(f"{len(out['copies'])} copies, {len(out['applied'])} flavour versions")
 

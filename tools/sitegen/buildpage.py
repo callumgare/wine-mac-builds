@@ -230,9 +230,10 @@ def origin_chip(o):
     return el("span", ORIGINS.get(project, project), *extra, class_=f"ochip {origin_class(project)}")
 
 
-ORIGIN_KEYS = [("version", "Version"), ("cw_hacks", "CW hacks"), ("patchset", "Patchset"), ("commit", "Commit"),
-               ("bugs", "Bugs"), ("mr", "Merge request"), ("files", "Files"), ("file", "File"), ("binary", "Binary"),
-               ("functions", "Functions"), ("name", "Name"), ("authors", "Authors"), ("changes", "Changes"),
+ORIGIN_KEYS = [("version", "Version"), ("cw_hacks", "CW hacks"), ("cw_bug_id", "CW bug"), ("patchset", "Patchset"),
+               ("commit", "Commit"), ("bugs", "Bugs"), ("attachment", "Attachment"), ("mr", "Merge request"),
+               ("files", "Files"), ("file", "File"), ("binary", "Binary"), ("functions", "Functions"),
+               ("name", "Name"), ("authors", "Authors"), ("covers", "Covers"), ("changes", "Changes"),
                ("note", "Note")]
 
 
@@ -253,39 +254,94 @@ def upstream_status(p):
     return s if s and s != "no" else None
 
 
-def patch_row(p, commit, repo_url):
+def link_list(urls):
+    return el("ul", *[el("li", el("a", u, href=u) if u.startswith("https://") else u) for u in urls], class_="plain")
+
+
+def patch_badges(p):
     h = p.get("header") or {}
-    kinds = p.get("kinds") or []
-    badges = [el("span", KIND_NAMES.get(k, k), class_="kchip") for k in kinds]
+    badges = [el("span", KIND_NAMES.get(k, k), class_="kchip") for k in p.get("kinds") or []]
+    # patches/README.md: Risk is what a patch loads, opens or trusts that
+    # Wine otherwise wouldn't; the build page flags these patches.
+    if h.get("risk"):
+        badges.append(el("span", "risk", class_="pbadge risk", title=h["risk"]))
     if h.get("uncertain"):
         badges.append(el("span", "uncertain", class_="pbadge unc"))
     up = upstream_status(p)
     if up:
         badges.append(el("span", f"in WineHQ: {up}", class_="pbadge up"))
-    rows = []
+    return badges
+
+
+def header_rows(p, blob=None, features=None):
+    """The patch header's fields a reader can use, as [(label, value, class)].
+    blob is the repository's blob/<commit>/ URL; features, the build's, by name."""
+    h = p.get("header") or {}
+    out = []
 
     def row(label, value, cls=None):
         if value:
-            rows.extend([el("dt", label), el("dd", value, class_=cls)])
+            out.append((label, value, cls))
 
     row("Why", h.get("why"))
+    row("Risk", h.get("risk"), "unc")
+    row("Known issues", h.get("known_issues"), "unc")
     row("Uncertain", h.get("uncertain"), "unc")
     row("Evidence", h.get("evidence"))
     row("Programs", h.get("programs") if h.get("programs") not in ("none known", None) else None)
+    row("Seen on", h.get("seen_on"))
+    row("Fine on", h.get("fine_on"))
+    if h.get("enable"):
+        row("Switched on by", el("ul", *[el("li", el("code", x)) for x in h["enable"]], class_="plain"))
+    if p.get("feature"):
+        f = (features or {}).get(p["feature"])
+        name = el("a", el("code", p["feature"]), href="#" + _id("feature", p["feature"])) if f else el("code", p["feature"])
+        row("Feature", [name, ": ", f["summary"]] if f and f.get("summary") else name)
+    row("Messages", h.get("messages"))
     row("In WineHQ", h.get("upstream"))
+    row("Needed until", h.get("needed_until"))
+    if h.get("references"):
+        row("References", link_list(h["references"]))
+    if h.get("docs"):
+        row("Docs", el("ul", *[el("li", el("a", el("code", d), href=blob + d) if blob else el("code", d))
+                               for d in h["docs"]], class_="plain"))
     row("Origin", join((origin_detail(o) for o in p.get("origins") or []), Markup("<br><br>")))
     row("Category", CATEGORIES.get(p.get("category"), p.get("category")))
+    return out
+
+
+def dl_rows(rows):
+    return [x for label, value, cls in rows for x in (el("dt", label), el("dd", value, class_=cls))]
+
+
+def patch_row(p, commit, repo_url, features=None):
+    blob = f"{repo_url}/blob/{commit}/" if commit and repo_url else None
+    rows = header_rows(p, blob, features)
     if p.get("versions"):
-        row("This copy", "Wine " + ", ".join(p["versions"]))
+        rows.append(("This copy", "Wine " + ", ".join(p["versions"]), None))
     if p.get("file"):
-        link = f"{repo_url}/blob/{commit}/{p['file']}" if commit and repo_url else None
-        row("File", el("a", el("code", p["file"]), href=link) if link else el("code", p["file"]))
+        rows.append(("File", el("a", el("code", p["file"]), href=blob + p["file"]) if blob else el("code", p["file"]), None))
     return el("li", el("details",
         el("summary",
            el("span", p.get("number") or "", class_="pn"),
            el("span", el("span", text(p.get("summary")), class_="pt"), el("code", p["name"], class_="pf"), class_="ps"),
-           el("span", *[origin_chip(o) for o in p.get("origins") or []], *badges, class_="pm")),
-        el("dl", *rows, class_="pd")), class_="prow", data_cat=p.get("category") or "")
+           el("span", *[origin_chip(o) for o in p.get("origins") or []], *patch_badges(p), class_="pm")),
+        el("dl", *dl_rows(rows), class_="pd")), class_="prow", data_cat=p.get("category") or "")
+
+
+def features_list(e):
+    """The features this build's patches make up (patches/features.md), with
+    whether each works on this Wine version."""
+    fs = e.get("features") or []
+    if not fs:
+        return None
+    return [el("h3", "Features", " ", el("span", str(len(fs)), data_n="")), el("ul", *[el("li",
+        el("b", el("code", f["name"])), " ", f.get("summary") or "",
+        el("p", el("span", "In this version: ", class_="label"), text(f.get("status")) if f.get("status") else "not recorded",
+           class_="small"),
+        el("p", f"{len(f.get('patches') or [])} patches: ", join((el("code", n) for n in f.get("patches") or []), ", "),
+           class_="muted small"),
+        id=_id("feature", f["name"])) for f in fs], class_="features")]
 
 
 def patches_section(b):
@@ -295,6 +351,7 @@ def patches_section(b):
         return None
     commit = e["recipe"].get("commit")
     repo_url = e["recipe"].get("repository")
+    features = {f["name"]: f for f in e.get("features") or []}
     cats = collections.Counter(p.get("category") for p in patches)
     chips = [el("button", CATEGORIES.get(c, c), " ", el("b", str(n)), type="button", data_cat=c, aria_pressed="false")
              for c, n in sorted(cats.items(), key=lambda x: (-x[1], str(x[0]))) if c]
@@ -314,13 +371,13 @@ def patches_section(b):
         groups.append(el("section",
             el("h3", el("code", s), " ", el("span", str(len(ps)), data_n="")),
             el("p", summaries.get(s), class_="muted small") if summaries.get(s) else None,
-            el("ol", *[patch_row(p, commit, repo_url) for p in ps], class_="plist"),
+            el("ol", *[patch_row(p, commit, repo_url, features) for p in ps], class_="plist"),
             class_="pcat", id=_id("set", s)))
     base = e["patch_base"]
     intro = (f"{len(patches)} patches to {'WineHQ' if base == 'winehq' else base}'s source, grouped by patch set "
              "in the order the sets are layered, and applied in number order. Each patch's header says what it does, "
              "what sort of change it is, where it came from and whether WineHQ has it. Open a patch for the details.")
-    return wrap(head("Patches", intro), filters, el("div", *groups, class_="pcats"),
+    return wrap(head("Patches", intro), features_list(e), filters, el("div", *groups, class_="pcats"),
                 el("p", "No patches match this filter.", class_="empty", data_empty="", hidden=True),
                 el("a", "Every patch, across builds ", el("span", "→"), class_="more", href="/patches/"))
 
