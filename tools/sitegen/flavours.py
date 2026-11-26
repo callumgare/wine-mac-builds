@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 """/flavours/: what each flavour is made of.
 
-The diagram has one column per flavour and one band per layer: the source
-at the bottom (with wine-staging's set drawn on it), then the 0xxx, 1xxx,
-2xxx and 3xxx layers. A set shared by several flavours is one box spanning
-their columns. There is one diagram per Wine version; without JavaScript
-only the newest shows, and each box links to that version's section about
-its set below the diagram. site.js adds the version switcher and opens a
-set's details in a popover (or a bottom sheet on touch screens), from the
-<template> each box names.
+The comparison table's last row is the patch sets diagram: under each
+flavour's column, its source at the top, then its patch sets in the order
+they're applied (by layer: 0xxx, 1xxx, 2xxx, 3xxx). A set shared by several
+flavours is one box spanning their columns. There is one diagram per Wine
+version; without JavaScript only the newest shows, and each box links to
+the set's section on the latest build page of a flavour that applies it.
+site.js adds the version switcher and opens a set's details in a popover
+(or a bottom sheet on touch screens), from the <template> each box names.
 """
 
 import collections
@@ -22,7 +22,6 @@ from .parts import flavour_class
 
 SOURCES = {"winehq": "WineHQ release", "crossover": "CrossOver source"}
 SOURCE_NOTES = {"winehq": "signed tarball", "crossover": "CodeWeavers' tarball"}
-LAYER_NAMES = {0: "build and packaging", 1: "shared by some flavours", 2: "one flavour's own", 3: "one flavour's own"}
 
 
 def layer_of(s):
@@ -89,6 +88,9 @@ def source_of(f, builds, table):
 
 
 def diagram(version, builds, flavours, shown):
+    """One version's diagram, to go in a cell spanning the flavour columns.
+    Grid column 1 is empty (it absorbs the column gap), so a flavour's
+    column is its index + 2."""
     cols = [f for f, *_ in flavours]
     status = {f: s for f, s, *_ in flavours}
     table = dict(content.flavours())
@@ -99,9 +101,9 @@ def diagram(version, builds, flavours, shown):
         idx = sorted(colnum[f] for f in fs)
         return idx[0], idx[-1] + 1
 
-    # Bands, top to bottom: layers 3..0, then the source band.
+    # Bands, top to bottom: the source, then layers 0..3, as applied.
     bands = []
-    for layer in (3, 2, 1, 0, "source"):
+    for layer in ("source", 0, 1, 2, 3):
         items = [x for x in boxes if x["layer"] == layer]
         if layer == "source":
             groups = collections.defaultdict(list)
@@ -110,9 +112,8 @@ def diagram(version, builds, flavours, shown):
             items += [{"source": base, "flavours": fs} for base, fs in groups.items()]
         if not items:
             continue
-        # Pack the band's boxes into lines with no overlapping columns,
-        # bottom line first: sources at the very bottom, then the sets in
-        # the order they're applied.
+        # Pack the band's boxes into lines with no overlapping columns, top
+        # line first, in the order the sets are applied.
         lines = []
         for x in sorted(items, key=lambda x: (0 if "source" in x else 1,
                                               legacy.SET_ORDER.get(x.get("name"), 99), x.get("name", ""))):
@@ -125,13 +126,10 @@ def diagram(version, builds, flavours, shown):
                     break
             else:
                 lines.append({"spans": [(a, b)], "items": [x]})
-        bands.append((layer, list(reversed(lines))))
+        bands.append((layer, lines))
 
     cells, row = [], 1
     for layer, lines in bands:
-        label = "source" if layer == "source" else f"{layer}xxx · {LAYER_NAMES[layer]}"
-        cells.append(el("div", el("span", label), class_=f"axis row-{row} rows-{len(lines)}"
-                        + (" bandstart" if row > 1 else "")))
         for i, line in enumerate(lines):
             for x in line["items"]:
                 a, b = span(x["flavours"])
@@ -150,22 +148,22 @@ def diagram(version, builds, flavours, shown):
                 else:
                     n = len(x["patches"])
                     sub = f"{n} patch{'es' if n != 1 else ''}"
-                target = f"set-{slug(version)}-{x['key']}"
+                # Without JavaScript, the set's section on a build page.
+                built = [f for f in fs if builds.get(f)]
+                href = (f"/builds/{builds[built[0]]['buildless_name']}/#set-{x['name'].replace('.', '_')}"
+                        if built else None)
                 cells.append(el("a", el("code", x["name"]), el("small", sub),
-                                class_=f"layer {cls} {pos}", href=f"#{target}" if shown else None,
+                                class_=f"layer {cls} {pos}", href=href,
                                 data_set=f"tpl-{slug(version)}-{x['key']}", data_fs=" ".join(fs)))
             row += 1
-    head_row = [el("div", class_="axis-h")] + [
-        el("div", el("i"), f, class_=f"colh {flavour_class(f) if status[f] != 'planned' else 'fl-plan'}")
-        for f in cols]
     templates = [el("template", set_details(version, x, tag="div"), id=f"tpl-{slug(version)}-{x['key']}")
                  for x in boxes]
-    return el("div", el("div", *head_row, class_="dhead"), el("div", *cells, class_=f"layers rows{row - 1}"),
+    return el("div", el("div", *cells, class_=f"layers rows{row - 1} n{len(cols)}"),
               *templates, class_="fgrid", data_version=version, hidden=not shown,
               aria_label=f"Patch sets of each flavour, Wine {version}", role="group")
 
 
-def set_details(version, x, *, tag="section", id=None):
+def set_details(version, x, *, tag="div", id=None):
     fs = x["flavours"]
     n = None if x["patches"] is None else len(x["patches"])
     title = [el("code", x["name"]), f" · {'planned' if n is None else str(n) + ' patch' + ('es' if n != 1 else '')}"
@@ -200,10 +198,6 @@ def comparison(d, flavours, per_version):
             versions[f].append((v, b["buildless_name"]))
     rows = [("Status", ["Built" if status[f] != "planned" else "Planned" for f in cols]),
             ("Source", [SOURCES.get(source_of(f, newest, table), "") for f in cols]),
-            ("Patch sets", [join((el("code", s["name"]) for s in newest[f]["primary"]["_sets"]), ", ")
-                            if f in newest else join((el("code", s) for s in table.get(f, {}).get("shares", [])
-                                                      + [x["name"] for x in table.get(f, {}).get("sets", [])]), ", ")
-                            for f in cols]),
             (el("code", "wine --version"), [el("code", newest[f]["primary"]["wine_version_string"])
                                             if f in newest and newest[f]["primary"]["wine_version_string"] else "—"
                                             for f in cols]),
@@ -212,12 +206,24 @@ def comparison(d, flavours, per_version):
                                 if versions[f] else "—" for f in cols])]
     for r in content.load().get("comparison", []):
         rows.append((r["label"], [inline_safe(r.get(f, "—")) for f in cols]))
+    body = [el("tr", el("th", label, scope="row"), *[el("td", v) for v in vals]) for label, vals in rows]
+    versions = list(per_version)
+    if versions:
+        newest_v = versions[0]
+        switcher = el("div", el("div", *[el("button", v, type="button", aria_pressed="true" if v == newest_v else "false",
+                                            data_v=v) for v in sorted(versions, key=version_key)],
+                                class_="seg", role="group", aria_label="Wine version"),
+                      class_="fverrow", data_js="", hidden=True)
+        body.append(el("tr", el("th", "Patch sets", el("span", "Select a set for its patches.", class_="small"),
+                                switcher, scope="row"),
+                       el("td", *[diagram(v, per_version[v], flavours, v == newest_v) for v in versions],
+                          colspan=str(len(cols))), class_="setsrow"))
     return el("div", el("table",
+        el("colgroup", el("col", class_="lab"), *[el("col") for _ in cols]),
         el("thead", el("tr", el("th", el("span", "Row", class_="sr")),
                        *[el("th", el("span", el("i"), f, class_=f"colh {flavour_class(f) if status[f] != 'planned' else 'fl-plan'}"))
                          for f in cols])),
-        el("tbody", *[el("tr", el("th", label, scope="row"), *[el("td", v) for v in vals]) for label, vals in rows]),
-        class_="cmp"), class_="tw")
+        el("tbody", *body), class_="cmp"), class_="tw")
 
 
 def flavour_sections(flavours, per_version):
@@ -249,31 +255,11 @@ def render(site, d):
         "A flavour is a source plus the patch sets applied to it. Flavours built from WineHQ's source share the "
         "same build, packaging and bundled libraries; their patch sets are the only difference.", class_="lede"),
         class_="hero"), class_="wrap")
-    versions = list(per_version)
-    parts = [head("What each flavour is made of",
-                  "Each column is one flavour, and each band one layer of patch sets, applied from the bottom up. "
-                  "A set that several flavours share spans their columns. Select a set for its patches.")]
-    if versions:
-        newest = versions[0]
-        parts.append(el("div", el("span", "Wine version", class_="label"),
-                        el("div", *[el("button", v, type="button", aria_pressed="true" if v == newest else "false",
-                                       data_v=v) for v in sorted(versions, key=version_key)],
-                           class_="seg", role="group", aria_label="Wine version"),
-                        class_="fverrow", data_js="", hidden=True))
-        parts.append(el("div", *[diagram(v, per_version[v], flavours, v == newest) for v in versions],
-                        class_="tw diagrams"))
-        boxes = sorted(boxes_for(newest, per_version[newest], flavours),
-                       key=lambda x: (x["planned"], x["layer"] if isinstance(x["layer"], int) else -1,
-                                      legacy.SET_ORDER.get(x["name"], 99), x["name"]))
-        details = [set_details(newest, x, id=f"set-{slug(newest)}-{x['key']}") for x in boxes]
-        sets_block = wrap(head(f"The patch sets in Wine {newest}",
-                               "Each set's summary and patches, from the latest build of each flavour."),
-                          el("div", *details, class_="setsecs"))
-    else:
-        parts.append(el("p", "No builds are published yet.", class_="empty"))
-        sets_block = None
-    body = [hero, wrap(*parts, cls="block tight"), sets_block,
-            wrap(head("How the flavours compare"), comparison(d, flavours, per_version)),
+    body = [hero,
+            wrap(head("How the flavours compare",
+                      "The last row shows each flavour's source and the patch sets applied to it, top to bottom. "
+                      "A set that several flavours share spans their columns."),
+                 comparison(d, flavours, per_version) if per_version else el("p", "No builds are published yet.", class_="empty")),
             wrap(el("div", *flavour_sections(flavours, per_version)))]
     site.page("/flavours/", title="Flavours", nav="flavours", body=body,
               description="The flavours of the Wine builds for macOS, and the patch sets each one applies.")

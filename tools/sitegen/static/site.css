@@ -156,11 +156,12 @@ td.r, th.r { text-align: right; }
 tr:last-child td { border-bottom: 0; }
 
 /* Flavours: aligned diagram + matrix */
-.fgrid { --cols: minmax(7rem, 1.1fr) repeat(4, minmax(5.5rem, 1fr)); }
-.layers, .mrow { display: grid; grid-template-columns: var(--cols); gap: 0 .75rem; }
-.layers { gap: 4px .75rem; align-items: stretch; padding-top: .75rem; padding-bottom: 1.25rem; }
-.layers .axis { grid-column: 1; display: flex; flex-direction: column; justify-content: flex-end; font-size: .8rem; color: var(--faint); padding-bottom: .55rem; }
-.fverrow { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+/* The diagram sits in a cell spanning the flavour columns. Cells have 1rem
+   of right padding, so a 1rem gap puts each grid column under its table
+   column; the empty first column takes the gap before the first one. */
+.layers, .mrow { display: grid; gap: 0 .75rem; }
+.layers { grid-template-columns: 0 repeat(var(--n, 4), minmax(0, 1fr)); gap: 4px 1rem; margin-left: -1rem; align-items: stretch; }
+.fverrow { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .6rem; }
 .layer { border: 0; font: 500 .8rem/1.3 var(--f-body); text-align: left; padding: .5rem .7rem; border-radius: 7px; cursor: pointer; color: var(--fg); background: var(--sunk); transition: transform .25s var(--ease), box-shadow .2s, background .2s; min-width: 0; }
 .layer code { font-size: .8rem; font-weight: 500; }
 .layer small { display: block; color: var(--muted); font-size: .74rem; margin-top: .1rem; }
@@ -187,13 +188,11 @@ tr:last-child td { border-bottom: 0; }
 .fgrid.focus .mrow > div[data-f].on { --hc: color-mix(in srgb, var(--c) 7%, transparent); background: var(--hc); box-shadow: -.35rem 0 0 var(--hc), .35rem 0 0 var(--hc); }
 .fgrid.focus .mrow > div.fl-plan[data-f].on { --hc: color-mix(in srgb, var(--fg) 4%, transparent); }
 @media (max-width: 640px) {
-  .fgrid { --cols: repeat(4, minmax(0, 1fr)); }
-  .layers, .mrow { gap: 0 .5rem; }
-  .layers .axis, .mrow.head > div:first-child { display: none; }
+  .mrow { gap: 0 .5rem; }
+  .mrow.head > div:first-child { display: none; }
   .mrow > div:first-child { grid-column: 1 / -1; padding-bottom: 0; }
   .mrow > div { font-size: .84rem; }
   .layer { padding: .5rem .5rem; font-size: .74rem; }
-  .layers { grid-template-columns: 0 repeat(4, minmax(0, 1fr)); margin-left: -.5rem; }
 }
 .fsec { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 1rem 3rem; padding-block: 2.5rem; border-top: 1px solid var(--line); }
 .fsec:first-of-type { border-top: 0; }
@@ -572,17 +571,13 @@ h3.plat { font: 500 1rem var(--f-mono); margin-top: .5rem; }
 .layers .rows-20 { grid-row-end: span 20; }
 
 /* Flavours page (generated markup) */
-.dhead { display: grid; grid-template-columns: var(--cols); gap: 0 .75rem; border-bottom: 1px solid var(--line); }
 .colh { font: 600 .98rem var(--f-display); display: inline-flex; gap: .45rem; align-items: center; padding: .6rem 0; color: var(--fg); }
 .colh i { width: .65rem; height: .65rem; border-radius: 3px; background: var(--c); flex: none; }
 .fl-plan.colh i, .fl-plan .colh i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--plan); }
-.layers .axis { justify-content: center; }
 a.layer { display: block; text-decoration: none; }
 .layers .layer small { display: block; }
-.diagrams .fgrid { min-width: 34rem; }
-.setsecs { display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: 1.25rem; }
-.setdetail { display: flex; flex-direction: column; gap: .5rem; padding: 1.1rem 1.25rem; border-radius: var(--r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; scroll-margin-top: 6rem; }
-.setdetail:target { box-shadow: inset 0 0 0 2px var(--hl-ink); }
+.layers.n2 { --n: 2; } .layers.n3 { --n: 3; } .layers.n5 { --n: 5; } .layers.n6 { --n: 6; } .layers.n7 { --n: 7; }
+.setdetail { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
 .setdetail h3 { font-size: 1rem; }
 .setlist { margin: 0; padding: 0 0 0 .1rem; list-style: none; font-size: .9rem; display: flex; flex-direction: column; gap: .3rem; max-height: 16rem; overflow: auto; }
 .setlist code { color: var(--faint); margin-right: .2rem; }
@@ -600,6 +595,14 @@ a.layer { display: block; text-decoration: none; }
 .setpop.sheet::backdrop { background: rgba(0, 0, 0, .25); }
 table.cmp th[scope="row"] { text-transform: none; letter-spacing: 0; font: 400 .85rem var(--f-body); color: var(--muted); white-space: normal; border-bottom: 1px solid var(--line); vertical-align: top; padding-top: .85rem; }
 table.cmp td { font-size: .9rem; overflow-wrap: anywhere; }
+table.cmp { table-layout: fixed; min-width: 40rem; }
+table.cmp col.lab { width: 10rem; }
+table.cmp tr.setsrow th .small { display: block; margin-top: .3rem; color: var(--faint); }
+table.cmp tr.setsrow th { border-bottom: 0; }
+/* The version switcher in the narrow label column: a grid of buttons. */
+.setsrow .fverrow { margin-top: 1rem; }
+.setsrow .seg { display: grid; width: 100%; box-sizing: border-box; grid-template-columns: repeat(auto-fill, minmax(3.7rem, 1fr)); border-radius: 12px; }
+.setsrow .seg button { border-radius: 9px; padding: .35rem .3rem; white-space: nowrap; }
 table.cmp th .colh { padding: 0; text-transform: none; letter-spacing: 0; font-size: .95rem; }
 .fsec .side h3 i { flex: none; }
 .prow .pv { font-size: .8rem; color: var(--muted); }
@@ -611,6 +614,5 @@ table.cmp th .colh { padding: 0; text-transform: none; letter-spacing: 0; font-s
   .setsecs { grid-template-columns: minmax(0, 1fr); }
 }
 .layers .bandstart { margin-top: .9rem; }
-.layers .axis.bandstart { border-top: 1px dashed var(--line); padding-top: .4rem; }
 .ochip { white-space: normal; overflow-wrap: anywhere; } .prow .pm { min-width: 0; }
 .tree summary { flex-wrap: wrap; } .tree summary .c { flex: 1 1 14rem; min-width: 0; }

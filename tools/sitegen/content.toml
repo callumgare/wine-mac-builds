@@ -108,7 +108,8 @@ layer = 0
 summary = "What CodeWeavers' tree needs to work as this project packages it."
 
 # Rows of the Flavours page's comparison table, after the rows it works out
-# from the builds (status, source, patch sets, wine --version, versions built).
+# from the builds (status, source, wine --version, versions built), before the
+# patch sets diagram.
 [[comparison]]
 label = "msync"
 wine = "No"
