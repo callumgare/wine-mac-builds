@@ -1,11 +1,11 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Wait longer for the Cocoa app to start on a busy Mac
+Summary: Wait longer for the Cocoa app to start on a busy Mac, and don't crash when the wait runs out
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds (not in Sikarugir), after Second Chance's
-    in-process helper that lengthens the same wait.
-Upstream: no (candidate; draft in .local/bug-reports/). The bug is in WineHQ
+  Note: after Second Chance's in-process helper, which lengthens the same
+    wait
+Upstream: candidate (draft in .local/bug-reports/). The bug is in WineHQ
  10.0 to master (2026-11-25) and in CrossOver 26.3.0.
 Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
  Cocoa app. On a Mac with every core busy, under Rosetta, that can be
@@ -15,11 +15,19 @@ Why: macdrv_start_cocoa_app waits 5 s for the main thread to turn into a
  thread got to it later it read a dead frame and crashed. Now the info is on
  the heap, counted (the source holds a reference), the source is
  invalidated on timeout, and the wait is 60 s by default, set by
- CocoaStartTimeout (seconds, 1-3600) under HKCU\Software\Wine\Mac Driver
- (or the per-app key). Processes with no graphics session are still refused
- earlier, in macdrv_init, so SSH runs fail as fast as before.
-Programs: none known
-Status: built in macfixes-10.0-build2 and macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
+ CocoaStartTimeout (a string, seconds, 1-3600) under
+ HKCU\Software\Wine\Mac Driver (or the per-app key). Processes with no
+ graphics session are still refused earlier, in macdrv_init, so SSH runs
+ fail as fast as before.
+Programs: none known; any GUI program started while every core is busy,
+ under Rosetta
+Enable: reg HKCU\Software\Wine\Mac Driver\CocoaStartTimeout = <seconds> (REG_SZ) (prefix; 1-3600, default 60; a REG_DWORD is ignored)
+ reg HKCU\Software\Wine\AppDefaults\<exe>\Mac Driver\CocoaStartTimeout = <seconds> (REG_SZ) (per program)
+Related: win32u-desktop-wait; explorer's own wait for Cocoa can take up to
+ this patch's 60 s, which the desktop wait has to outlast
+No test: needs a fully loaded Mac
+Status: 10.0: 2026-11-22: in the build0 test tarball; built before in
+ macfixes-10.0-build2 (2026-11-15). Behaviour not tested on its own.
 
 diff --git a/dlls/winemac.drv/cocoa_main.m b/dlls/winemac.drv/cocoa_main.m
 index 8c9507a..b7de753 100644

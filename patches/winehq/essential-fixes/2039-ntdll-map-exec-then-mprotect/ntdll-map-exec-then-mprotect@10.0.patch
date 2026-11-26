@@ -6,25 +6,36 @@ Origin: crossover (ported here)
   Version: 25.1.1
   CW-Hacks: 22011
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (wine_mmap in dlls/ntdll/unix/virtual.c, with CrossOver Hack #22011's utsname include)
-    Source: (sources/wine/dlls/ntdll/unix/virtual.c)
+  Files: dlls/ntdll/unix/virtual.c
   Changes: when the mprotect fails, wine_mmap retries the original mmap
     (MAP_FIXED over the first mapping), so the failure reaches the caller's
     fallbacks; CrossOver returned the mapping without PROT_EXEC
+  Note: wine_mmap, with CrossOver Hack #22011's utsname include (only the
+    include is marked with the hack number). Sikarugir 10.0_8 ships it:
+    ntdll.so has "failed to mprotect region: %d" and never logs the
+    PROT_EXEC error in Second Chance's launches.
 Upstream: partly (WineHQ 11.x maps file views without PROT_EXEC and sets the
  protection with mprotect afterwards, so only 10.0 needs this)
-Why: macOS refuses an mmap of a file with PROT_EXEC on a shared mapping, so
- in 10.0 every executable or force-exec (DEP off, as for old 32-bit
- installers) section view failed: "failed to set PROT_EXEC on file map,
- noexec filesystem?" then "virtual_map_section mapping ... failed", and
- InstallShield setups exited. Map without PROT_EXEC, then mprotect. Found by
- Second Chance's tests (Nancy Drew installers); the inventory had missed it
- because it adds no string of its own except a WARN.
+Why: In 10.0, a file view that asks for PROT_EXEC (any readable view when
+ DEP is off, as for old 32-bit installers, and PE headers) is mapped with
+ PROT_EXEC in the mmap call itself, and macOS can refuse that: every such
+ section view failed ("failed to set PROT_EXEC on file map, noexec
+ filesystem?" then "virtual_map_section mapping ... failed"), and
+ InstallShield setups exited. Map without PROT_EXEC, then mprotect, as
+ CrossOver did and Wine 11 does. Found by Second Chance's tests (Nancy
+ Drew installers).
 Programs: Nancy Drew installers (InstallShield): exit after "failed to set
  PROT_EXEC on file map"; Big Fish games (White Wolf): stop at the same error
  on plain 10.0
-Evidence: Sikarugir 10.0_8: ntdll.so has "failed to mprotect region: %d" and never
- logs the PROT_EXEC error in Second Chance's launches.
+Messages: "failed to mprotect region: %d" (WARN, shown only with
+ WINEDEBUG=warn+virtual)
+Uncertain: which files macOS refuses PROT_EXEC for. Measured on macOS
+ 26.7.2 under Rosetta (native x86_64 probe): ordinary files map with
+ PROT_EXEC directly, shared or private; for a quarantined file the first
+ exec mmap waited on a Gatekeeper prompt. Why the paging-file and
+ SEC_IMAGE views in tests/regress/map-exec-file-view fail on plain 10.0
+ isn't established, nor whether mapping first avoids the Gatekeeper
+ prompt.
 Status: 10.0: 2026-11-26: falls back to the original mmap if the mprotect fails; not yet in a build
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
