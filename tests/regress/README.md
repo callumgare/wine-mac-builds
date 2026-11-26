@@ -30,9 +30,11 @@ All guard patches in macfixes' patch sets, named as in
 |---|---|---|
 | **CPU and Rosetta** | | |
 | `cross-process-code-write` | `ntdll-rosetta-cross-process-code-writes` | Rosetta keeps running old code after another process rewrites it (Armadillo, Big Fish games) |
+| `cross-process-data-write` | `ntdll-rosetta-cross-process-code-writes` | the fix for the above makes a written page of an image `PAGE_NOACCESS` for a moment, even a data page, so a program whose `.data` another process writes (trainers, mod loaders, DRM parents) dies when its threads read it |
 | `debug-registers` | `ntdll-rosetta-debug-registers` | a thread setting its own debug registers fails under Rosetta (Armadillo) |
 | `exception-ports` | `ntdll-clear-inherited-exception-ports` | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
 | `fs-addr16` | `ntdll-rosetta-fs-addr16` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
+| `hint-nop` | `ntdll-rosetta-cet-rdssp` | Rosetta rejects memory forms of the 0F 1E hint NOP, and Wine stepped over them as if they were 3 bytes long, resuming mid-instruction (c0000005) |
 | `ldt-program-selector` | `ntdll-rosetta-refuse-ldt-entries` | a program's own LDT entry stops the process under Rosetta (Bioscopia) |
 | `peb-at-gs-0x60` | `ntdll-peb-at-gs-0x60` | in Wine 10.0 %gs:0x60 isn't the PEB, which 64-bit Windows code (D3DMetal) reads |
 | `rosetta-xgetbv` | `ntdll-rosetta-xgetbv` | Rosetta rejects XGETBV, so a program checking for AVX gets an illegal-instruction exception |
@@ -59,6 +61,7 @@ All guard patches in macfixes' patch sets, named as in
 | `mouse-in-pointer` | `win32u-enable-mouse-in-pointer` | `EnableMouseInPointer` is a stub that fails on 10.0 |
 | `msi-unix-path` | `msi-database-path-length` | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
 | `msync` | `ntdll-msync` | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
+| `msync-abandoned-mutex` | `ntdll-msync` | with `WINEMSYNC=1`, a thread waiting on a mutex whose last handle was closed hangs when the owner exits, instead of getting `WAIT_ABANDONED` (11.x; 10.0's msync and esync have the same hang, not fixed) |
 | `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's (10.0 only) |
 | `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD, or the games they start lose the HUD |
 | `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game; the hack also rewrote other programs' arguments, ignored letter case, and replaced the launcher with a game that wasn't there |
@@ -97,7 +100,7 @@ that Wine 11's own fix still holds.
 ### Patches without a test
 
 - **Can't be shown on our Macs.**
-  - `ntdll-rosetta-cet-rdssp` (RDSSP) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use.
+  - `ntdll-rosetta-cet-rdssp` (RDSSP, register forms) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use. `hint-nop` covers cet-rdssp's memory forms, which macOS 26's Rosetta rejects.
   - `ntdll-rosetta-mxcsr` (MXCSR): needed on M3; MXCSR is right on M1/M2.
   - `wow64cpu-rosetta-lretq` (wow64 transition race, Iji): no crash in 12 attempts at provoking it.
 - **Needs something we can't ship or reproduce.**

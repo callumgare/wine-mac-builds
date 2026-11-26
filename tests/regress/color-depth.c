@@ -20,7 +20,9 @@
  * BITSPIXEL on the screen DC and on a memory DC made from it, that a
  * compatible bitmap is still 32-bit, and at 8 bits that after it selects
  * and realizes a 256-entry palette, GetSystemPaletteEntries gives Windows'
- * 20 static colours at either end and the palette's own entries between.
+ * 20 static colours at either end and the palette's own entries between,
+ * even after another palette was selected into a memory DC and deleted
+ * (the first version of the fix followed that one, and then gave black).
  * The value is removed afterwards.
  */
 
@@ -44,6 +46,21 @@ static int check_palette(HDC screen)
     pal = CreatePalette((LOGPALETTE *)&lp);
     old = SelectPalette(screen, pal, FALSE);
     RealizePalette(screen);
+
+    /* A palette selected into a memory DC (an offscreen picture) doesn't
+     * change what the screen's system palette holds. */
+    {
+        HDC mem = CreateCompatibleDC(screen);
+        HPALETTE other, mem_old;
+
+        for (i = 0; i < 256; i++) lp.e[i].peRed ^= 0xff;
+        other = CreatePalette((LOGPALETTE *)&lp);
+        for (i = 0; i < 256; i++) lp.e[i].peRed ^= 0xff;
+        mem_old = SelectPalette(mem, other, FALSE);
+        SelectPalette(mem, mem_old, FALSE);
+        DeleteDC(mem);
+        DeleteObject(other);
+    }
     GetPaletteEntries(GetStockObject(DEFAULT_PALETTE), 0, 20, stock);
     memset(sys, 0xcc, sizeof(sys));
     n = GetSystemPaletteEntries(screen, 0, 256, sys);

@@ -6,16 +6,20 @@ Origin: crossover (ported here)
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Files: server/hook.c, server/queue.c, server/user.h
-  Changes: the hung-hook hunks only (CX's esync/msync hunks of queue.c are
-    left out). disable_hung_hook() walks the chain with LIST_FOR_EACH_ENTRY,
-    since 11.x's hook.c has no get_first_hook()/HOOK_ENTRY().
+  Changes: removes the hung hook with remove_hook(), where CX only cleared
+    its proc and left the hook counts counting it. The hung-hook hunks only
+    (CX's esync/msync hunks of queue.c are left out). disable_hung_hook()
+    walks the chain with LIST_FOR_EACH_ENTRY, since 11.x's hook.c has no
+    get_first_hook()/HOOK_ENTRY().
 Upstream: no
-Why: When a global low-level hook's thread doesn't answer within the 2 s timeout, clear that hook's proc so one stuck hook can't stall input for every app. Only the hung-hook hunks of CX's queue.c are taken; its esync/msync hunks are not.
+Why: When a global low-level hook's thread doesn't answer within the 2 s timeout, remove that hook (as Windows does with a hung low-level hook), so one stuck hook can't stall input for every app. Only the hung-hook hunks of CX's queue.c are taken; its esync/msync hunks are not.
 Programs: none known; programs that set a low-level hook and then stop
  reading messages (launchers, overlays, hotkey tools)
 Uncertain: CrossOver 26 no longer carries this; why isn't known. WineHQ
  11.22 still only times out (send_hook_ll_message).
 Evidence: Sikarugir 10.0_8: wineserver: 'disabling hung hook: tid %04x, proc %#lx'.
+Status: 11.21: 2026-11-26: remove_hook() instead of clearing proc; not yet in a build
+ 11.22: 2026-11-26: remove_hook() instead of clearing proc; not yet in a build
 
 diff --git a/server/hook.c b/server/hook.c
 index 0a72229..3b310e2 100644
@@ -50,7 +54,7 @@ index 0a72229..3b310e2 100644
 +    {
 +        if (hook->proc == proc && hook->owner->id == thread_id)
 +        {
-+            hook->proc = 0;
++            remove_hook( hook );  /* keeps the hook counts right */
 +            return;
 +        }
 +    }

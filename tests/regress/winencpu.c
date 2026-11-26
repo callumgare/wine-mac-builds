@@ -12,7 +12,9 @@
  *
  * Passes when, with WINENCPU=2, GetSystemInfo, GetActiveProcessorCount,
  * GetLogicalProcessorInformation and GetLogicalProcessorInformationEx all
- * report 2 logical processors, and the process affinity mask is 0x3.
+ * report 2 logical processors, the process affinity mask is 0x3, and
+ * NtQuerySystemInformation(SystemProcessorPerformanceInformation) returns 2
+ * entries even when its buffer has room for more.
  * Skipped on a Mac with 2 processors or fewer, where there's nothing to
  * cap. (The real count comes from the mac-cpus helper: inside Wine every
  * count, the registry's included, is the capped one.)
@@ -116,6 +118,20 @@ int main(void)
         printf("winencpu: GetLogicalProcessorInformationEx: cores cover %d processors, group has %lu active (%#lx)\n",
                popcount(cores), active, (unsigned long)groups);
         if (popcount(cores) != 2 || active != 2 || popcount(groups) != 2) ok = 0;
+    }
+
+    {
+        LONG (WINAPI *pNtQuerySystemInformation)(int, void *, ULONG, ULONG *) =
+            (void *)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQuerySystemInformation");
+        /* SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION is 48 bytes */
+        static char perf[48 * 256];
+        ULONG ret_len = 0;
+        LONG status = pNtQuerySystemInformation(8 /* SystemProcessorPerformanceInformation */,
+                                                perf, sizeof(perf), &ret_len);
+
+        printf("winencpu: SystemProcessorPerformanceInformation: status %#lx, %lu entries\n",
+               status, ret_len / 48);
+        if (status || ret_len / 48 != 2) ok = 0;
     }
 
     printf("winencpu: %s\n", ok ? "ok" : "FAILED");

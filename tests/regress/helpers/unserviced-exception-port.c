@@ -3,8 +3,9 @@
  * unserviced-exception-port <command> [args...]
  *
  * Runs the command the way a launcher with a task-level crash reporter
- * (Sentry, Crashpad) would: with the task's Mach exception ports for bad
- * access, bad instruction and arithmetic exceptions pointed at a port.
+ * (Sentry, KSCrash) would: with the task's Mach exception ports for bad
+ * access, bad instruction, arithmetic, software and breakpoint exceptions
+ * pointed at a port (Sentry's mask).
  * Exception ports are inherited across fork and exec. This process keeps
  * the port's receive right and never answers on it, so a fault that goes
  * to the port instead of becoming a signal leaves the faulting thread
@@ -46,7 +47,8 @@ int main(int argc, char **argv)
     kr = mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &port);
     if (!kr) kr = mach_port_insert_right(mach_task_self(), port, port, MACH_MSG_TYPE_MAKE_SEND);
     if (!kr) kr = task_set_exception_ports(mach_task_self(),
-                                           EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC,
+                                           EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC |
+                                           EXC_MASK_SOFTWARE | EXC_MASK_BREAKPOINT,
                                            port, EXCEPTION_DEFAULT, THREAD_STATE_NONE);
     if (kr)
     {

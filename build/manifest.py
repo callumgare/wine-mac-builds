@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -195,6 +196,23 @@ if (T / gst_lic).is_dir() and any((T / gst_lic).iterdir()):
     (licenses_dir / "GStreamer.framework").symlink_to("../" + gst_lic)
 else:
     missing_licenses.append("GStreamer.framework")
+
+# Code a patch adds to Wine under its own licence. bcdec (the BC7 decoder
+# winemac-bc7-texture-decode adds) is MIT or the Unlicense, at the user's
+# choice; ship its text, so the MIT notice goes with the binaries.
+bcdec = SRC / "dlls/winemac.drv/opengl_bcdec.h"
+if bcdec.exists():
+    text = bcdec.read_text(encoding="utf-8-sig")
+    m = re.search(r"/\* LICENSE:\n(.*?)\*/\s*$", text, re.S)
+    v = re.match(r"/\* bcdec\.h - v(\S+)", text)
+    components.append({"name": "bcdec", "version": v.group(1) if v else None,
+                       "license": "MIT OR Unlicense",
+                       "from": "dlls/winemac.drv/opengl_bcdec.h, added by winemac-bc7-texture-decode"})
+    if m:
+        (licenses_dir / "bcdec").mkdir()
+        (licenses_dir / "bcdec" / "LICENSE").write_text(m.group(1).strip() + "\n")
+    else:
+        missing_licenses.append("bcdec")
 
 components.append({"name": "wine-gecko", "version": env["GECKO_VERSION"], "license": "MPL-2.0",
                    "files": [{"url": env["GECKO_X86_URL"], "sha256": env["GECKO_X86_SHA256"]},
