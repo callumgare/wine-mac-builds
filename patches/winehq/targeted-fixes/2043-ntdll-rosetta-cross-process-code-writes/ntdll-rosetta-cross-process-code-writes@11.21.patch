@@ -20,8 +20,10 @@ Why: NtWriteVirtualMemory writes another process's memory with
  that way: the target keeps running its old translation. After a write
  that succeeded, walk the written range region by region, and for each
  region whose current protection has execute rights, change that part's
- protection to PAGE_NOACCESS and back from inside the target
- (NtProtectVirtualMemory on the process handle), so Rosetta retranslates.
+ protection to PAGE_EXECUTE_READWRITE (WRITECOPY in an image) and back from
+ inside the target (NtProtectVirtualMemory on the process handle), so
+ Rosetta retranslates. Views of sections without write access refuse that;
+ they get PAGE_NOACCESS and back instead.
  Armadillo, the DRM in Big Fish games, writes "jmp $" (EB FE) over its
  child's entry point, waits for the child to reach it, then writes the
  original bytes back; without this the child spins on the stale "jmp $"
@@ -36,20 +38,18 @@ Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
  child spins for ever on a stale "jmp $"
 Seen on: macOS 26.7.2 (M1 Max): cross-process-code-write fails 3 of 3 with
  the toggle turned off (an interposer hiding sysctl.proc_translated)
-Uncertain: a thread of the target that touches a toggled page (runs code
- on it or reads it) while it's PAGE_NOACCESS faults. Toggling to the same
- protection minus execute instead doesn't reach Rosetta in every case:
- Rosetta retranslates only when the page's host protection really changes,
- and with DEP off in a 32-bit process Wine keeps PROT_EXEC, so
- PAGE_EXECUTE_READ to PAGE_READONLY and back changes nothing (new code
- seen 0 of 10 on 11.22 and on 10.0; 10 of 10 with DEP on, and with DEP off
- on PAGE_EXECUTE_READWRITE). Toggling to the protection plus write
- (PAGE_EXECUTE_READ to PAGE_EXECUTE_READWRITE and back) reached Rosetta in
- every case measured, with no faults while two threads ran code on the
- page (10 of 10 each: i686 with DEP on and off, x86_64, both protections;
- 11.22 quick build, macOS 26.7.2, M1 Max, 2026-11-26), but isn't tried with
- image views (PAGE_EXECUTE_WRITECOPY), views of read-only sections, which
- refuse it, or a real program
+Uncertain: toggling to the protection plus write reached Rosetta in every
+ case the probes measured (10 of 10 each: i686 with DEP on and off, x86_64,
+ PAGE_EXECUTE_READ and PAGE_EXECUTE_READWRITE, with no faults while two
+ threads ran code on the page; 11.22 quick build, macOS 26.7.2, M1 Max,
+ 2026-11-26). Not measured: image pages (WRITECOPY) and the PAGE_NOACCESS
+ fallback for views of read-only sections, where a thread of the target
+ that touches the page meanwhile faults; executable memory with write
+ watches, where Wine keeps the host page unwritable, so the toggle may
+ change nothing. Toggling to the protection minus execute doesn't reach
+ Rosetta with DEP off in a 32-bit process (Wine keeps PROT_EXEC: new code
+ seen 0 of 10), which is why it isn't used. Whether activation still needs
+ the toggle on 11.22 isn't measured: both activations ran with it on
 Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
 Status: 11.21: 2026-11-26: ported from 11.22 (same code)
@@ -59,7 +59,7 @@ Status: 11.21: 2026-11-26: ported from 11.22 (same code)
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c
 +++ b/dlls/ntdll/unix/virtual.c
-@@ -6498,6 +6498,52 @@
+@@ -6498,6 +6498,64 @@
      }
  
      return apple_silicon_status;
@@ -79,6 +79,10 @@ diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 + * CrossOver's version looks only at the first region's AllocationProtect, which is
 + * PAGE_EXECUTE_WRITECOPY for every page of an image, so a write into an image's data
 + * made the page PAGE_NOACCESS for a moment, and the target's other threads faulted.
++ *
++ * Toggle to PAGE_EXECUTE_READWRITE (WRITECOPY in an image) instead of PAGE_NOACCESS:
++ * Rosetta retranslates then too, and the target's threads can go on running the page.
++ * Views of sections without write access refuse it; those get PAGE_NOACCESS.
 + */
 +static void toggle_executable_pages_for_rosetta( HANDLE process, void *addr, SIZE_T size )
 +{
@@ -103,8 +107,16 @@ diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 +            void *base = ptr;
 +            SIZE_T len = (region_end < end ? region_end : end) - ptr;
 +            ULONG origprot, prot;
++            NTSTATUS status;
 +
-+            if (!NtProtectVirtualMemory( process, &base, &len, PAGE_NOACCESS, &origprot ))
++            status = NtProtectVirtualMemory( process, &base, &len, PAGE_EXECUTE_READWRITE, &origprot );
++            if (status)
++            {
++                base = ptr;
++                len = (region_end < end ? region_end : end) - ptr;
++                status = NtProtectVirtualMemory( process, &base, &len, PAGE_NOACCESS, &origprot );
++            }
++            if (!status)
 +                NtProtectVirtualMemory( process, &base, &len, origprot, &prot );
 +        }
 +        ptr = region_end;
@@ -112,7 +124,7 @@ diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
  }
  #endif
  
-@@ -6521,6 +6567,10 @@
+@@ -6521,6 +6579,10 @@
              size = reply->written;
          }
          SERVER_END_REQ;
