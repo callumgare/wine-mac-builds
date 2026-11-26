@@ -1,0 +1,142 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Cities: Skylines II: flip one branch in cohtml_Unity3DPlugin.dll, found by a byte pattern
+Category: system
+Kind: workaround
+Origin: crossover (ported here)
+  Version: 26.3.0
+  CW-Hacks: 22901
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Files: dlls/ntdll/loader.c
+  Changes: CX's apply_fuzzy_binary_patches, searching only the .text section and
+    patching only when the pattern matches there exactly once (CX patches the
+    first match anywhere in the image), with the protection change covering
+    the patched bytes rather than one page, and called earlier in build_module,
+    before the relay/snoop setup; the same in 25.1.1 and 26.3.0
+Upstream: no
+Why: When cohtml_Unity3DPlugin.dll (Coherent Gameface's Unity plugin, in Cities:
+ Skylines II) loads in a 64-bit process, find a 16-byte instruction pattern in
+ its code (int3; push; sub; cmp byte; mov; jz, most bytes wildcards) and turn the
+ jz into a jnz. CX gives no reason. The search is limited to .text and to a
+ unique match, so another version of the DLL whose code matches nowhere, or in
+ more than one place, is left alone.
+Programs: Cities: Skylines II: what goes wrong isn't stated (CW HACK 22901)
+Uncertain: what the flipped branch decides, and whether current Cities:
+ Skylines II versions still match (once, in .text). Not run with the game.
+Evidence: Sikarugir 10.0_8: ntdll.dll (x86_64) has apply_fuzzy_binary_patches,
+ 'Found %s %s byte pattern at %p; applying patch' and cohtml_v1.
+Status: 10.0, 11.21, 11.22: 2026-11-26: split out of ntdll-cef-binary-patches
+ (review decision 8), anchored to .text and a unique match; not yet in a build
+
+diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -2159,6 +2159,96 @@ static void update_load_config( void *module )
+ }
+ 
+ 
++#ifdef __x86_64__
++/* CW HACK 22901: cohtml_Unity3DPlugin.dll for Cities: Skylines II. Turn one jz into a
++ * jnz, found by a byte pattern in which most bytes are wildcards: only in the .text
++ * section, and only if the pattern matches there exactly once. */
++static BOOL cohtml_pattern_matches( const char *addr, char wildcard_byte,
++                                    const char *pattern, size_t pattern_size )
++{
++    size_t i;
++    for (i = 0; i < pattern_size; i++)
++    {
++        if (pattern[i] != wildcard_byte && addr[i] != pattern[i])
++            return FALSE;
++    }
++
++    return TRUE;
++}
++
++static void apply_cohtml_patch( WINE_MODREF *wm )
++{
++    static const char wildcard_byte = 0xff;
++    static const char before_cohtml_v1[] =
++    {
++        0xcc,                                /* int3 */
++        0x40, 0xff,                          /* push <wildcard> */
++        0x48, 0xff, 0xff, 0xff,              /* sub <wildcard>, <wildcard> */
++        0x80, 0xff, 0xff, 0xff,              /* cmp <wildcard>, <wildcard> */
++        0x48, 0xff, 0xff,                    /* mov <wildcard>, <wildcard> */
++        0x0f, 0x84                           /* jz ... */
++    };
++    static const char after_cohtml_v1[] = {
++        0xff,                                /* (unchanged) */
++        0xff, 0xff,                          /* (unchanged) */
++        0xff, 0xff, 0xff, 0xff,              /* (unchanged) */
++        0xff, 0xff, 0xff, 0xff,              /* (unchanged) */
++        0xff, 0xff, 0xff,                    /* (unchanged) */
++        0xff, 0x85                           /* jnz ... */
++    };
++    C_ASSERT( sizeof(before_cohtml_v1) == sizeof(after_cohtml_v1) );
++    IMAGE_NT_HEADERS *nt = RtlImageNtHeader( wm->ldr.DllBase );
++    IMAGE_SECTION_HEADER *sec;
++    char *text = NULL, *target = NULL;
++    SIZE_T text_size = 0, i, size;
++    DWORD old_prot;
++    void *addr;
++    WORD n;
++
++    if (!nt) return;
++    sec = IMAGE_FIRST_SECTION( nt );
++    for (n = 0; n < nt->FileHeader.NumberOfSections; n++, sec++)
++    {
++        if (memcmp( sec->Name, ".text", sizeof(".text") )) continue;
++        if (sec->VirtualAddress >= wm->ldr.SizeOfImage) break;
++        text = (char *)wm->ldr.DllBase + sec->VirtualAddress;
++        text_size = min( sec->Misc.VirtualSize, wm->ldr.SizeOfImage - sec->VirtualAddress );
++        break;
++    }
++    if (!text)
++    {
++        TRACE( "%s has no .text section\n", debugstr_w(wm->ldr.BaseDllName.Buffer) );
++        return;
++    }
++
++    for (i = 0; i + sizeof(before_cohtml_v1) <= text_size; i++)
++    {
++        if (!cohtml_pattern_matches( text + i, wildcard_byte, before_cohtml_v1, sizeof(before_cohtml_v1) ))
++            continue;
++        if (target)
++        {
++            TRACE( "%s matches cohtml_v1 more than once; not patched\n", debugstr_w(wm->ldr.BaseDllName.Buffer) );
++            return;
++        }
++        target = text + i;
++    }
++    if (!target)
++    {
++        TRACE( "%s doesn't match cohtml_v1\n", debugstr_w(wm->ldr.BaseDllName.Buffer) );
++        return;
++    }
++
++    TRACE( "Found %s cohtml_v1 byte pattern at %p; applying patch\n", debugstr_w(wm->ldr.BaseDllName.Buffer), target );
++    addr = target;
++    size = sizeof(after_cohtml_v1);
++    NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, PAGE_EXECUTE_READWRITE, &old_prot );
++    for (i = 0; i < sizeof(after_cohtml_v1); i++)
++        if (after_cohtml_v1[i] != wildcard_byte) target[i] = after_cohtml_v1[i];
++    NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, old_prot, &old_prot );
++}
++#endif
++
++
+ static NTSTATUS perform_relocations( void *module, IMAGE_NT_HEADERS *nt, SIZE_T len )
+ {
+     char *base;
+@@ -2313,6 +2403,12 @@ static NTSTATUS build_module( LPCWSTR load_path, const UNICODE_STRING *nt_name,
+ 
+     TRACE( "loaded %s %p %p\n", debugstr_us(nt_name), wm, *module );
+ 
++#ifdef __x86_64__
++    /* CW HACK 22901 */
++    if (!wcscmp( wm->ldr.BaseDllName.Buffer, L"cohtml_Unity3DPlugin.dll" ))
++        apply_cohtml_patch( wm );
++#endif
++
+     if (is_builtin)
+     {
+         if (TRACE_ON(relay)) RELAY_SetupDLL( *module );

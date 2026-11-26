@@ -4,10 +4,10 @@
 # Timeout: 30
 # Guards: winemac-export-macdrv-functions
 #
-# D3DMetal and DXMT draw into Wine's windows through winemac's Metal views:
-# they look up the table of functions winemac.so exports as
-# macdrv_functions (with dlsym), and without it they can't present
-# anything.
+# D3DMetal (Wine 10.0 only) and DXMT draw into Wine's windows through
+# winemac's Metal views: they look up the table of functions winemac.so
+# exports as macdrv_functions (with dlsym), and without it they can't
+# present anything.
 #
 # Passes when winemac.so exports the data symbol macdrv_functions. Skipped
 # when nm (from the Xcode command line tools) isn't there to look.

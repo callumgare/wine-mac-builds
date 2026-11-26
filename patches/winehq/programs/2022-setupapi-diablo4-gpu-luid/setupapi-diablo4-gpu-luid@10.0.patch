@@ -8,13 +8,20 @@ Origin: crossover
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Note: CrossOver 25.1.1 CW HACK 23560 (dlls/setupapi/devinst.c)
 Upstream: no
-Why: Diablo IV reads the GPU LUID through setupapi and needs it to match the LUID that
- D3DMetal's dxgi reports. Only when the process is "Diablo IV.exe" and dxgi.dll has no
- version resource (i.e. is D3DMetal's).
+Why: Diablo IV reads the GPU LUID through setupapi and needs it to match the
+ LUID that D3DMetal's dxgi reports. Only when the process is "Diablo IV.exe" and
+ dxgi.dll has no version resource (i.e. is D3DMetal's). D3DMetal 3.0 needs Wine
+ 10.4's GSBASE model, so it is supported on 10.0 only: from Wine 10.5 (WineHQ
+ 3a16aabb) GSBASE points at the TEB while PE code runs, and D3DMetal 3.0 crashes
+ when a program creates a DXGI factory (measured on 11.22). So this patch has no
+ copy for 11.x.
 Programs: Diablo IV: needs the GPU LUID it reads through setupapi to match
  D3DMetal's
 Evidence: Sikarugir 10.0_8: setupapi.dll strings "Using LUID %08lx:%08lx from D3DMetal dxgi",
  get_luid_from_d3dmetal, CreateDXGIFactory, L"Diablo IV.exe"
+Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
+ can't run there). Whether Diablo IV still needs it (the LUIDs already matched
+ in a console run) is open: a GUI check, review decision 17
 
 diff --git a/dlls/setupapi/devinst.c b/dlls/setupapi/devinst.c
 index 4e406fe..d79a71d 100644

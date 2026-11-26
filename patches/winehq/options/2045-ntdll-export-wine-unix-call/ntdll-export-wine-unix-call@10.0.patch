@@ -9,13 +9,18 @@ Origin: crossover
   Note: CrossOver 26.3.0 CW HACK 22435, the ntdll part (dlls/ntdll/ntdll.spec, loader.c)
     Source: (sources/wine/dlls/ntdll/ntdll.spec and loader.c)
 Upstream: no
-Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it
- as a wrapper of the inline __wine_unix_call. winemac-export-macdrv-functions carries the winemac part
- of the same hack.
+Why: D3DMetal's PE DLLs import __wine_unix_call from ntdll.dll; export it as a
+ wrapper of the inline __wine_unix_call. winemac-export-macdrv-functions carries
+ the winemac part of the same hack. DXMT doesn't use it. D3DMetal 3.0 needs Wine
+ 10.4's GSBASE model, so it is supported on 10.0 only: from Wine 10.5 (WineHQ
+ 3a16aabb) GSBASE points at the TEB while PE code runs, and D3DMetal 3.0 crashes
+ when a program creates a DXGI factory (measured on 11.22). So this patch has no
+ copy for 11.x.
 Programs: none known
 Evidence: Sikarugir 10.0_8: its x86_64 and i386 ntdll.dll export __wine_unix_call;
  ours didn't (the only export difference across the PE DLLs, 2026-11-15).
-Status: not yet built (2026-11-15).
+Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
+ can't run there). In build0
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 index 74546db..f10caaa 100644

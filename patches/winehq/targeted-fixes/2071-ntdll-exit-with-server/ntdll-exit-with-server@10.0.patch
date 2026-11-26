@@ -28,8 +28,7 @@ Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
  running nearly two hours later. On Second Chance's slot-1, a steam.exe
  whose wineserver had gone spun at 96% CPU for about six hours with its
  services and explorer, slowing the other tests on that Mac.
-Expects before it: ntdll-msync, ntdll-async-iosb-unwritable, ntdll-d3dmetal-ms-abi-thunks;
- context only
+Expects before it: ntdll-msync, ntdll-async-iosb-unwritable; context only
 Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
  published): server-gone
  passes (the program exited after its wineserver was killed; 1 run).
@@ -44,6 +43,8 @@ Status: 2026-11-22 (night): in a local test build (second local test build, macf
  2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
  server-gone fails on macfixes-10.0-build7 (1 run), as on 11.22
  before this patch.
+ 10.0: 2026-11-26: diff refreshed (ntdll-d3dmetal-ms-abi-thunks dropped), so it
+ applies at fuzz 0; code unchanged.
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 --- a/dlls/ntdll/unix/server.c
@@ -56,7 +57,7 @@ diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
  #ifndef _POSIX_SPAWN_DISABLE_ASLR
  #define _POSIX_SPAWN_DISABLE_ASLR 0x0100
  #endif
-@@ -1636,7 +1637,67 @@
+@@ -1571,7 +1572,67 @@
  }
  
  
@@ -124,9 +125,9 @@ diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
   *           server_init_process
   *
   * Start the server and create the initial socket pair.
-@@ -1714,6 +1773,10 @@
-     reply_pipe = init_thread_pipe( data );
-     close( reply_pipe );
+@@ -1649,6 +1710,10 @@
+ 
+     reply_pipe = init_thread_pipe();
  
 +#ifdef __APPLE__
 +    start_server_watch();

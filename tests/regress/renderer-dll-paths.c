@@ -10,17 +10,26 @@
  * on) on Wine's DLL search path through a variable of its own,
  * WINEDLLPATH_DXVK and the like, searched before Wine's own DLLs. Launchers
  * (Steam's steamwebhelper.exe, Battle.net, the EA app and others) are left
- * off the D3DMetal, D9VK and DXVK paths so their Chromium UIs keep using
- * wined3d, and run without the Metal performance HUD: MTL_HUD_ENABLED is
- * removed from their environment before Wine builds the Windows one.
+ * off the D9VK and DXVK paths (and, on 10.0, D3DMetal's) so their Chromium
+ * UIs keep using wined3d, and run without the Metal performance HUD:
+ * MTL_HUD_ENABLED is removed from their environment before Wine builds the
+ * Windows one. The games a launcher starts get it back: Metal reads it from
+ * the Unix environment, which a child's is built from its parent's Windows
+ * one.
  *
  * With WINEDLLPATH_DXVK naming a directory holding a "d3d11.dll" that is
  * really a copy of Wine's sfc_os.dll, and MTL_HUD_ENABLED=1, passes when
  *  - this program loading d3d11.dll gets the copy (it exports
- *    SfcIsFileProtected and not D3D11CreateDevice), and
+ *    SfcIsFileProtected and not D3D11CreateDevice),
  *  - a copy of this program named steamwebhelper.exe, started with wine
  *    from a Unix shell (as a launcher script would), gets Wine's own
- *    d3d11.dll and has no MTL_HUD_ENABLED in its environment.
+ *    d3d11.dll and has no MTL_HUD_ENABLED in its Windows or Unix
+ *    environment, and
+ *  - a copy named game.exe that steamwebhelper.exe starts has
+ *    MTL_HUD_ENABLED in its Unix environment (ntdll-launcher-metal-hud
+ *    once dropped it there too).
+ * The Unix environment is read by running /bin/sh with
+ * __wine_unix_spawnvp, which inherits it.
  */
 
 #include <windows.h>
@@ -45,16 +54,63 @@ static int load_d3d11(const char *who)
     return ours;
 }
 
-/* in steamwebhelper.exe: write "<loaded the copy?> <MTL_HUD_ENABLED or unset>\n" to out */
+/* whether MTL_HUD_ENABLED is in this process's Unix environment: "set", "unset" or "error" */
+static const char *unix_hud(void)
+{
+    static char sh[] = "/bin/sh", c[] = "-c", test[] = "test -n \"$MTL_HUD_ENABLED\"";
+    char *argv[] = { sh, c, test, NULL };
+    NTSTATUS (WINAPI *spawnvp)(char * const *, int) =
+        (void *)GetProcAddress(GetModuleHandleA("ntdll.dll"), "__wine_unix_spawnvp");
+    NTSTATUS ret;
+
+    if (!spawnvp) return "error";
+    ret = spawnvp(argv, TRUE);
+    return ret == 0 ? "set" : ret == 1 ? "unset" : "error";
+}
+
+/* in game.exe: exit 0 if MTL_HUD_ENABLED is in the Unix environment, 1 if not, 2 if that can't be told */
+static int game(void)
+{
+    const char *hud = unix_hud();
+
+    return !strcmp(hud, "set") ? 0 : !strcmp(hud, "unset") ? 1 : 2;
+}
+
+/* in steamwebhelper.exe: start a copy of this program named game.exe; "set", "unset" or "error" */
+static const char *start_game(void)
+{
+    STARTUPINFOW si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+    WCHAR self[MAX_PATH], exe[MAX_PATH], cmd[MAX_PATH + 32], *slash;
+    DWORD code = 2;
+
+    GetModuleFileNameW(NULL, self, MAX_PATH);
+    lstrcpyW(exe, self);
+    if (!(slash = wcsrchr(exe, '\\'))) return "error";
+    lstrcpyW(slash + 1, L"game.exe");
+    if (!CopyFileW(self, exe, FALSE)) return "error";
+    swprintf(cmd, ARRAYSIZE(cmd), L"\"%ls\" --regress-game", exe);
+    if (CreateProcessW(exe, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+    {
+        WaitForSingleObject(pi.hProcess, 30000);
+        GetExitCodeProcess(pi.hProcess, &code);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+    DeleteFileW(exe);
+    return code == 0 ? "set" : code == 1 ? "unset" : "error";
+}
+
+/* in steamwebhelper.exe: write "<loaded the copy?> <MTL_HUD_ENABLED: Windows> <Unix> <game.exe's Unix>\n" to out */
 static int child(const WCHAR *out)
 {
-    char line[64], hud[16];
+    char line[96], hud[16];
     int ours = load_d3d11("steamwebhelper.exe");
     DWORD written;
     HANDLE file;
 
     if (!GetEnvironmentVariableA("MTL_HUD_ENABLED", hud, sizeof(hud))) strcpy(hud, "unset");
-    snprintf(line, sizeof(line), "%d %s\n", ours, hud);
+    snprintf(line, sizeof(line), "%d %s %s %s\n", ours, hud, unix_hud(), start_game());
     file = CreateFileW(out, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
     WriteFile(file, line, strlen(line), &written, NULL);
     CloseHandle(file);
@@ -108,12 +164,13 @@ int main(void)
     WCHAR self[MAX_PATH], sys[MAX_PATH], src[MAX_PATH], dst[MAX_PATH], dir[MAX_PATH], exe[MAX_PATH];
     WCHAR out[MAX_PATH], *dll_dir;
     const WCHAR *arg;
-    char path[MAX_PATH], got[64], hud[16];
+    char path[MAX_PATH], got[96], hud[16], hud_unix[16], hud_game[16];
     HMODULE k32 = GetModuleHandleA("kernel32.dll");
     int ok = 1, ours;
 
     get_dos_file_name = (void *)GetProcAddress(k32, "wine_get_dos_file_name");
     get_unix_file_name = (void *)GetProcAddress(k32, "wine_get_unix_file_name");
+    if (wcsstr(GetCommandLineW(), L"--regress-game")) return game();
     if ((arg = wcsstr(GetCommandLineW(), L"--regress-out=")))
     {
         WCHAR *end;
@@ -156,11 +213,15 @@ int main(void)
         return 1;
     }
 
-    if (start_launcher(exe, out, got, sizeof(got)) && sscanf(got, "%d %15s", &ours, hud) == 2)
+    if (start_launcher(exe, out, got, sizeof(got))
+        && sscanf(got, "%d %15s %15s %15s", &ours, hud, hud_unix, hud_game) == 4)
     {
-        printf("renderer-dll-paths: steamwebhelper.exe: d3d11.dll was %s; MTL_HUD_ENABLED is %s\n",
-               ours == 1 ? "the copy" : ours ? "not found" : "Wine's own", hud);
-        if (ours != 0 || strcmp(hud, "unset")) ok = 0;
+        printf("renderer-dll-paths: steamwebhelper.exe: d3d11.dll was %s; MTL_HUD_ENABLED is %s "
+               "(Unix environment: %s)\n", ours == 1 ? "the copy" : ours ? "not found" : "Wine's own",
+               hud, hud_unix);
+        printf("renderer-dll-paths: game.exe started by it: MTL_HUD_ENABLED in its Unix environment: %s\n",
+               hud_game);
+        if (ours != 0 || strcmp(hud, "unset") || strcmp(hud_unix, "unset") || strcmp(hud_game, "set")) ok = 0;
     }
     else ok = 0;
 

@@ -45,8 +45,9 @@ All guard patches in macfixes' patch sets, named as in
 | `cef-append-flags` | `kernelbase-cef-append-flags` | Steam's CEF helper starts without the flags it needs to render in Wine |
 | `commandline-append` | `kernelbase-commandline-append` | the registry's `CommandLineAppend` for an exe isn't added to its command line |
 | `composited-paint` | `win32u-composited-paint` | `PeekMessage` with CrossOver's flag combination keeps returning `WM_PAINT` for a composited window |
+| `dxmt-dlls` | `winemetal-stub`, `wine-inf-d3dmetal-placeholder-dlls` | DXMT's DLLs can't load: no winemetal.dll, no nvapi64.dll and nvngx.dll placeholders |
 | `desktop-wait` | `win32u-desktop-wait` | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
-| `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `winemetal-stub`, `wine-inf-d3dmetal-placeholder-dlls` | D3DMetal's and DXMT's DLLs can't load: no `__wine_unix_call` export, no winemetal.dll, no stub AMD/NVIDIA DLLs |
+| `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `wine-inf-d3dmetal-placeholder-dlls` | D3DMetal's DLLs can't load: no `__wine_unix_call` export, no atidxx64.dll placeholder. 10.0 only: D3DMetal 3.0 needs Wine 10.4's GSBASE model |
 | `exe-base-taken` | `ntdll-exe-entry-after-base-taken` | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
 | `gl-context-dealloc` | `winemac-gl-context-dealloc-off-main-thread` | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
 | `hung-ll-hook` | `server-disable-hung-hooks` | a low-level keyboard hook that stops answering delays every key press by 2 s |
@@ -58,8 +59,8 @@ All guard patches in macfixes' patch sets, named as in
 | `mouse-in-pointer` | `win32u-enable-mouse-in-pointer` | `EnableMouseInPointer` is a stub that fails on 10.0 |
 | `msi-unix-path` | `msi-database-path-length` | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
 | `msync` | `ntdll-msync` | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
-| `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's |
-| `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
+| `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's (10.0 only) |
+| `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD, or the games they start lose the HUD |
 | `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game; the hack also rewrote other programs' arguments, ignored letter case, and replaced the launcher with a game that wasn't there |
 | `server-gone` | `ntdll-exit-with-server` | a program whose threads make no server request (sleeping, rendering, waiting in a macOS run loop) goes on running after its wineserver is killed |
 | `simulate-writecopy` | `ntdll-simulate-writecopy` | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
@@ -98,12 +99,10 @@ that Wine 11's own fix still holds.
 - **Can't be shown on our Macs.**
   - `ntdll-rosetta-cet-rdssp` (RDSSP) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use.
   - `ntdll-rosetta-mxcsr` (MXCSR): needed on M3; MXCSR is right on M1/M2.
-  - `ntdll-invalid-gsbase` (gs_base, 10.0): Rosetta keeps the gs base on a null selector and refuses any other.
   - `wow64cpu-rosetta-lretq` (wow64 transition race, Iji): no crash in 12 attempts at provoking it.
 - **Needs something we can't ship or reproduce.**
-  - `ntdll-d3dmetal-code-regions`, `ntdll-d3dmetal-ms-abi-thunks` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
-  - `ntdll-cef-binary-patches`: specific CEF and Qt builds.
-  - `winemac-force-opengl-backing-store`: flicker.
+  - `ntdll-d3dmetal-code-regions` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
+  - `ntdll-cef-gs-stack-base`, `ntdll-cef-command-line-args` and `ntdll-cohtml-branch`: specific CEF, Qt and cohtml builds.
   - `nsiproxy-macos-change-notifications`, `winhttp-cache-autoproxy`: need a network change.
   - `ntdll-important-free-space`: Finder's free-space figure isn't visible to a program.
   - `winemac-cocoa-start-wait`: needs a fully loaded Mac.

@@ -16,12 +16,13 @@ Port: unchanged from 10.0 (applies with offsets; set_dll_path() and init_paths()
  unchanged in 11.21). Sikarugir-only behaviour: no CX 26, staging or upstream equivalent.
 Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud;
  ntdll-launcher-metal-hud only as context
+Status: 10.0: 2026-11-26: diff context refreshed for ntdll-launcher-metal-hud's
+ change; code as in build0
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
-index b3ab993..33689ad 100644
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
-@@ -329,18 +329,33 @@ static BOOL is_launcher_process(void)
+@@ -407,18 +407,33 @@ static BOOL is_launcher_process(void)
      return FALSE;
  }
  
@@ -60,8 +61,8 @@ index b3ab993..33689ad 100644
  };
  
  static BOOL use_renderer_dll_path( unsigned int idx )
-@@ -351,6 +366,17 @@ static BOOL use_renderer_dll_path( unsigned int idx )
-         if (!getenv( "SIKARUGIR_KEEP_METAL_HUD" )) unsetenv( "MTL_HUD_ENABLED" );
+@@ -436,6 +451,17 @@ static BOOL use_renderer_dll_path( unsigned int idx )
+         }
          return FALSE;
      }
 +    switch (renderer_dll_paths[idx].d2r)

@@ -13,15 +13,19 @@ Origin: other
   URL: https://github.com/dblark/macos-wine-build
   Note: the same code, in 0003-d3dmetal-hacks.patch
 Upstream: no
-Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so to get
- at the window's Cocoa view and create Metal views/layers, and call a few user32/advapi32
- functions through it from Unix code (registry calls go back to the PE side through
- KeUserDispatchCallback).
+Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so
+ to get at the window's Cocoa view and create Metal views/layers, and call a few
+ user32/advapi32 functions through it from Unix code (registry calls go back to
+ the PE side through KeUserDispatchCallback). D3DMetal 3.0 needs Wine 10.4's
+ GSBASE model, so it is supported on 10.0 only (from Wine 10.5, WineHQ 3a16aabb,
+ it crashes when a program creates a DXGI factory; measured on 11.22). The 11.x
+ copies keep only the part DXMT uses.
 Programs: none known
 Evidence: Sikarugir 10.0_8: winemac.so exports _macdrv_functions; trace strings
  my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
  my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;
  winemac.drv contains macdrv_regqueryvalueexa and delay-imports advapi32.dll
+Status: 10.0: 2026-11-26: header only. In build0
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 index a9ce724..6e613e6 100644
