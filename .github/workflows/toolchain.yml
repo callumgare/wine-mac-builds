@@ -98,7 +98,7 @@ jobs:
         with:
           subject-path: dist/*.tar.xz
 
-      - uses: oras-project/setup-oras@5e2f2482b30b0cb3e14e67f89a80c88c659a7c63 # v2.0.3
+      - uses: oras-project/setup-oras@ac735097e22fe643015b0d19645f7c9a69942128 # v2.0.4
 
       # Each file is its own layer, so a layer's digest is the file's sha256
       # and builds fetch it by the sha256 in toolchains/<id>.sh.
