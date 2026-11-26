@@ -48,13 +48,15 @@ Uncertain: toggling to the protection plus write reached Rosetta in every
  watches, where Wine keeps the host page unwritable, so the toggle may
  change nothing. Toggling to the protection minus execute doesn't reach
  Rosetta with DEP off in a 32-bit process (Wine keeps PROT_EXEC: new code
- seen 0 of 10), which is why it isn't used. Whether activation still needs
- the toggle on 11.22 isn't measured: both activations ran with it on
+ seen 0 of 10), which is why it isn't used. The toggle-off activation
+ turned off ntdll-rosetta-mxcsr and ntdll-rosetta-refuse-ldt-entries as
+ well (an interposer hiding sysctl.proc_translated), though children
+ spinning with idle parents is this bug's sign
 Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
-Status: 10.0: 2026-11-26: ported from 11.22 (same code)
- 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
- M1 Max): smoke and the regression suite passed
+Status: 10.0: 2026-11-26: plus-write toggle, ported from 11.22 (confirmed there by
+ Big Fish activation); quick20261126T091054 passed smoke and cross-process-code-write/
+ -data-write (macOS 26.7.2, M1 Max); no activation run on 10.0
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c
