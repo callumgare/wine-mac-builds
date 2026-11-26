@@ -20,8 +20,10 @@ Why: With HostWindows (winemac-host-windows) the host shows the program's window
  changes nothing real. A screen the host doesn't report is left out. The
  host's first display must be at the protocol's origin; when it isn't, or
  the host doesn't answer or answers unsupported, the driver uses the real
- displays, and a host that didn't answer isn't asked again by that
- process (each unanswered call costs the call timeout). DISPLAYS_CHANGED
+ displays. A host that answers unsupported isn't asked again by that
+ process; one that doesn't answer within the call timeout (2 s) is asked
+ again at the next enumeration, so a host that was slow once still gets
+ its displays used. DISPLAYS_CHANGED
  from the host already reached Wine's display-change handling, which
  enumerates again. Plain mode is unchanged.
 Programs: Second Chance (an app that embeds Wine): every program shown
@@ -46,7 +48,10 @@ Evidence: tools/wmh-testhost on meeka (macOS 26.7.2, a 2560x1440 display),
  each process asked once.
 Expects before it: winemac-host-windows; it extends cocoa_host.m and cocoa_host.h,
  which winemac-host-windows creates
-Status: 2026-11-22 (evening): host16 passed Second Chance's full hosted
+Status: 11.22: 2026-11-26: a displays_get that timed out (or failed) is
+ retried at the next enumeration; only "unsupported" stops the process
+ asking (it used to give up after any failure). Not yet in a build.
+ 2026-11-22 (evening): host16 passed Second Chance's full hosted
  integration run on meeka (2560x1440, no notch), one run each: disc 36/36,
  download 6/6, Her downloads 3/3 (one on a rerun; the failure was in
  Second Chance's launcher), Steam 11/11, Big Fish trials 30/30, Big Fish
@@ -68,6 +73,7 @@ Status: 2026-11-22 (evening): host16 passed Second Chance's full hosted
  that tree: 56 passed, 0 failed, 2 skipped (the screen-taking tests).
 
 diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
+index bbc47e0..fe717fe 100644
 --- a/dlls/winemac.drv/cocoa_display.m
 +++ b/dlls/winemac.drv/cocoa_display.m
 @@ -26,6 +26,7 @@
@@ -78,12 +84,10 @@ diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
  
  #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
  
-@@ -862,8 +863,36 @@
- 
-     data = CFDataCreate(NULL, edid, 128);
+@@ -864,6 +865,34 @@ static CFDataRef generate_edid(CGDirectDisplayID display_id, uint32_t vendor_num
      return data;
-+}
-+
+ }
+ 
 +/***********************************************************************
 + *              host_display_for_screen
 + *
@@ -109,13 +113,13 @@ diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
 +        }
 +    }
 +    return best;
- }
- 
++}
++
 +
  /***********************************************************************
   *              macdrv_get_monitors
   *
-@@ -883,6 +912,8 @@
+@@ -883,6 +912,8 @@ int macdrv_get_monitors(CGDirectDisplayID adapter_id, struct macdrv_monitor** ne
      uint32_t display_id_count, vendor_number, model_number, serial_number;
      NSArray<NSScreen *> *screens = [NSScreen screens];
      NSRect primary_frame;
@@ -124,7 +128,7 @@ diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
      int primary_index = 0;
      int monitor_count = 0;
      int capacity;
-@@ -919,10 +950,26 @@
+@@ -919,10 +950,26 @@ int macdrv_get_monitors(CGDirectDisplayID adapter_id, struct macdrv_monitor** ne
              CGDirectDisplayID screen_displayID = [[screen deviceDescription][@"NSScreenNumber"] unsignedIntValue];
              CFDataRef edid_data;
              size_t length;
@@ -151,7 +155,7 @@ diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
                  /* Allocate more space if needed */
                  if (monitor_count >= capacity)
                  {
-@@ -937,8 +984,9 @@
+@@ -937,8 +984,9 @@ int macdrv_get_monitors(CGDirectDisplayID adapter_id, struct macdrv_monitor** ne
                      primary_index = monitor_count;
  
                  monitors[monitor_count].id = display_ids[i];
@@ -164,38 +168,39 @@ diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
                  vendor_number = CGDisplayVendorNumber(monitors[monitor_count].id);
                  model_number = CGDisplayModelNumber(monitors[monitor_count].id);
 diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
+index ca766e0..199fa9e 100644
 --- a/dlls/winemac.drv/cocoa_host.h
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -51,3 +51,4 @@
+@@ -53,3 +53,4 @@ extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
  extern int host_get_cursor_position(CGPoint *pos);
  extern int host_set_cursor_position(CGPoint pos);
  extern int host_clip_cursor(CGRect rect);
 +extern int host_get_displays(struct wmh_display *displays, int max);
 diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
+index 2e4a653..00bae32 100644
 --- a/dlls/winemac.drv/cocoa_host.m
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -601,6 +601,44 @@
-     rect_sent = TRUE;
-     sent = msg;
+@@ -613,6 +613,45 @@ void macdrv_host_set_ime_rect(CGRect rect)
      host_send(WMH_KIND_IME_RECT, &msg, sizeof(msg));
-+}
-+
+ }
+ 
 +/* displays_get: the host's displays, in the protocol's space, the first
 + * primary and at the origin. Returns how many, or 0 when there's no answer
-+ * to use, and the caller uses the real displays. A host that doesn't
-+ * answer, or answers unsupported, isn't asked again by this process. */
++ * to use, and the caller uses the real displays. A host that answers
++ * unsupported isn't asked again by this process; one that didn't answer in
++ * time (or failed) is asked again next time. */
 +int host_get_displays(struct wmh_display *displays, int max)
 +{
-+    static BOOL unanswered;
++    static BOOL unsupported;
 +    struct wmh_reply_displays reply;
 +    uint32_t status, count, i;
 +
-+    if (!host_mode || unanswered) return 0;
++    if (!host_mode || unsupported) return 0;
 +    status = host_call(WMH_KIND_DISPLAYS_GET, NULL, 0, &reply, sizeof(reply));
 +    if (status != WMH_STATUS_OK)
 +    {
 +        TRACE("host: displays_get status %u; using the real displays\n", status);
-+        unanswered = TRUE;
++        if (status == WMH_STATUS_UNSUPPORTED) unsupported = TRUE;
 +        return 0;
 +    }
 +    count = reply.count;
@@ -216,22 +221,25 @@ diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 +    }
 +    memcpy(displays, reply.displays, count * sizeof(*displays));
 +    return count;
- }
- 
++}
++
  void host_drag_done(macdrv_query *query)
+ {
+     struct wmh_drag_done done = { query->host_serial, query->status ? 1 : 0, 0, 0 };
 diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
+index d045ff1..426aaeb 100644
 --- a/dlls/winemac.drv/display.c
 +++ b/dlls/winemac.drv/display.c
-@@ -27,6 +27,8 @@
- #include "macdrv.h"
+@@ -28,6 +28,8 @@
  
  WINE_DEFAULT_DEBUG_CHANNEL(display);
-+
-+static BOOL is_host_current_mode(const DEVMODEW *mode);
  
++static BOOL is_host_current_mode(const DEVMODEW *mode);
++
  #define NEXT_DEVMODEW(mode) ((DEVMODEW *)((char *)((mode) + 1) + (mode)->dmDriverExtra))
  
-@@ -782,6 +784,11 @@
+ struct display_mode_descriptor
+@@ -782,6 +784,11 @@ LONG macdrv_ChangeDisplaySettings(LPDEVMODEW displays, LPCWSTR primary_name, HWN
          TRACE(" %sinterlaced", mode->dmDisplayFlags & DM_INTERLACED ? "" : "non-");
          TRACE("\n");
  
@@ -243,7 +251,7 @@ diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
          if (!(best_display_mode = find_best_display_mode(mode, display_modes, bpp, desc)))
          {
              ERR("No matching mode found %ux%ux%d @%u!\n", mode->dmPelsWidth, mode->dmPelsHeight,
-@@ -897,7 +904,34 @@
+@@ -897,9 +904,36 @@ static void display_get_current_mode(struct macdrv_monitor *monitor, DEVMODEW *d
          free_display_mode_descriptor(desc);
      }
  
@@ -257,8 +265,8 @@ diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
 +    }
 +
      CFRelease(display_mode);
-+}
-+
+ }
+ 
 +/* Host mode: whether the primary display's current mode, which comes from
 +   the host's display, has this size. Setting it changes nothing real. */
 +static BOOL is_host_current_mode(const DEVMODEW *mode)
@@ -275,10 +283,12 @@ diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
 +        ret = TRUE;
 +    macdrv_free_monitors(monitors, count);
 +    return ret;
- }
- 
++}
++
  /***********************************************************************
-@@ -1037,6 +1071,24 @@
+  *              GetDeviceGammaRamp (MACDRV.@)
+  */
+@@ -1037,6 +1071,24 @@ void macdrv_displays_changed(const macdrv_event *event)
          NtUserCallNoParam(NtUserCallNoParam_DisplayModeChanged);
  }
  
@@ -303,7 +313,7 @@ diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
  UINT macdrv_UpdateDisplayDevices(const struct gdi_device_manager *device_manager, void *param)
  {
      struct macdrv_adapter *adapters, *adapter;
-@@ -1099,6 +1151,21 @@
+@@ -1099,6 +1151,21 @@ UINT macdrv_UpdateDisplayDevices(const struct gdi_device_manager *device_manager
              }
  
              if (!(modes = display_get_modes(adapter->id, &mode_count))) break;
@@ -326,9 +336,10 @@ diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
              free(modes);
              macdrv_free_monitors(monitors, monitor_count);
 diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index 7b516cb..8ed63f5 100644
 --- a/dlls/winemac.drv/macdrv_cocoa.h
 +++ b/dlls/winemac.drv/macdrv_cocoa.h
-@@ -245,6 +245,9 @@
+@@ -245,6 +245,9 @@ struct macdrv_monitor
      unsigned char *edid;
      uint32_t edid_len;
      bool hdr_enabled;

@@ -116,7 +116,7 @@ implemented calls are `displays_get` and `ime_key`; `window_get_frame` and
 `cursor_get` are defined, but the driver answers them from its own record
 (the last frame and pointer position it sent or was told) without asking.
 
-If the host's port dies, the driver posts `APP_QUIT_REQUESTED` (reason:
+If the host's port dies, or receiving from it fails, the driver posts `APP_QUIT_REQUESTED` (reason:
 logoff), so the program is asked to quit rather than left drawing nowhere.
 
 ## Surfaces
@@ -189,7 +189,7 @@ yet; in host mode the driver does nothing for them.
 | `cursor_set` | `set_cursor` | done | hidden, a system cursor name, or an image (IOSurface) with its hot spot |
 | `cursor_warp` | `set_cursor_position` | done | the host decides whether to move the real pointer |
 | `cursor_clip` | `clip_cursor` | done | rect or none; the host must confine the real pointer |
-| `displays_get` (*call*) | `get_monitors`, the current mode | done (`winemac-host-displays`) | the host's displays: the window's screen, or what it emulates. The first is the primary, at the origin. Each becomes a monitor (frame, work area), and its frame's size the current mode, which is also listed and setting it changes nothing. Fallback (no answer, unsupported, or the first not at the origin): the real displays, and a host that didn't answer isn't asked again |
+| `displays_get` (*call*) | `get_monitors`, the current mode | done (`winemac-host-displays`) | the host's displays: the window's screen, or what it emulates. The first is the primary, at the origin. Each becomes a monitor (frame, work area), and its frame's size the current mode, which is also listed and setting it changes nothing. Fallback (no answer, unsupported, or the first not at the origin): the real displays. A host that answered unsupported isn't asked again; one that didn't answer in time is asked again at the next enumeration |
 | `ime_key` (*call*) | `send_keydown_to_input_source` | done | the host's input context handles the key and returns the marked and committed text. Fallback: not handled |
 | `ime_clear` | `clear_ime_text` | done | discard the marked text |
 | `ime_rect` | `SetIMECompositionRect` | done | for the candidate window, in the protocol's space; the host maps it as it maps the window's picture |

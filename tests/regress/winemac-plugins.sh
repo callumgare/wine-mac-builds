@@ -5,14 +5,16 @@
 # Timeout: 180
 # Guards: winemac-plugins
 #
-# The Mac driver loads the libraries named in WINEMAC_PLUGINS, or in the
-# Mac Driver "Plugins" registry value, before Cocoa starts, so an app that
-# embeds Wine can add code to the driver without changing winemac.so.
+# The Mac driver loads the libraries named in WINEMAC_PLUGINS before Cocoa
+# starts, so an app that embeds Wine can add code to the driver without
+# changing winemac.so. Only absolute paths load.
 #
 # Builds a plugin whose constructor appends a line to a marker file, then
-# starts the driver (wineboot -u does) four ways: with WINEMAC_PLUGINS, with
-# a missing path before it (logged, skipped, the rest still load), with the
-# registry value, and with neither (nothing loads). Needs Xcode's clang for
+# starts the driver (wineboot -u does) five ways: with WINEMAC_PLUGINS, with
+# a missing path before it (logged, skipped, the rest still load), with a
+# relative path (refused and logged, from the plugin's own folder), with
+# the old "Plugins" registry value (no longer read: nothing loads), and
+# with nothing set (nothing loads). Needs Xcode's clang for
 # the plugin, and a session that can reach the window server (a GUI login,
 # or a build VM's guest agent); skips without either.
 
@@ -65,12 +67,18 @@ grep -a -q "couldn't load plugin \"/nonexistent/plugin.dylib\"" "$OUT/missing.lo
     { echo "winemac-plugins: a missing path wasn't reported (see $OUT/missing.log)"; exit 1; }
 echo "winemac-plugins: a missing path is reported and skipped"
 
+(cd "$OUT" && WINEMAC_PLUGINS="./plug.dylib" start relative)
+if loaded; then echo "winemac-plugins: a relative path loaded (see $OUT/relative.log)"; exit 1; fi
+grep -a -q "plugin path \"./plug.dylib\" isn't absolute" "$OUT/relative.log" ||
+    { echo "winemac-plugins: a relative path wasn't reported (see $OUT/relative.log)"; exit 1; }
+echo "winemac-plugins: a relative path is reported and refused"
+
 "$WINE" reg add "$key" /v Plugins /d "$OUT/plug.dylib" /f > "$OUT/reg.log" 2>&1
 start registry
 "$WINE" reg delete "$key" /v Plugins /f >> "$OUT/reg.log" 2>&1
 "$server" -k > /dev/null 2>&1
-loaded || { echo "winemac-plugins: the Plugins value: the plugin wasn't loaded (see $OUT/registry.log)"; exit 1; }
-echo "winemac-plugins: the Plugins registry value: loaded"
+if loaded; then echo "winemac-plugins: the Plugins registry value loaded a plugin (see $OUT/registry.log)"; exit 1; fi
+echo "winemac-plugins: the Plugins registry value isn't read"
 
 start none
 if loaded; then echo "winemac-plugins: a plugin loaded with nothing set"; exit 1; fi

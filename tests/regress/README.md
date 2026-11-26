@@ -51,6 +51,7 @@ All guard patches in macfixes' patch sets, named as in
 | `gl-context-dealloc` | `winemac-gl-context-dealloc-off-main-thread` | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
 | `hung-ll-hook` | `server-disable-hung-hooks` | a low-level keyboard hook that stops answering delays every key press by 2 s |
 | `krnl386-attach` | `krnl386-attach-without-16bit` | with LDT entries refused under Rosetta, krnl386.exe16 faults loading the 16-bit KERNEL and fails its attach, so a DLL that only imports kernel32's 16-bit thunks doesn't load (Webmaster's Buddy API Xtra), and a 16-bit call faults instead of returning an error |
+| `launcher-acls` | `advapi32-launcher-acls` | Battle.net's Agent.exe gets its folders' real owner instead of Administrators, and asking for the owner without the DACL crashed the hack |
 | `loopback-bind` | `server-loopback-bind` | macOS refuses binds to 127.x.x.x addresses other than 127.0.0.1; GOG Galaxy doesn't start |
 | `macdrv-functions` | `winemac-export-macdrv-functions` | winemac.so doesn't export `macdrv_functions`, so D3DMetal and DXMT can't present |
 | `map-exec-file-view` | `ntdll-map-exec-then-mprotect` | with DEP off, shared views fail on 10.0 ("failed to set PROT_EXEC"); old installers and Big Fish games exit |
@@ -59,12 +60,12 @@ All guard patches in macfixes' patch sets, named as in
 | `msync` | `ntdll-msync` | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
 | `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's |
 | `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD |
-| `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game |
+| `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game; the hack also rewrote other programs' arguments, ignored letter case, and replaced the launcher with a game that wasn't there |
 | `server-gone` | `ntdll-exit-with-server` | a program whose threads make no server request (sleeping, rendering, waiting in a macOS run loop) goes on running after its wineserver is killed |
 | `simulate-writecopy` | `ntdll-simulate-writecopy` | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
 | `suspend-context-syscall-return` | `ntdll-suspend-context-syscall-return` | `GetThreadContext` on a thread suspended on its way out of a syscall gives the dispatcher's registers, with rsp on Wine's kernel stack (Steam's client: Chromium's stack sampler faults copying from there) |
 | `winemac-activation-policy` | `winemac-activation-policy` | a helper process of an app that embeds Wine gets a Dock icon and the Wine menu and takes focus; the `ActivationPolicy` value set to `accessory` stops that. Needs a window server |
-| `winemac-plugins` | `winemac-plugins` | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`, the `Plugins` value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
+| `winemac-plugins` | `winemac-plugins` | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`; absolute paths only, no registry value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
 | `winencpu` | `ntdll-cpu-count-cap` | `WINENCPU=n` must cap every processor count a program can ask for |
 | `wmi-threads` | `wbemprox-no-per-table-lock` | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
@@ -102,7 +103,6 @@ that Wine 11's own fix still holds.
 - **Needs something we can't ship or reproduce.**
   - `ntdll-d3dmetal-code-regions`, `ntdll-d3dmetal-ms-abi-thunks` and `setupapi-diablo4-gpu-luid`: need Apple's D3DMetal.
   - `ntdll-cef-binary-patches`: specific CEF and Qt builds.
-  - `advapi32-launcher-acls`: Battle.net.
   - `winemac-force-opengl-backing-store`: flicker.
   - `nsiproxy-macos-change-notifications`, `winhttp-cache-autoproxy`: need a network change.
   - `ntdll-important-free-space`: Finder's free-space figure isn't visible to a program.

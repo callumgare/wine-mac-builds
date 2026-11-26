@@ -6,23 +6,34 @@ Origin: reconstructed
   Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64)
   Functions: sikarugir_append_command_line, inlined into
     CreateProcessInternalW (x86_64 0x174015cc8-0x174015ed6)
-  Note: no published source; behaviour read from the compiled binary.
-    As in 10.0_8 the lookup runs before CrossOver's
-    hack_append_command_line and hack_replace_command_line, so the key is
-    looked up by the name before any replacement
+  Note: no published source; behaviour read from the compiled binary
+  Changes: the lookup runs after the CEF flags
+    (kernelbase-cef-append-flags), so a user's switches come last and win
+    (10.0_8 runs it before them); still before the launcher replacement,
+    so the key is looked up by the name before any replacement, as in
+    10.0_8. REG_EXPAND_SZ values are expanded (10.0_8 ignores them)
 Upstream: no
-Why: Per-application extra command-line arguments set from the registry, so users and the Sikarugir app can add game options without editing shortcuts: when a process is created, the REG_SZ value HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend (if non-empty) is appended to its command line after a space. A FIXME is logged when it happens.
- In 10.0_8 the lookup runs right after the tidy command line is built,
- before CrossOver's hack_append_command_line/hack_replace_command_line
- blocks, so the registry key is looked up with the exe name before any
- replacement, and CrossOver's forbidden-arguments check sees the appended
- text.
+Why: Lets a user or a host add a program's options without editing its
+ shortcut. Set the value CommandLineAppend (REG_SZ, or REG_EXPAND_SZ to
+ expand environment variables) under
+ HKCU\Software\Wine\AppDefaults\<exe file name> (e.g. eldenring.exe); when
+ a Windows process creates a process from that exe, the value is appended
+ to its command line after a space, and a FIXME is logged. It comes after
+ the flags kernelbase-cef-append-flags adds, so for a switch both set,
+ Chromium takes the user's. It doesn't apply to the process `wine <exe>`
+ starts directly: start it with `wine start` instead. For a launcher that
+ kernelbase-replace-launchers swaps for the game, set it for the
+ launcher's name.
 Programs: none known
-Uncertain: limits copied from 10.0_8: exe names of 260+ characters are skipped and values over 2048 bytes (1023 characters) are ignored (the query fails). REG_EXPAND_SZ values are ignored, as in 10.0_8.
-Expects before it: kernelbase-cef-append-flags; context only
+Uncertain: limits copied from 10.0_8: exe names of 260+ characters are
+ skipped and values over 2048 bytes (1023 characters), or over 1023
+ characters once expanded, are ignored.
+Expects before it: kernelbase-replace-launchers, kernelbase-cef-append-flags; context only
+Status: 10.0: 2026-11-26: runs after the CEF flags (review decision
+ 15); accepts REG_EXPAND_SZ; not yet in a build
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
-index f1cfe72..4994814 100644
+index be2b979..1d9132d 100644
 --- a/dlls/kernelbase/process.c
 +++ b/dlls/kernelbase/process.c
 @@ -28,6 +28,7 @@
@@ -33,21 +44,21 @@ index f1cfe72..4994814 100644
  
  #include "kernelbase.h"
  #include "wine/debug.h"
-@@ -599,6 +600,41 @@ static WCHAR *hack_replace_command_line( const WCHAR *cmd )
-     return NULL;
+@@ -625,6 +626,47 @@ static BOOL hack_replace_launcher( const WCHAR *app_name, const WCHAR *cmdline,
+     return TRUE;
  }
  
 +/***********************************************************************
 + *           sikarugir_append_command_line
 + *
-+ * Sikarugir: append the REG_SZ value CommandLineAppend from
-+ * HKCU\Software\Wine\AppDefaults\<exe name> to the command line of a new
-+ * process. Returns a newly allocated command line, or NULL if there is
++ * Sikarugir: append the value CommandLineAppend (REG_SZ or REG_EXPAND_SZ)
++ * from HKCU\Software\Wine\AppDefaults\<exe name> to the command line of a
++ * new process. Returns a newly allocated command line, or NULL if there is
 + * nothing to append.
 + */
 +static WCHAR *sikarugir_append_command_line( const WCHAR *app_name, const WCHAR *cmd_line )
 +{
-+    WCHAR key_name[300], append[1024], *ret;
++    WCHAR key_name[300], append[1024], expanded[1024], *ret;
 +    const WCHAR *p, *exe = app_name;
 +    DWORD type, size = sizeof(append);
 +    LSTATUS res;
@@ -61,8 +72,14 @@ index f1cfe72..4994814 100644
 +    if (RegOpenKeyExW( HKEY_CURRENT_USER, key_name, 0, KEY_QUERY_VALUE, &key )) return NULL;
 +    res = RegQueryValueExW( key, L"CommandLineAppend", NULL, &type, (BYTE *)append, &size );
 +    RegCloseKey( key );
-+    if (res || type != REG_SZ || size < sizeof(WCHAR)) return NULL;
++    if (res || (type != REG_SZ && type != REG_EXPAND_SZ) || size < sizeof(WCHAR)) return NULL;
 +    append[ARRAY_SIZE(append) - 1] = 0;
++    if (type == REG_EXPAND_SZ)
++    {
++        size = ExpandEnvironmentStringsW( append, expanded, ARRAY_SIZE(expanded) );
++        if (!size || size > ARRAY_SIZE(expanded)) return NULL;
++        lstrcpyW( append, expanded );
++    }
 +    if (!append[0]) return NULL;
 +
 +    len = lstrlenW( cmd_line ) + 1 + lstrlenW( append ) + 1;
@@ -75,17 +92,18 @@ index f1cfe72..4994814 100644
  /**********************************************************************
   *           CreateProcessInternalW   (kernelbase.@)
   */
-@@ -641,6 +677,13 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
-         app_name = name;
+@@ -682,6 +724,14 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
      }
+     /* end CROSSOVER HACK */
  
-+    /* Sikarugir: per-application command line additions from the registry */
++    /* Sikarugir: per-application command line additions from the registry,
++     * after the CEF flags so that a user's switches win */
 +    if ((p = sikarugir_append_command_line( app_name, tidy_cmdline )))
 +    {
 +        if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
 +        tidy_cmdline = p;
 +    }
 +
-     /* CROSSOVER HACK: see hack_append_command_line */
-     if ((append = hack_append_command_line( app_name, tidy_cmdline )))
+     /* CROSSOVER HACK: see hack_replace_launcher */
      {
+         WCHAR new_app[MAX_PATH], *new_cmd;

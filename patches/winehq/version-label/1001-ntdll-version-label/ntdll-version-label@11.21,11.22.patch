@@ -19,7 +19,9 @@ Why: Marks the build as patched, so a log or bug report shows which
  " (<flavour>)" for flavours that take the version-label set; the rule in
  configure.ac and configure (both patched, so no autoreconf is needed)
  appends it when dlls/ntdll/unix/version.c is generated. Unset, the
- version string is WineHQ's.
+ version string is WineHQ's. The label goes into a sed replacement and a C
+ string, so compile.sh refuses flavour names other than lower-case
+ letters, digits and hyphens.
 Programs: none known
 Evidence: Sikarugir 10.0_8: the same mechanism, branded "wine-10.0 (Sikarugir)"
 Port: the 11.x form of the same rule.

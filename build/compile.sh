@@ -63,8 +63,12 @@ export MACOSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 export SOURCE_DATE_EPOCH="$WINE_RELEASE_EPOCH"
 export ZERO_AR_DATE=1
 # The version-label patch set appends this to the version string
-# ("wine-11.21 (macfixes)"); flavours without it keep WineHQ's.
+# ("wine-11.21 (macfixes)"); flavours without it keep WineHQ's. The label
+# goes into a sed replacement and a C string in the version.c rule
+# (ntdll-version-label), so the flavour name is held to plain characters.
 unset WINE_VERSION_LABEL
+[[ $FLAVOUR =~ ^[a-z0-9-]+$ ]] ||
+    die "flavour name '$FLAVOUR' must be lower-case letters, digits and hyphens"
 for set_name in "${PATCH_SETS[@]}"; do
     [[ $set_name == version-label ]] && export WINE_VERSION_LABEL=" ($FLAVOUR)"
 done
