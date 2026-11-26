@@ -118,7 +118,6 @@ ENABLE_RE = re.compile(r"^(?:env [A-Z_][A-Z0-9_]*=\S.*|reg \S.*|see [a-z0-9][a-z
 # Matches: what a patch recognises, entries separated by "; ".
 MATCH_KINDS = ("exe", "dll", "path", "cmdline", "bytes", "window", "other")
 SUMMARY_MAX = 100
-TRANSITION = True
 STATUS_MAX_LINES = 15
 KEY_RE = re.compile(r"^([A-Za-z][A-Za-z0-9 -]*): ?(.*)$")
 SUBKEY_RE = re.compile(r"^  ([A-Z][A-Za-z-]*): (.*)$")
@@ -162,10 +161,8 @@ class Header:
         self.warnings = []    # (line, message): reported, but don't fail
         self.body = ""        # the diff
 
-    def error(self, line, msg, legacy=False):
-        # TRANSITION: rules of the 2026-11-26 format that the headers don't
-        # follow yet only warn until they're converted.
-        (self.warnings if legacy and TRANSITION else self.errors).append((line, msg))
+    def error(self, line, msg):
+        self.errors.append((line, msg))
 
     def warn(self, line, msg):
         self.warnings.append((line, msg))
@@ -232,8 +229,7 @@ def parse(path):
             continue
         if key == "Port":
             h.error(i, "Port is retired: say how this copy differs in its Origin block's Changes, "
-                    "or in a wine-mac-builds block whose Version names the copy it was ported from",
-                    legacy=True)
+                    "or in a wine-mac-builds block whose Version names the copy it was ported from")
             key = SKIP
             continue
         if key not in ORDER:
@@ -376,17 +372,17 @@ def _check(h):
         if "Attachment" in keys and not re.fullmatch(r"\d+(, \d+)*", keys["Attachment"]):
             h.error(o["sublines"]["Attachment"], "Attachment is WineHQ Bugzilla attachment numbers, comma-separated")
         if project == "other" and "Name" not in keys:
-            h.error(o["line"], "an Origin: other block names the project (Name)", legacy=True)
+            h.error(o["line"], "an Origin: other block names the project (Name)")
         if project != "wine-mac-builds" and "Version" not in keys and "URL" not in keys:
-            h.error(o["line"], f"an Origin: {project} block needs Version or URL, so its claim can be checked", legacy=True)
+            h.error(o["line"], f"an Origin: {project} block needs Version or URL, so its claim can be checked")
         if project in ("winehq", "wine-mac-builds") and "Version" in keys and \
                 not all(WINE_VERSION_RE.match(v.strip()) for v in keys["Version"].split(",")):
             h.error(o["sublines"]["Version"], f"an Origin: {project} block's Version is a Wine version "
                     + ("(the first WineHQ release with the commits)" if project == "winehq"
-                       else "(our copy this one was ported from)"), legacy=True)
+                       else "(our copy this one was ported from)"))
         if project == "crossover" and "URL" in keys and "Version" in keys and \
                 not any(keys["Version"] in u for u in urls(keys["URL"])):
-            h.error(o["sublines"]["URL"], f"the crossover URL doesn't name its Version ({keys['Version']})", legacy=True)
+            h.error(o["sublines"]["URL"], f"the crossover URL doesn't name its Version ({keys['Version']})")
         if "URL" in keys:
             for u in urls(keys["URL"]):
                 if not URL_RE.match(u):
@@ -396,7 +392,7 @@ def _check(h):
                    "URL, Files, Binary, Functions or a block of its own")
     if "Evidence" in f and "reconstructed" not in projects:
         h.error(at["Evidence"], "Evidence is only for a patch with an Origin: reconstructed block "
-                "(what shows the behaviour is in the binary it was rebuilt from)", legacy=True)
+                "(what shows the behaviour is in the binary it was rebuilt from)")
     for key, rx, what in (("Expects before it", NAMES_RE, "patch names, comma-separated, each optionally "
                            "followed by ' (context)' or ' (run time)', then optionally '; ' and a note"),
                           ("Related", RELATED_RE, "patch names, comma-separated, then optionally '; ' "
@@ -405,7 +401,7 @@ def _check(h):
             h.error(at[key], f"{key} is {what}")
     if "Upstream" in f and not LEAD_RE.match(f["Upstream"]):
         h.error(at["Upstream"], f"Upstream starts with one of {', '.join(UPSTREAM)}, then nothing, "
-                "a detail in brackets, or '; ' and a detail", legacy=True)
+                "a detail in brackets, or '; ' and a detail")
     if "Needed until" in f and not VERSION_LEAD_RE.match(f["Needed until"]) and \
             re.match(r"^\d", f["Needed until"]):
         h.error(at["Needed until"], "Needed until is the first Wine version that doesn't need it "
@@ -426,7 +422,7 @@ def _check(h):
                         "...', 'see <patch> ...' or 'by <what turns it on>' (patches/README.md)")
                 break
     elif h.path.parent.parent.name == "options":
-        h.error(1, "missing 'Enable': a patch in the options set says how it's switched on", legacy=True)
+        h.error(1, "missing 'Enable': a patch in the options set says how it's switched on")
     if "Matches" in f:
         for part in f["Matches"].replace("\n", " ").split("; "):
             if part.split(" ", 1)[0] not in MATCH_KINDS or " " not in part:
