@@ -4,11 +4,11 @@
 The comparison table's last row is the patch sets diagram: under each
 flavour's column, its source at the top, then its patch sets in the order
 they're applied (by layer: 0xxx, 1xxx, 2xxx, 3xxx). A set shared by several
-flavours is one box spanning their columns. There is one diagram per Wine
-version; without JavaScript only the newest shows, and each box links to
-the set's section on the latest build page of a flavour that applies it.
-site.js adds the version switcher and opens a set's details in a popover
-(or a bottom sheet on touch screens), from the <template> each box names.
+flavours is one box spanning their columns. It shows the newest Wine
+version built. Without JavaScript each box links to the set's section on
+the latest build page of a flavour that applies it; site.js opens a set's
+details in a popover (or a bottom sheet on touch screens), from the
+<template> each box names.
 """
 
 import collections
@@ -207,17 +207,11 @@ def comparison(d, flavours, per_version):
     for r in content.load().get("comparison", []):
         rows.append((r["label"], [inline_safe(r.get(f, "—")) for f in cols]))
     body = [el("tr", el("th", label, scope="row"), *[el("td", v) for v in vals]) for label, vals in rows]
-    versions = list(per_version)
-    if versions:
-        newest_v = versions[0]
-        switcher = el("div", el("div", *[el("button", v, type="button", aria_pressed="true" if v == newest_v else "false",
-                                            data_v=v) for v in sorted(versions, key=version_key)],
-                                class_="seg", role="group", aria_label="Wine version"),
-                      class_="fverrow", data_js="", hidden=True)
-        body.append(el("tr", el("th", "Patch sets", el("span", "Select a set for its patches.", class_="small"),
-                                switcher, scope="row"),
-                       el("td", *[diagram(v, per_version[v], flavours, v == newest_v) for v in versions],
-                          colspan=str(len(cols))), class_="setsrow"))
+    if per_version:
+        newest_v = next(iter(per_version))
+        body.append(el("tr", el("th", f"Patch sets for the latest build ({newest_v})", scope="row"),
+                       el("td", diagram(newest_v, per_version[newest_v], flavours, True), colspan=str(len(cols))),
+                       class_="setsrow"))
     return el("div", el("table",
         el("colgroup", el("col", class_="lab"), *[el("col") for _ in cols]),
         el("thead", el("tr", el("th", el("span", "Row", class_="sr")),

@@ -130,18 +130,6 @@
     if (input) input.addEventListener('input', () => { q = input.value.trim().toLowerCase(); apply(); });
   });
 
-  /* Flavours: the version switcher shows one diagram at a time. */
-  $$('.fverrow[data-js]').forEach(row => {
-    row.hidden = false;
-    row.addEventListener('click', e => {
-      const b = e.target.closest('button[data-v]');
-      if (!b) return;
-      $$('button', row).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-      $$('.fgrid[data-version]').forEach(g => { g.hidden = g.dataset.version !== b.dataset.v; });
-      closeSet();
-    });
-  });
-
   /* Flavours: a set box opens its details (from the <template> it names).
      Where the pointer is fine and can hover, a popover beside the box,
      which also opens on hover and stays open while the pointer moves into
