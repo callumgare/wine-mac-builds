@@ -45,7 +45,9 @@ Risk: always on: changes the command line of the seven named programs,
  sandbox, which in Wine isolates nothing anyway (CX did the same)
 Uncertain: whether any entry is still needed on Wine 11.x or with current
  launcher versions: each needs retesting with the launcher in a GUI
- session (review decision 14), and entries not shown to help dropped.
+ session (review decision 14). Only the Steam and Big Fish entries can
+ be tested here; the others are kept on their sources' word, untested
+ (2026-11-26).
  CrossOver dropped the function after 24.x (26.3.0 has none); why isn't
  known. Sikarugir's reasons for the EA, GOG and Social Club flags aren't
  recorded.
