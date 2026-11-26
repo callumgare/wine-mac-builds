@@ -215,6 +215,11 @@ struct wmh_window_ref    { wmh_window_id window; uint32_t reserved; };  /* destr
  * window key without activating the app. */
 #define WMH_FOCUS_ACTIVATE 0x1u
 struct wmh_window_flags  { wmh_window_id window; uint32_t flags; };     /* features, state */
+/* window_frame: the window's whole content area, position and size. A host
+ * with Cocoa windows recomputes the origin from both on every frame
+ * (origin.y = primary display height - y - height): when only the size
+ * changes, keeping the old Cocoa origin keeps the bottom edge, not the top,
+ * and the window moves. */
 struct wmh_window_frame  { wmh_window_id window; uint32_t reserved; struct wmh_rect frame; };
 struct wmh_window_parent { wmh_window_id window; wmh_window_id parent; };
 
