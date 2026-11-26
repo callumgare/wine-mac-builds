@@ -8,9 +8,17 @@ Origin: crossover
   Authors: Zebediah Figura (esync)
   Note: CrossOver 25.1.1 (crossover-sources-25.1.1.tar.gz, sources/wine/{server,dlls/ntdll/unix}/{esync,msync}.[ch], README.esync, and the esync/msync hunks of configure.ac, dlls/ntdll/{Makefile.in,unix/{loader,server,sync,virtual}.c,unix/unix_private.h}, server/{Makefile.in,change,console,device,event,fd,main,named_pipe,process,queue,thread,timer}.c, server/{file,object,process,thread}.h, server/protocol.def); no CodeWeavers hack number. CX's own CW Hack 23015 (GPT_IMPORT/msthunk wrappers in sync.c) and hacks_init() in loader.c are left out. configure, include/config.h.in (autoreconf, Autoconf 2.72) and include/wine/server_protocol.h, server/request_{handlers,trace}.h (tools/make_requests) regenerated.
 Upstream: no
-Why: Faster in-process synchronisation: esync (WINEESYNC=1, eventfd/pipe-based, from wine-staging) and msync (WINEMSYNC=1, Mach semaphores plus shared memory, CodeWeavers' macOS-native variant). Both off unless their variable is set.
+Why: Faster in-process synchronisation: esync (WINEESYNC=1, eventfd/pipe-based, from wine-staging) and msync (WINEMSYNC=1, Mach semaphores plus shared memory, CodeWeavers' macOS-native variant). Both off unless their variable is set; with both set, msync is used.
+ esync is here only on 10.0, and only because CrossOver 25.1.1 and Sikarugir 10.0_8 ship it, so a prefix set up with WINEESYNC=1 for them keeps working. macOS has no eventfd, so esync uses its pipe fallback there: an fd pair per object, slower and fd-hungry. CrossOver 26.3.0 dropped it, and the 11.x copies don't have it.
+ wine-mac-builds' changes to CX's code: NtReleaseMutant's previous count is 1 minus the recursion count, as Windows and the server path give (both backends returned the recursion count); a process whose WINEMSYNC/WINEESYNC setting doesn't match its wineserver's says so with MESSAGE before exiting (ERR printed nothing under WINEDEBUG=-all).
 Programs: none known
+Uncertain: with WINEMSYNC=1 or WINEESYNC=1, a thread waiting on a mutex
+ whose last handle is closed hangs when the mutex's owner exits, instead of
+ getting WAIT_ABANDONED (10.0 build0, both backends): destroying the object
+ wipes its shared memory, so nothing abandons it. Fixed on 11.x, not here
+ (a different design); tests/regress/msync-abandoned-mutex skips 10.0.
 Evidence: Sikarugir 10.0_8: wineserver has "WINEESYNC", "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-esync", "/wine-%lx-msync", "too many msync objects", "msync: bootstrapped mach port on %s.", "msync: warning: using mach_msg_overwrite instead of mach_msg2", "esync: up and running.", "wineserver: using server-side synchronization.", request names create_esync/open_esync/get_esync_read_fd/get_esync_write_fd/esync_msgwait/get_esync_apc_fd/create_msync/open_msync/get_msync_idx/msync_msgwait/get_msync_apc_idx; ntdll.so has "Can't wait on msync and server objects at the same time!", "Server is running with WINEMSYNC but this process is not, ...", "Using mach_msg_overwrite instead of mach_msg2", esync_*/msync_* trace names. Every string literal in CX's four esync/msync source files is in 10.0_8 (except one under #ifdef HAVE_SYS_EVENTFD_H, absent on macOS), and the sync-related strings of our built wineserver and ntdll.so match 10.0_8's exactly. marzent/dblark msync's "Semaphore pool exhausted" is absent.
+Status: 10.0: 2026-11-26: NtReleaseMutant previous count (msync and esync), mismatch exits printed with MESSAGE; not yet in a build
 
 diff --git a/README.esync b/README.esync
 new file mode 100644
@@ -1184,7 +1192,7 @@ index 0000000..730d8a4
 +     * or from our tid is ours. */
 +    if (mutex->tid != GetCurrentThreadId()) return STATUS_MUTANT_NOT_OWNED;
 +
-+    if (prev) *prev = mutex->count;
++    if (prev) *prev = 1 - mutex->count;  /* as Windows and the server path do */
 +
 +    mutex->count--;
 +
@@ -1825,7 +1833,7 @@ index 0000000..730d8a4
 +        ret = create_esync( 0, &handle, 0, NULL, 0, 0 );
 +        if (ret != STATUS_NOT_IMPLEMENTED)
 +        {
-+            ERR("Server is running with WINEESYNC but this process is not, please enable WINEESYNC or restart wineserver.\n");
++            MESSAGE("wine: server is running with WINEESYNC but this process is not, please enable WINEESYNC or restart wineserver.\n");
 +            exit(1);
 +        }
 +
@@ -1844,9 +1852,9 @@ index 0000000..730d8a4
 +    {
 +        /* probably the server isn't running with WINEESYNC, tell the user and bail */
 +        if (errno == ENOENT)
-+            ERR("Failed to open esync shared memory file; make sure no stale wineserver instances are running without WINEESYNC.\n");
++            MESSAGE("wine: failed to open esync shared memory file; make sure no stale wineserver instances are running without WINEESYNC.\n");
 +        else
-+            ERR("Failed to initialize shared memory: %s\n", strerror( errno ));
++            MESSAGE("wine: failed to initialize shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -2664,7 +2672,7 @@ index 0000000..bee01b9
 +        ret = create_msync( 0, &handle, 0, NULL, 0, 0 );
 +        if (ret != STATUS_NOT_IMPLEMENTED)
 +        {
-+            ERR("Server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
++            MESSAGE("wine: server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
 +            exit(1);
 +        }
 +
@@ -2686,15 +2694,15 @@ index 0000000..bee01b9
 +    {
 +        /* probably the server isn't running with WINEMSYNC, tell the user and bail */
 +        if (errno == ENOENT)
-+            ERR("Failed to open msync shared memory file; make sure no stale wineserver instances are running without WINEMSYNC.\n");
++            MESSAGE("wine: failed to open msync shared memory file; make sure no stale wineserver instances are running without WINEMSYNC.\n");
 +        else
-+            ERR("Failed to initialize shared memory: %s\n", strerror( errno ));
++            MESSAGE("wine: failed to initialize shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
 +    if ((shm_tid_fd = shm_open( shm_tid_name, O_RDWR, 0644 )) == -1)
 +    {
-+        ERR("Failed to initialize tid shared memory %s: %s\n", shm_tid_name, strerror( errno ));
++        MESSAGE("wine: failed to initialize tid shared memory %s: %s\n", shm_tid_name, strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -2702,7 +2710,7 @@ index 0000000..bee01b9
 +
 +    if (shm_tid_map == MAP_FAILED)
 +    {
-+        ERR("Failed to map tid shared memory: %s\n", strerror( errno ));
++        MESSAGE("wine: failed to map tid shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -2720,13 +2728,13 @@ index 0000000..bee01b9
 +
 +    if (task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &bootstrap_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed task_get_special_port\n");
++        MESSAGE("wine: failed task_get_special_port\n");
 +        exit(1);
 +    }
 +
 +    if (bootstrap_look_up(bootstrap_port, shm_name + 1, &server_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed bootstrap_look_up for %s\n", shm_name + 1);
++        MESSAGE("wine: failed bootstrap_look_up for %s\n", shm_name + 1);
 +        exit(1);
 +    }
 +#endif
@@ -3012,7 +3020,7 @@ index 0000000..bee01b9
 +
 +    if (mutex->tid != GetCurrentThreadId()) return STATUS_MUTANT_NOT_OWNED;
 +
-+    if (prev) *prev = mutex->count;
++    if (prev) *prev = 1 - mutex->count;  /* as Windows and the server path do */
 +
 +    if (!--mutex->count)
 +    {
