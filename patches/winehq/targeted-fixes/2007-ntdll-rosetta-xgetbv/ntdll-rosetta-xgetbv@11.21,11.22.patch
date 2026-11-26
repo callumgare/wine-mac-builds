@@ -7,19 +7,22 @@ Origin: crossover (ported here)
   CW-Hacks: 23427
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Files: dlls/ntdll/unix/signal_x86_64.c
-  Changes: emulate_xgetbv() and the macOS 15 check verbatim; the call in
-    segv_handler passes sigcontext and goes through leave_handler(), as
-    WineHQ 11.x's segv_handler requires
+  Changes: emulate_xgetbv() and the macOS 15 check as CX's, but returning
+    0x07 on macOS 15 and later and 0x03 before, instead of 0xe7 and 0x07;
+    the call in segv_handler passes sigcontext and goes through
+    leave_handler(), as WineHQ 11.x's segv_handler requires
 Origin: other
   Name: dblark/macos-wine-build
   Version: 3d842d1
   URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
   Note: the same code, in patches/0002-macos-hacks.patch
 Upstream: no
-Why: Rosetta raises #UD for XGETBV; emulate it for XCR0 (0xe7 with AVX on macOS 15+, else 0x07).
+Why: Rosetta raises #UD for XGETBV before macOS 26 (macOS 26's Rosetta runs it itself and returns 0x07); emulate it for XCR0: 0x07 (x87, SSE, AVX) on macOS 15 and later, 0x03 (x87, SSE) before, where Rosetta has no AVX. CrossOver returns 0xe7 and 0x07: 0xe7 claims AVX-512 state, which no Rosetta has, and 0x07 claims AVX state before macOS 15.
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "emulate_xgetbv", "emulated an XGETBV instruction"; disassembly matches (0f 01 d0 check, ecx==0, cmov between 0xe7 and 0x07, rip += 3)
 Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-mxcsr; context only
+Status: 11.21: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7, 0x07); not yet in a build
+ 11.22: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7, 0x07); not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644
@@ -64,11 +67,11 @@ index eed47c9..02860fe 100644
 +    if (sequoia_or_later)
 +    {
 +        /* Arguably we should only claim AVX support if ROSETTA_ADVERTISE_AVX is
-+           set, but presumably apps will also check cpuid. */
-+        RAX_sig(sigcontext) = 0xe7;  /* fpu/mmx, sse, avx, full avx-512 */
++           set, but presumably apps will also check cpuid. No Rosetta has AVX-512. */
++        RAX_sig(sigcontext) = 0x07;  /* x87, sse, avx: what macOS 26's Rosetta returns */
 +    }
 +    else
-+        RAX_sig(sigcontext) = 0x07;  /* fpu/mmx, sse */
++        RAX_sig(sigcontext) = 0x03;  /* x87, sse: no AVX in Rosetta before macOS 15 */
 +
 +    RIP_sig(sigcontext) += 3;
 +    TRACE_(seh)( "emulated an XGETBV instruction\n" );
