@@ -7,7 +7,10 @@ Origin: winehq
   Commit: 343954a86d5ab5f7a094a48d9d75128fe734d88d, 84deba0d1a3e5e15ba4803d3001f80900d5d9aa4
   MR: 8048
   Authors: Brendan Shanks
-  Changes: verbatim (same code as WineHQ 11.22)
+  Changes: as WineHQ's, except that recv()'s result is compared as an int
+    (WineHQ's len < sizeof(msg) converts -1 to size_t, so a recv error was
+    never seen and a persistent one spun winedevice at full CPU), and EINTR
+    is only taken from a failed recv
 Origin: crossover
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
@@ -19,6 +22,7 @@ Why: Wine 10.0 only reports IP address changes through netlink on Linux; on macO
 Programs: none known; needed by winhttp-cache-autoproxy to notice network
  changes (Steam)
 Evidence: Sikarugir 10.0_8: nsiproxy.so: 'PF_SYSTEM socket creation failed', 'SIOCSKEVFILT failed', 'error receiving, len %d'; nsiproxy.sys: UTF-16 wine_nsi_request, wine_nsi_notification; nsiproxy.so has no __wine_unix_call_wow64_funcs.
+Status: 10.0: 2026-11-26: recv errors seen (signed comparison); not yet in a build
 
 diff --git a/dlls/nsiproxy.sys/device.c b/dlls/nsiproxy.sys/device.c
 index c64f61e..fe12ba6 100644
@@ -116,9 +120,9 @@ index 2f6d2d5..a13d77a 100644
 +        int len;
 +
 +        len = recv( sock, &msg, sizeof(msg), 0 );
-+        if (len < sizeof(msg))
++        if (len < (int)sizeof(msg))  /* -1 isn't converted to size_t */
 +        {
-+            if (errno == EINTR) continue;
++            if (len == -1 && errno == EINTR) continue;
 +            ERR( "error receiving, len %d, errno %d.\n", len, errno );
 +            return STATUS_UNSUCCESSFUL;
 +        }
