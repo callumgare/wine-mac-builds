@@ -21,7 +21,7 @@ Evidence: a 32-bit test program calling NtSetLdtEntries with that
  descriptor: on macfixes 11.22-build3 Rosetta prints the error and the
  process spins at 100% CPU; with this patch the call returns 0xc0000002
  and the program continues.
-Expects before it: ntdll-rosetta-cross-process-code-writes; for is_apple_silicon
+Expects before it: ntdll-is-apple-silicon; for is_apple_silicon
 Status: 11.22: 2026-11-16: built in wine-macfixes-11.22-build4;
  tests/regress/ldt-program-selector (the test program above) hangs on
  build3 and passes on build4. Bioscopia passes on build4 (Second Chance

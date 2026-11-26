@@ -23,38 +23,22 @@ Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
 Evidence: Sikarugir 10.0_8: its NtWriteVirtualMemory calls NtQueryVirtualMemory and
  NtProtectVirtualMemory twice after the server call (disassembly). The
  inventory missed it because it adds no strings of its own.
+Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of this patch's CW HACK 18947 (2026-11-26)
 Status: confirmed 2026-11-15 by hand: toggling the entry page's protection
  inside a stuck gmActivator child (lldb, mprotect) let it continue exactly
  as on Sikarugir 10.0_8. Not yet built.
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
-index 4044c62..56eb799 100644
 --- a/dlls/ntdll/unix/virtual.c
 +++ b/dlls/ntdll/unix/virtual.c
-@@ -6192,6 +6192,57 @@ NTSTATUS WINAPI NtReadVirtualMemory( HANDLE process, const void *addr, void *buf
- }
+@@ -6241,6 +6241,38 @@
+     }
  
- 
-+#ifdef __APPLE__
-+static int is_apple_silicon(void)
-+{
-+    static int apple_silicon_status, did_check = 0;
-+    if (!did_check)
-+    {
-+        /* returns 0 for native process or on error, 1 for translated */
-+        int ret = 0;
-+        size_t size = sizeof(ret);
-+        if (sysctlbyname( "sysctl.proc_translated", &ret, &size, NULL, 0 ) == -1)
-+            apple_silicon_status = 0;
-+        else
-+            apple_silicon_status = ret;
-+
-+        did_check = 1;
-+    }
-+
-+    return apple_silicon_status;
+     return apple_silicon_status;
 +}
++#endif
 +
++#ifdef __APPLE__
 +/* CW HACK 18947
 + * If mach_vm_write() is used to modify code cross-process (which is how we implement
 + * NtWriteVirtualMemory), Rosetta won't notice the change and will execute the "old" code.
@@ -83,13 +67,10 @@ index 4044c62..56eb799 100644
 +        NtProtectVirtualMemory( process, &addr, &size, noexec, &origprot );
 +        NtProtectVirtualMemory( process, &addr, &size, origprot, &noexec );
 +    }
-+}
-+#endif
-+
- /***********************************************************************
-  *             NtWriteVirtualMemory   (NTDLL.@)
-  *             ZwWriteVirtualMemory   (NTDLL.@)
-@@ -6211,6 +6262,10 @@ NTSTATUS WINAPI NtWriteVirtualMemory( HANDLE process, void *addr, const void *bu
+ }
+ #endif
+ 
+@@ -6263,6 +6295,10 @@
              if ((status = wine_server_call( req ))) size = 0;
          }
          SERVER_END_REQ;
