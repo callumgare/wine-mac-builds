@@ -252,7 +252,8 @@ def cmd_refresh(argv):
                 apply(c, src, dry=False)
                 continue
             if not wanted:
-                # Not ours to refresh: apply it as a build does (default fuzz).
+                # Not ours to refresh: apply it with patch's default fuzz, so
+                # one stale copy doesn't stop another being refreshed.
                 with open(c.path, "rb") as f:
                     r = subprocess.run(["patch", "-d", str(src), "-p1", "--forward", "--batch", "-s"],
                                        stdin=f, capture_output=True)

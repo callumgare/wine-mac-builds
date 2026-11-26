@@ -46,10 +46,9 @@ Status: 2026-11-18: ported from 11.22. 2026-11-19: CI run 44332082425
  998), as on 11.22 before this patch.
 
 diff --git a/dlls/krnl386.exe16/kernel.c b/dlls/krnl386.exe16/kernel.c
-index 58a0d79..9bd10c4 100644
 --- a/dlls/krnl386.exe16/kernel.c
 +++ b/dlls/krnl386.exe16/kernel.c
-@@ -39,6 +39,11 @@ void *dummy = RaiseException;  /* force importing it from kernel32 */
+@@ -39,6 +39,11 @@
  
  static DWORD process_dword;
  
@@ -61,7 +60,7 @@ index 58a0d79..9bd10c4 100644
  /***********************************************************************
   *           KERNEL thread initialisation routine
   */
-@@ -73,13 +78,23 @@ BOOL WINAPI DllMain( HINSTANCE hinst, DWORD reason, LPVOID reserved )
+@@ -73,13 +78,23 @@
      {
      case DLL_PROCESS_ATTACH:
          init_selectors();
@@ -88,44 +87,40 @@ index 58a0d79..9bd10c4 100644
      }
      return TRUE;
 diff --git a/dlls/krnl386.exe16/kernel16_private.h b/dlls/krnl386.exe16/kernel16_private.h
-index 2fed2f6..4672da2 100644
 --- a/dlls/krnl386.exe16/kernel16_private.h
 +++ b/dlls/krnl386.exe16/kernel16_private.h
-@@ -243,6 +243,8 @@ static const struct ldt_bits code16_segment = { .type = 0x1b, .default_big = 0 }
- static const struct ldt_bits code32_segment = { .type = 0x1b, .default_big = 1 };
+@@ -247,6 +247,8 @@
+ static inline unsigned char ldt_get_flags( WORD sel ) { return ldt_copy->flags[sel >> 3]; }
  
  extern void init_selectors(void);
 +extern BOOL ldt_entries_supported(void);
 +extern BOOL no_16bit;
  extern BOOL ldt_is_system( WORD sel );
  extern BOOL ldt_is_valid( WORD sel );
- extern BOOL ldt_is_32bit( WORD sel );
+ extern void *ldt_get_ptr( WORD sel, DWORD offset );
 diff --git a/dlls/krnl386.exe16/ne_module.c b/dlls/krnl386.exe16/ne_module.c
-index 4789f13..2a34d04 100644
 --- a/dlls/krnl386.exe16/ne_module.c
 +++ b/dlls/krnl386.exe16/ne_module.c
-@@ -960,6 +960,12 @@ HINSTANCE16 WINAPI LoadModule16( LPCSTR name, LPVOID paramBlock )
+@@ -1112,6 +1112,12 @@
+     if (name == NULL) return 0;
  
      TRACE("name %s, paramBlock %p\n", name, paramBlock);
- 
++
 +    if (no_16bit)
 +    {
 +        ERR("can't load 16-bit module %s: this process can't run 16-bit code\n", debugstr_a(name));
 +        return ERROR_FILE_NOT_FOUND;
 +    }
-+
+ 
      /* Load module */
  
-     if ( (hModule = NE_GetModuleByFilename(name) ) != 0 )
 diff --git a/dlls/krnl386.exe16/selector.c b/dlls/krnl386.exe16/selector.c
-index b45b3cd..10be943 100644
 --- a/dlls/krnl386.exe16/selector.c
 +++ b/dlls/krnl386.exe16/selector.c
-@@ -97,6 +97,19 @@ void init_selectors(void)
-     RtlSetBits( &ldt_bitmap, 0, first_ldt_entry );
+@@ -75,6 +75,19 @@
  }
  
-+/***********************************************************************
+ /***********************************************************************
 + *           ldt_entries_supported
 + *
 + * Whether this process can set LDT entries, which all 16-bit code needs.
@@ -138,26 +133,27 @@ index b45b3cd..10be943 100644
 +    return !NtSetLdtEntries( (first_ldt_entry << 3) | 7, null_entry, 0, null_entry );
 +}
 +
- /***********************************************************************
++/***********************************************************************
   *           ldt_is_system
   */
+ BOOL ldt_is_system( WORD sel )
 diff --git a/dlls/krnl386.exe16/wowthunk.c b/dlls/krnl386.exe16/wowthunk.c
-index 72e86bf..474c417 100644
 --- a/dlls/krnl386.exe16/wowthunk.c
 +++ b/dlls/krnl386.exe16/wowthunk.c
-@@ -432,7 +432,14 @@ BOOL WINAPI K32WOWCallback16Ex( DWORD vpfn16, DWORD dwFlags,
+@@ -432,8 +432,15 @@
       * (both for PASCAL and CDECL calling convention), so we simply
       * copy them to the 16-bit stack ...
       */
 -    char *stack = (char *)CURRENT_STACK16 - cbArgs;
 +    char *stack;
-+
+ 
 +    if (no_16bit)
 +    {
 +        ERR("can't call 16-bit code: this process can't run 16-bit code\n");
 +        return FALSE;
 +    }
 +    stack = (char *)CURRENT_STACK16 - cbArgs;
- 
++
      memcpy( stack, pArgs, cbArgs );
  
+     if (dwFlags & WCB16_REGS)

@@ -128,14 +128,10 @@ diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
   *           server_init_process
   *
   * Start the server and create the initial socket pair.
-@@ -1714,6 +1773,10 @@
-     reply_pipe = init_thread_pipe( data );
-     close( reply_pipe );
+@@ -1716,2 +1775,6 @@
  
 +#ifdef __APPLE__
 +    start_server_watch();
 +#endif
 +
      SERVER_START_REQ( init_first_thread )
-     {
-         req->unix_pid    = getpid();
