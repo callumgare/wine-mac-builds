@@ -16,8 +16,10 @@
 # - Adds the version to VERSIONS in flavours/<flavour>.sh.
 # - Carries the flavour's patches over from its previous version: each copy
 #   that applies to the new source without fuzz, in order, gets the version
-#   added to its file name (tools/patch extend). The rest are listed, to
-#   port by hand. Review the result before building.
+#   added to its file name (tools/patch extend). It refuses a copy that
+#   needs fuzz, and one whose header's Needed until is the new version or
+#   earlier; it carries one whose Needed until is a condition, and warns.
+#   The rest are listed, to port by hand. Review the result before building.
 #
 # Needs gpg, curl and shasum.
 

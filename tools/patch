@@ -20,7 +20,10 @@
         Carry the flavour's patches into a newly pinned version: in order,
         each patch whose copy for the flavour's previous version applies to
         <version> without fuzz gets <version> added to that copy (git mv).
-        Patches that don't apply are listed: port them by hand (AGENTS.md).
+        A copy that needs fuzz isn't carried, and nor is one whose Needed
+        until is <version> or earlier. Patches that don't apply are listed:
+        port them by hand (AGENTS.md). Copies whose Needed until is a
+        condition are carried and listed, to check by hand.
         The source directory is changed: pass a scratch copy. tools/pin
         runs this.
     tools/patch rename <old name> <new name> [--base winehq]
@@ -43,8 +46,14 @@
         touching the same files, does P still apply (fuzz 0) to those files
         with every earlier patch but Q? Prints "P needs Q (files)". Compare
         with each header's Expects before it, and declare what's missing
-        (saying whether it's real or only diff context). Same download
-        cache as refresh.
+        (marking a name that's needed only as diff context "(context)").
+        Same download cache as refresh.
+    tools/patch check <flavour> <version>
+        What CI runs for every flavour and pinned version: applies the
+        flavour's copies in order at fuzz 0, as builds do, and fails on a
+        copy that needs fuzz or doesn't apply; then runs deps and fails on
+        a dependency the patch's Expects before it doesn't name. Same
+        download cache as refresh.
 """
 
 import pathlib
@@ -174,11 +183,21 @@ def cmd_extend(argv):
     if not earlier:
         sys.exit(f"{flavour} has no version before {version} to carry patches from")
     prev = max(earlier, key=P.version_key)
+    import patch_header
     have = {c.patch.name: c for c in P.resolve(base, sets, version)}
-    carried, missing = [], []
+    carried, missing, ended, conditions = [], [], [], []
     for c in P.resolve(base, sets, prev):
         name = c.patch.name
         use = have.get(name)
+        if use is None:
+            h = patch_header.parse(c.path)
+            until = h.fields.get("Needed until")
+            nu = patch_header.needed_until(h)
+            if nu and P.version_key(version) >= P.version_key(nu):
+                ended.append(f"{name} (Needed until: {until})")
+                continue
+            if until and not nu:
+                conditions.append(f"{name} (Needed until: {until})")
         if use is None and apply(c, src, dry=True):
             use = c
             dst = c.path.with_name(
@@ -193,10 +212,19 @@ def cmd_extend(argv):
             sys.exit(f"{use.file} passed its dry run but didn't apply")
     print(f"{flavour} {version}: carried {len(carried)} patches from {prev}; "
           f"{len(have)} already had a copy for {version}")
+    if ended:
+        print(f"Not carried (their Needed until is {version} or earlier):")
+        for n in ended:
+            print(f"  {n}")
     if missing:
         print("Not carried (doesn't apply without fuzz; port by hand, then tools/patch split "
               "or add a copy):")
         for n in missing:
+            print(f"  {n}")
+    if conditions:
+        print(f"Needed until a condition: check that it still holds at {version}, and drop the "
+              "copy from this version if not:")
+        for n in conditions:
             print(f"  {n}")
 
 
@@ -229,18 +257,12 @@ def cmd_rename(argv):
 
 
 def cmd_refresh(argv):
-    import os
     import tempfile
     fuzz = opt(argv, "--fuzz", None)
     flavour, version, *names = argv
     fl = P.flavour(flavour)
     copies = P.resolve(fl["base"], fl["sets"], version)
-    inputs = (ROOT / "inputs" / fl["base"] / f"{version}.sh").read_text()
-    sha = next(l.split('"')[1] for l in inputs.splitlines() if l.startswith("WINE_SHA256="))
-    cache = pathlib.Path(os.environ.get("WMB_CACHE_DIR", ROOT / ".cache"))
-    tarball = next((cache / sha).glob("wine-*.tar.xz"), None) if (cache / sha).is_dir() else None
-    if tarball is None:
-        sys.exit(f"WineHQ's {version} tarball isn't in {cache}/{sha}/ (set WMB_CACHE_DIR)")
+    tarball = tarball_for(fl["base"], version)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         subprocess.run(["tar", "-xf", str(tarball), "-C", str(tmp)], check=True)
@@ -300,19 +322,22 @@ def cmd_refresh(argv):
         print(f"every copy applies at fuzz 0 at {version}")
 
 
-def cmd_deps(argv):
+def tarball_for(base, version):
     import os
-    import tempfile
-    flavour, version, *names = argv
-    fl = P.flavour(flavour)
-    copies = P.resolve(fl["base"], fl["sets"], version)
-    inputs = (ROOT / "inputs" / fl["base"] / f"{version}.sh").read_text()
+    inputs = (ROOT / "inputs" / base / f"{version}.sh").read_text()
     sha = next(l.split('"')[1] for l in inputs.splitlines() if l.startswith("WINE_SHA256="))
     cache = pathlib.Path(os.environ.get("WMB_CACHE_DIR", ROOT / ".cache"))
     tarball = next((cache / sha).glob("wine-*.tar.xz"), None) if (cache / sha).is_dir() else None
     if tarball is None:
         sys.exit(f"WineHQ's {version} tarball isn't in {cache}/{sha}/ (set WMB_CACHE_DIR)")
+    return tarball
 
+
+def find_deps(copies, src, tmp, names=()):
+    """For each copy P (or those named) and each earlier copy Q touching the
+    same files: does P still apply at fuzz 0 to those files with every
+    earlier patch but Q? Yields (P name, Q name, shared files) when it
+    doesn't. src is the unpatched source tree; tmp a scratch folder."""
     def split(path):
         body = path.read_text().split("\n\n", 1)[1]
         out, cur, buf = {}, None, []
@@ -332,50 +357,102 @@ def cmd_deps(argv):
                               input=text, text=True, capture_output=True).returncode == 0
 
     diffs = [(c.patch.name, split(c.path)) for c in copies]
+    for i, (pname, pd) in enumerate(diffs):
+        if names and pname not in names:
+            continue
+        for j in range(i):
+            qname, qd = diffs[j]
+            shared = sorted(set(pd) & set(qd))
+            if not shared:
+                continue
+            work = tmp / "w"
+            shutil.rmtree(work, ignore_errors=True)
+            for f in shared:
+                (work / f).parent.mkdir(parents=True, exist_ok=True)
+                if (src / f).exists():
+                    shutil.copy(src / f, work / f)
+            ok = True
+            for k in range(i):
+                if k == j:
+                    continue
+                for f in shared:
+                    if f in diffs[k][1] and not run_patch(work, diffs[k][1][f]):
+                        ok = None   # an earlier patch needs Q too; can't tell here
+            if ok is None:
+                continue
+            if not all(run_patch(work, pd[f], "--fuzz=0", "--dry-run") for f in shared):
+                yield pname, qname, shared
+
+
+def cmd_deps(argv):
+    import tempfile
+    flavour, version, *names = argv
+    fl = P.flavour(flavour)
+    copies = P.resolve(fl["base"], fl["sets"], version)
+    tarball = tarball_for(fl["base"], version)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         subprocess.run(["tar", "-xf", str(tarball), "-C", str(tmp)], check=True)
-        src = tmp / f"wine-{version}"
-        for i, (pname, pd) in enumerate(diffs):
-            if names and pname not in names:
+        for pname, qname, shared in find_deps(copies, tmp / f"wine-{version}", tmp, names):
+            print(f"{pname} needs {qname} ({', '.join(shared)})")
+
+
+def cmd_check(argv):
+    """What CI runs for each flavour and version: every copy applies at fuzz 0
+    in order, and every dependency tools/patch deps finds is declared."""
+    import tempfile
+    import patch_header
+    flavour, version = argv
+    fl = P.flavour(flavour)
+    copies = P.resolve(fl["base"], fl["sets"], version)
+    tarball = tarball_for(fl["base"], version)
+    problems = []
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        subprocess.run(["tar", "-xf", str(tarball), "-C", str(tmp)], check=True)
+        pristine = tmp / f"wine-{version}"
+        tree = tmp / "tree"
+        shutil.copytree(pristine, tree, symlinks=True)
+        for c in copies:
+            if apply(c, tree, dry=False):
                 continue
-            for j in range(i):
-                qname, qd = diffs[j]
-                shared = sorted(set(pd) & set(qd))
-                if not shared:
-                    continue
-                work = tmp / "w"
-                shutil.rmtree(work, ignore_errors=True)
-                for f in shared:
-                    (work / f).parent.mkdir(parents=True, exist_ok=True)
-                    if (src / f).exists():
-                        shutil.copy(src / f, work / f)
-                ok = True
-                for k in range(i):
-                    if k == j:
-                        continue
-                    for f in shared:
-                        if f in diffs[k][1] and not run_patch(work, diffs[k][1][f]):
-                            ok = None   # an earlier patch needs Q too; can't tell here
-                if ok is None:
-                    continue
-                if not all(run_patch(work, pd[f], "--fuzz=0", "--dry-run") for f in shared):
-                    print(f"{pname} needs {qname} ({', '.join(shared)})")
+            with open(c.path, "rb") as f:
+                r = subprocess.run(["patch", "-d", str(tree), "-p1", "--forward", "--batch", "-s"],
+                                   stdin=f, capture_output=True)
+            problems.append(f"{c.file}: " + ("needs fuzz at " if r.returncode == 0 else "doesn't apply to ")
+                            + f"{version}; tools/patch refresh {flavour} {version} {c.patch.name}"
+                            + ("" if r.returncode == 0 else " or port it"))
+            if r.returncode:
+                break
+        shutil.rmtree(tree)
+        declared = {}
+        for c in copies:
+            value = patch_header.parse(c.path).fields.get("Expects before it", "")
+            declared[c.patch.name] = {n for n, _ in patch_header.parse_names(value)[0]} if value else set()
+        by_name = {c.patch.name: c for c in copies}
+        for pname, qname, shared in find_deps(copies, pristine, tmp):
+            if qname not in declared[pname]:
+                problems.append(f"{by_name[pname].file}: needs {qname} ({', '.join(shared)}) at {version}, "
+                                "but Expects before it doesn't name it (add it, with (context) if it's "
+                                "only the diff's context)")
+    for line in problems:
+        print(line, file=sys.stderr)
+    print(f"{flavour} {version}: {len(copies)} copies, {len(problems)} problem(s)", file=sys.stderr)
+    return 1 if problems else 0
 
 
 def main(argv):
     cmds = {"new": cmd_new, "split": cmd_split, "renumber-versions": cmd_renumber_versions,
             "extend": cmd_extend, "rename": cmd_rename, "refresh": cmd_refresh,
-            "deps": cmd_deps}
+            "deps": cmd_deps, "check": cmd_check}
     if not argv or argv[0] not in cmds:
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        cmds[argv[0]](argv[1:])
+        return cmds[argv[0]](argv[1:]) or 0
     except ValueError as e:
         print(f"tools/patch {argv[0]}: {e} (usage below)\n\n{__doc__}", file=sys.stderr)
         return 2
-    return 0
 
 
 if __name__ == "__main__":
