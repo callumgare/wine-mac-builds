@@ -32,10 +32,15 @@ Seen on: macOS 26.7.2 (M1 Max, 10.0: tests/regress/abandoned-mutex, 8 of 8
 Fine on: macOS 26.7.2 (M1 Max, 11.22: 3 of 3 runs passed without the patch)
 Related: ntdll-msync; with WINEMSYNC or WINEESYNC its own abandon path
  handles these mutexes
-Status: 10.0: 2026-11-26: written; not yet in a build. Its wineserver,
+Status: 10.0: 2026-11-26: written. Its wineserver,
  built with AddressSanitizer outside the build, passed abandoned-mutex 7
  of 7 (i686 and x86_64), with no ASan report; without the fix 4 of 4 were
  reported as heap-use-after-free
+ 10.0: 2026-11-26: quick 20261126T044550 (macOS 26.7.2, M1 Max): the
+ regression suite passed (GL and window tests in a GUI session); smoke
+ stopped at its audio step, which failed for every build and for afplay
+ while meeka's audio output was wedged; abandoned-mutex
+ passes (i686, x86_64), where quick 20261126T024442 crashed wineserver
 
 diff --git a/server/mutex.c b/server/mutex.c
 --- a/server/mutex.c

@@ -85,10 +85,15 @@ Uncertain: performance against plain wineserver waits isn't measured; not
  waiter hangs as before, an esync one may read a reused shm slot).
 Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
 Status: 10.0: 2026-11-26: abandoned mutex after its last handle is closed
- (msync and esync); not yet in a build
+ (msync and esync)
  10.0: 2026-11-26: NtReleaseMutant previous count (msync and esync), mismatch
  exits printed with MESSAGE: quick builds 20261126T013940 and T024442
  (macOS 26.7.2, M1 Max): smoke and the regression suite passed
+ 10.0: 2026-11-26: quick 20261126T044550 (macOS 26.7.2, M1 Max): the
+ regression suite passed (GL and window tests in a GUI session); smoke
+ stopped at its audio step, which failed for every build and for afplay
+ while meeka's audio output was wedged; msync-abandoned-mutex,
+ esync-abandoned-mutex and msync pass (i686, x86_64)
 
 diff --git a/README.esync b/README.esync
 new file mode 100644
