@@ -33,6 +33,8 @@ Expects before it: nsiproxy-macos-change-notifications (run time); without
 No test: needs a network change
 Status: 10.0: 2026-11-25: three calls on wine-macfixes-10.0-build0 took
  419 ms, 0 ms, 0 ms (no WPAD on that network)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winhttp/session.c b/dlls/winhttp/session.c
 index e8e2861..e26fdd0 100644

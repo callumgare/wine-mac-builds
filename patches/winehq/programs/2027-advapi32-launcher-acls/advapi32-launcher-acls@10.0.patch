@@ -40,7 +40,9 @@ Risk: always on: changes only the security that's reported (owner and
  DACL), only to a process named Agent.exe, for files under its folders
 Uncertain: whether Battle.net still needs it.
 Status: 10.0: 2026-11-26: takes the DACL from the descriptor instead of
- *dacl (crashed with dacl NULL); not yet in a build
+ *dacl (crashed with dacl NULL)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/advapi32/security.c b/dlls/advapi32/security.c
 index 97304d6..e9b8918 100644

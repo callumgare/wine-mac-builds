@@ -31,10 +31,16 @@ Messages: "Setting debug registers is not supported under Rosetta, faking
 Uncertain: a program that sets a hardware breakpoint and waits for it
  now gets success and no breakpoint, instead of an error
 Status: 10.0: 2026-11-26: now this copy (the 10.0 copy's dead wineserver
- half dropped); not yet in a build. debug-registers passed on 10.0 build0
+ half dropped). debug-registers passed on 10.0 build0
  with the old copy (2026-11-25, i686 and x86_64).
  11.22: 2026-11-25: debug-registers passes on the 11.22 quick build (i686
  and x86_64, "faking success" logged twice per run); not run without it.
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 7bff70b..adc9260 100644

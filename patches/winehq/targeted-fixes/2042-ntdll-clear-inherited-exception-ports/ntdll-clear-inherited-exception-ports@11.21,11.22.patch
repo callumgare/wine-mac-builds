@@ -26,9 +26,13 @@ Seen on: macOS 26.7.2 (M1 Max): a launcher that points the ports at a port
  nobody answers, then runs Wine (10.0 and 11.22)
 Messages: "task_set_exception_ports failed: %d" (WARN, shown only with
  WINEDEBUG=warn+seh)
-Status: 11.21: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build.
+Status: 11.21: 2026-11-26: clears EXC_MASK_ALL instead of three masks.
  The three-mask version was in macfixes-11.21-build1.
- 11.22: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
+ 11.22: 2026-11-26: clears EXC_MASK_ALL instead of three masks
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

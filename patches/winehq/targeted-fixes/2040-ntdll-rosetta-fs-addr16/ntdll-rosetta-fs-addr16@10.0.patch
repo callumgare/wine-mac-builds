@@ -31,6 +31,8 @@ Expects before it: ntdll-rosetta-xgetbv (context)
 Status: 10.0: built in macfixes-10.0-build2. 2026-11-15: confirmed on Big
  Fish games: Armadillo's stack overflow is gone (traces show "emulated an
  fs: addr32 instruction (8f)").
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 770bef5..8a40639 100644

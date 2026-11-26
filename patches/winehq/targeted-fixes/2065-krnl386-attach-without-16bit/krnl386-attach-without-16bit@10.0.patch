@@ -46,6 +46,8 @@ Uncertain: what a program does when a 16-bit call fails; Budapi's
 Status: 10.0: 2026-11-25: krnl386-attach passes on 10.0 build0
  (krnl386.exe16 loads, LoadLibrary16 returns 2, WOWCallback16Ex returns
  FALSE); it fails on macfixes-10.0-build7, before this patch (error 998).
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/krnl386.exe16/kernel.c b/dlls/krnl386.exe16/kernel.c
 --- a/dlls/krnl386.exe16/kernel.c

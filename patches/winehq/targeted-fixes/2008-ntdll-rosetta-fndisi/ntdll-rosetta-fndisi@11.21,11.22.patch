@@ -44,9 +44,13 @@ Expects before it: ntdll-rosetta-cet-rdssp (context),
 No test: can't fail on our Macs: Rosetta on macOS 15 and later runs
  FNDISI itself
 Status: 11.21: 2026-11-26: the scan stops at a DB not followed by E1 (it
- scanned on into the instruction); not yet in a build
+ scanned on into the instruction)
  11.22: 2026-11-26: the scan stops at a DB not followed by E1 (it
- scanned on into the instruction); not yet in a build
+ scanned on into the instruction)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

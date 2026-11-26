@@ -57,7 +57,9 @@ Expects before it: kernelbase-replace-launchers (context)
 Related: ntdll-cef-command-line-args; it makes Epic's and Ubisoft's CEF
  honour command-line switches (this table has no entry for either)
 Status: 10.0: 2026-11-26: matches the program's file name with wcsicmp
- instead of wcsstr on the path; not yet in a build
+ instead of wcsstr on the path
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index b00cccf..be2b979 100644

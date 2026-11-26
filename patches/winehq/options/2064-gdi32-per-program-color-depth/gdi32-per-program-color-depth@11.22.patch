@@ -33,10 +33,12 @@ Enable: reg HKCU\Software\Wine\AppDefaults\<exe>\Mac Driver\ColorDepth = 8, 16 o
 Uncertain: whether a program needs RC_PALETTE, SIZEPALETTE 256 or NUMCOLORS
  at 8 bits; Director doesn't.
 Status: 11.22: 2026-11-26: notes the palette only for screen DCs, forgets
- a deleted one; not yet in a build.
+ a deleted one.
  11.22: 2026-11-18: the rewrite (gdi32 only) passed color-depth in a host
  quick build (it fails on 11.22-build9). On 11.22-build11, Webmaster with
  ColorDepth "8": no depth prompt, and the right colours (Second Chance).
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/gdi32/dc.c b/dlls/gdi32/dc.c
 --- a/dlls/gdi32/dc.c

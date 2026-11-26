@@ -26,7 +26,9 @@ Enable: env WINENCPU=<n> (per process; 1 <= n < the Mac's logical processor coun
 Messages: "Restricting number of processors to %ld." (WARN, shown only
  with WINEDEBUG=warn+ntdll)
 Uncertain: which program CrossOver added it for (CW HACK 24711).
-Status: 10.0: 2026-11-26: SystemProcessorPerformanceInformation capped too; not yet in a build
+Status: 10.0: 2026-11-26: SystemProcessorPerformanceInformation capped too
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/system.c b/dlls/ntdll/unix/system.c
 --- a/dlls/ntdll/unix/system.c

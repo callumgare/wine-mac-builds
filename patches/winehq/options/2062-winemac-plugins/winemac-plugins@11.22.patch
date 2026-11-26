@@ -35,9 +35,11 @@ Uncertain: a plugin that needs to run before the Mac Driver options are
 Related: winemac-cocoa-start-wait, winemac-activation-policy; they also
  change setup_options and macdrv_init
 Status: 11.22: 2026-11-26: the Plugins registry value dropped and relative
- paths refused (review decision 21); not yet in a build. The earlier form
+ paths refused (review decision 21). The earlier form
  (variable and registry value) passed winemac-plugins in 11.22-build9, and
  Second Chance loaded its helpers through it on meeka (macOS 26.7).
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 index db14f64..591042a 100644

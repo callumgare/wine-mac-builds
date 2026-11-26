@@ -42,9 +42,13 @@ Uncertain: when Rosetta lets such a fault through. Whether smc-rwx guards
  a loop (tests/regress/smc-rwx) faults at the same address and
  instruction every round, legitimately.
 Status: 11.21: 2026-11-26: retries only if the page is writable after the
- toggle; not yet in a build
+ toggle
  11.22: 2026-11-26: retries only if the page is writable after the
- toggle; not yet in a build
+ toggle
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

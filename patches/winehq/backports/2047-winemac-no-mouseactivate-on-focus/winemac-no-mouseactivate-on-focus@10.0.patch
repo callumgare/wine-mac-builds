@@ -34,7 +34,9 @@ Programs: Unity games (WineHQ bug 48121: Magic: The Gathering Arena,
  Subnautica: Below Zero, Desperados III, Yooka-Laylee and the Impossible
  Lair): no input after switching away and back
 No test: needs real Cocoa focus events
-Status: 10.0: 2026-11-26: reduced to the window.c hunk; not yet in a build
+Status: 10.0: 2026-11-26: reduced to the window.c hunk
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
 index 115820e..7223389 100644

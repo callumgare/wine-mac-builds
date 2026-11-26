@@ -27,7 +27,11 @@ Programs: none known
 Enable: by WINEDLLPATH_DXMT (ntdll-renderer-dll-paths) supplying DXMT's nvapi64.dll and nvngx.dll; the files are in every 64-bit prefix
 Related: ntdll-renderer-dll-paths, winemetal-stub
 Status: 11.21, 11.22: 2026-11-26: atidxx64.dll dropped (D3DMetal can't run on
- 11.x); not yet in a build
+ 11.x)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/loader/wine.inf.in b/loader/wine.inf.in
 --- a/loader/wine.inf.in

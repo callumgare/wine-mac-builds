@@ -43,7 +43,9 @@ Uncertain: a thread of the target that runs code on a page while it's
  PROT_EXEC on every readable page, isn't checked)
 Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
  this patch's CW HACK 18947 (2026-11-26)
-Status: 11.21: 2026-11-26: ported from 11.22 (same code); not yet in a build
+Status: 11.21: 2026-11-26: ported from 11.22 (same code)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

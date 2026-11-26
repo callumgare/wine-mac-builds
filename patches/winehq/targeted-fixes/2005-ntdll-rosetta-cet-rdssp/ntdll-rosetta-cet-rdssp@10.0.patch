@@ -37,6 +37,8 @@ Uncertain: which programs run the non-CET 0F 1E forms (compilers use 0F
 Status: 10.0: 2026-11-26: instruction length decoded from ModRM, SIB and
  displacement; the scan stops at an 0F not followed by 1E; not yet
  in a build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

@@ -33,6 +33,10 @@ Known issues: with WINEMSYNC=1, upstream's timed-wait check (sync.c:1765)
  fails because it measures with GetTickCount, not because msync returns
  early: timed with QueryPerformanceCounter, the waits last 100.3 ms or
  more (11.22, 2026-11-25).
+Status: 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/kernel32/tests/sync.c b/dlls/kernel32/tests/sync.c
 index 8623289..0b3ae7e 100644

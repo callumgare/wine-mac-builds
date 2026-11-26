@@ -79,7 +79,9 @@ Known issues: with WINEMSYNC=1 or WINEESYNC=1, a thread waiting on a mutex
 Uncertain: performance against plain wineserver waits isn't measured; not
  run on macOS 10.15 (the __ulock_wait fallback).
 Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
-Status: 10.0: 2026-11-26: NtReleaseMutant previous count (msync and esync), mismatch exits printed with MESSAGE; not yet in a build
+Status: 10.0: 2026-11-26: NtReleaseMutant previous count (msync and esync), mismatch exits printed with MESSAGE
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/README.esync b/README.esync
 new file mode 100644

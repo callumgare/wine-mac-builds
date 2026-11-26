@@ -69,7 +69,9 @@ Uncertain: the mutex fixes are written from the review's measurements and
  wineserver waits isn't measured.
 Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
 Status: 11.21: 2026-11-26: NtReleaseMutant previous count, abandoned mutex
- after its last handle is closed, mismatch printed with MESSAGE; not yet in a build
+ after its last handle is closed, mismatch printed with MESSAGE
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/Makefile.in b/dlls/ntdll/Makefile.in
 --- a/dlls/ntdll/Makefile.in

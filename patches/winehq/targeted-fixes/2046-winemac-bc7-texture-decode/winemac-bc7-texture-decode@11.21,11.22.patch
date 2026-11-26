@@ -40,9 +40,13 @@ Uncertain: whether the game uses mip levels below 4x4 or uploads several
  GL_UNPACK_* settings, which only matter if it changed ROW_LENGTH, SKIP_*
  or IMAGE_HEIGHT for its other uploads.
 Status: 11.21: 2026-11-26: decoder rewritten (sizes not a multiple of 4,
- array layers), PBO uploads passed through; not yet in a build
+ array layers), PBO uploads passed through
  11.22: 2026-11-26: decoder rewritten (sizes not a multiple of 4, array
- layers), PBO uploads passed through; not yet in a build
+ layers), PBO uploads passed through
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 --- a/dlls/winemac.drv/opengl.c

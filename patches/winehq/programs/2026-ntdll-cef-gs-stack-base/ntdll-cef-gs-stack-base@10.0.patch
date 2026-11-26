@@ -49,7 +49,9 @@ Expects before it: ntdll-d3dmetal-code-regions (context)
 Related: ntdll-cef-command-line-args; the other libcef.dll patch at load
 No test: needs specific CEF and Qt WebEngine builds
 Status: 10.0: 2026-11-26: split out of ntdll-cef-binary-patches (review
- decision 8), with the bounds and protection fixes; not yet in a build
+ decision 8), with the bounds and protection fixes
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

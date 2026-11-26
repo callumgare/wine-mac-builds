@@ -36,6 +36,8 @@ Messages: "PF_SYSTEM socket creation failed, errno %d.", "SIOCSKEVFILT
 No test: needs a network change
 Status: 10.0: 2026-11-26: recv errors seen (signed comparison); not yet in
  a build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/nsiproxy.sys/device.c b/dlls/nsiproxy.sys/device.c
 index c64f61e..fe12ba6 100644

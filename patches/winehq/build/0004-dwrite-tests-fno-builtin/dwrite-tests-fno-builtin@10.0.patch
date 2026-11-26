@@ -20,6 +20,8 @@ Why: LLVM 23 (our llvm-mingw, clang 23.1.4) turns floor() of a value it
  It changes only dwrite_test.exe (in the -tests release file).
 Programs: none (build)
 No test: build only; without it the 10.0 build fails to link dwrite_test.exe
+Status: 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/dwrite/tests/Makefile.in b/dlls/dwrite/tests/Makefile.in
 --- a/dlls/dwrite/tests/Makefile.in

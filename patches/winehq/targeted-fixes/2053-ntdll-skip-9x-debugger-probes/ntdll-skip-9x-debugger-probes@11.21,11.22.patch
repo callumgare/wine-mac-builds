@@ -35,6 +35,10 @@ Status: 11.21: built in macfixes-11.21-build3; not yet tried with the
  11.22: built in macfixes-11.22-build1; not yet tried with the games.
  11.22: 2026-11-25: softice-probe passes on the quick build, with two
  "skipped int" lines.
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 9553ebf..264e98c 100644

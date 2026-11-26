@@ -46,9 +46,13 @@ Expects before it: ntdll-rosetta-cet-rdssp (context),
  ntdll-rosetta-mxcsr (context); handle_cet_nop's call in segv_handler,
  the CW HACK 24256 block
 Status: 11.21: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7,
- 0x07); not yet in a build
+ 0x07)
  11.22: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7,
- 0x07); not yet in a build
+ 0x07)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644

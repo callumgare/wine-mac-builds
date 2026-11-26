@@ -47,6 +47,8 @@ Status: 11.22: 2026-11-26: toggles only regions whose current protection
  has execute rights, region by region, and only after a write that
  succeeded; macfixes 11.22 quick20261126T002454 passed cross-process-data-write
  and cross-process-code-write, i686 and x86_64 (macOS 26.7.2, M1 Max)
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

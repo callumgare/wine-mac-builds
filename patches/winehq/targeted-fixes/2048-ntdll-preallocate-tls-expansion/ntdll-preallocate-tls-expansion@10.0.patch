@@ -34,6 +34,8 @@ Status: 10.0: 2026-11-26: diff refreshed against the current stack, so it
  applies at fuzz 0 and needs no other patch as context; code unchanged.
  2026-11-25: on macfixes-10.0-build0 (local), TlsAlloc gave 65, 66, 67 and
  %gs:0x1780 was TEB->TlsExpansionSlots in two threads (patch review)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

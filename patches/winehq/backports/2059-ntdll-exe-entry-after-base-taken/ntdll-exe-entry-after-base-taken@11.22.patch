@@ -22,6 +22,8 @@ Programs: Nancy Drew games (Shadow at the Water's Edge, Sea of Darkness):
  start.exe crashes at its entry point before the game starts (11.22)
 Status: 11.22: 2026-11-26: replaced by WineHQ's d87fb2f5 (patch review); not
  yet in a build. Our earlier fix passed exe-base-taken on 11.22.
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index c6b9aefe92d2..e8a93a5c40bf 100644

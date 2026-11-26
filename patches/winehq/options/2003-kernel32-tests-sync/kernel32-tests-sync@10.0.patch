@@ -23,7 +23,9 @@ Programs: none (tests)
 Enable: see ntdll-msync (WINEMSYNC=1 or WINEESYNC=1 when running kernel32_test.exe sync)
 Known issues: with WINEMSYNC=1 or WINEESYNC=1, the SignalObjectAndWait
  check on a file handle (sync.c:183) fails (2 of 2 runs, 2026-11-25).
-Status: 10.0: 2026-11-26: the two todo_wine_if markers also cover WINEMSYNC; not yet in a build
+Status: 10.0: 2026-11-26: the two todo_wine_if markers also cover WINEMSYNC
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/kernel32/tests/sync.c b/dlls/kernel32/tests/sync.c
 index 49420e4..f2e1e13 100644

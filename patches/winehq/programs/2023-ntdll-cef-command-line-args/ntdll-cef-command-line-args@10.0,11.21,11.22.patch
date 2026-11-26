@@ -44,6 +44,12 @@ No test: needs specific CEF builds
 Status: 10.0, 11.21, 11.22: 2026-11-26: split out of ntdll-cef-binary-patches
  (review decision 8), with the bounds and protection fixes; not yet in a
  build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
 --- a/dlls/ntdll/loader.c

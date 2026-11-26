@@ -29,6 +29,8 @@ No test: none written yet; a D2R.exe copy of renderer-dll-paths' program under
  WINEDLLPATH_DXVK, which must get Wine's d3d11, would cover it
 Status: 10.0: 2026-11-26: diff context refreshed for ntdll-launcher-metal-hud's
  change; code as in build0
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c

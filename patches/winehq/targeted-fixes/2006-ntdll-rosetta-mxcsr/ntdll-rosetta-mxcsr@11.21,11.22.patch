@@ -40,6 +40,10 @@ Uncertain: everything about the M3 behaviour comes from CrossOver's
  M3, so neither copy's thunk has been seen to act
 No test: needs an M3: on M1 and M2 Rosetta's signal contexts carry the
  right MXCSR, so a test passes either way
+Status: 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 774a142..eed47c9 100644

@@ -43,6 +43,8 @@ No test: timing only: the stress program shows two threads overlapping,
  but the crash needs a narrower interleaving than it reaches
 Status: 10.0: 2026-11-17: built in macfixes-10.0-build7; the regression
  suite passes on macOS 15.6.1 (42 passed, none skipped). No games run.
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 4a6ae6f..8aa34b0 100644

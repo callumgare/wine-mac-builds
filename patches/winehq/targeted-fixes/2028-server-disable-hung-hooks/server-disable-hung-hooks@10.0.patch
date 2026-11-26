@@ -28,6 +28,8 @@ Uncertain: CrossOver 26 no longer carries this; why isn't known.
 References: https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc (Remarks)
 Status: 10.0: 2026-11-26: remove_hook() instead of clearing proc; not yet in
  a build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/server/hook.c b/server/hook.c
 index ffe7206..9c61c7b 100644

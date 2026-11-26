@@ -47,7 +47,11 @@ Known issues: SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0"
  (GetEnvironmentVariable), which comes from the launcher's.
 Expects before it: ntdll-vulkan-bundled-driver (context), ntdll-simulate-writecopy (context), ntdll-renderer-dll-paths
 Status: 11.21, 11.22: 2026-11-26: the value is restored for processes a launcher
- starts (ported with the 10.0 fix: same code); not yet in a build
+ starts (ported with the 10.0 fix: same code)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c

@@ -30,7 +30,11 @@ Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud (context)
 No test: none written yet; a D2R.exe copy of renderer-dll-paths' program under
  WINEDLLPATH_DXVK, which must get Wine's d3d11, would cover it
 Status: 11.21, 11.22: 2026-11-26: WINEDLLPATH_D3DMETAL and
- SIKARUGIR_D2R_FORCE_VKD3D removed; not yet in a build
+ SIKARUGIR_D2R_FORCE_VKD3D removed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c

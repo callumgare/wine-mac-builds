@@ -43,6 +43,10 @@ Status: 11.22: 2026-11-17: built in macfixes-11.22-build7; the regression
  A turned out to be another bug, and still happened with this patch.
  11.21: 2026-11-17: built in macfixes-11.21-build8; the regression suite
  passes on macOS 15.6.1. No games run.
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 5488840..5bb2850 100644

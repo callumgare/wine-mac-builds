@@ -34,6 +34,10 @@ Status: 11.21: 2026-11-26: remove_hook() instead of clearing proc; not yet
  in a build
  11.22: 2026-11-26: remove_hook() instead of clearing proc; not yet in a
  build
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/server/hook.c b/server/hook.c
 index 0a72229..3b310e2 100644

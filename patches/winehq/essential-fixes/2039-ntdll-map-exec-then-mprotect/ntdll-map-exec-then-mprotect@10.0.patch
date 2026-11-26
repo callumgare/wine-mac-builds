@@ -36,7 +36,9 @@ Uncertain: which files macOS refuses PROT_EXEC for. Measured on macOS
  SEC_IMAGE views in tests/regress/map-exec-file-view fail on plain 10.0
  isn't established, nor whether mapping first avoids the Gatekeeper
  prompt.
-Status: 10.0: 2026-11-26: falls back to the original mmap if the mprotect fails; not yet in a build
+Status: 10.0: 2026-11-26: falls back to the original mmap if the mprotect fails
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

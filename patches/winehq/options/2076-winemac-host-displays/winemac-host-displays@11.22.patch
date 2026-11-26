@@ -55,6 +55,8 @@ Status: 11.22: 2026-11-26: a displays_get that timed out (or failed) is
  (macOS 15.6.1), host16 with no Wine helpers loaded: Wine saw 1512x945,
  and a popup over the primary monitor filled the screen up to the notch.
  host16 also passed Second Chance's full hosted integration run on meeka.
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/cocoa_display.m b/dlls/winemac.drv/cocoa_display.m
 index bbc47e0..fe717fe 100644

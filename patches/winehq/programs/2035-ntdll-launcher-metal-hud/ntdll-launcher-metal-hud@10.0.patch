@@ -43,7 +43,9 @@ Known issues: SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0"
  (GetEnvironmentVariable), which comes from the launcher's.
 Expects before it: ntdll-renderer-dll-paths
 Status: 10.0: 2026-11-26: the value is restored for processes a launcher starts
- (the review's bug, measured on 10.0 build0); not yet in a build
+ (the review's bug, measured on 10.0 build0)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c

@@ -27,6 +27,8 @@ Programs: none known; any program typed into with an input method whose
  sources")
 No test: needs real input-method events
 Status: 10.0: 2026-11-15: not yet built (no later record)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 index 4e31590..b482cb5 100644

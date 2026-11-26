@@ -40,7 +40,9 @@ Expects before it: kernelbase-replace-launchers (context),
 Related: ntdll-cef-command-line-args; Epic Games Launcher's and Ubisoft
  Connect's CEF take switches from the command line only with it
 Status: 10.0: 2026-11-26: runs after the CEF flags (review decision
- 15); accepts REG_EXPAND_SZ; not yet in a build
+ 15); accepts REG_EXPAND_SZ
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
 index be2b979..1d9132d 100644

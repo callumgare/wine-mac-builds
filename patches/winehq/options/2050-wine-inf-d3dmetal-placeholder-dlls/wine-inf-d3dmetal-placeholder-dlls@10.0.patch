@@ -29,6 +29,8 @@ Programs: none known
 Enable: by WINEDLLPATH_D3DMETAL or WINEDLLPATH_DXMT (ntdll-renderer-dll-paths) supplying DLLs of these names; the files are in every 64-bit prefix
 Related: ntdll-renderer-dll-paths, kernelbase-nvngx-d3dmetal, winemetal-stub
 Status: 10.0: 2026-11-26: header only (the 11.x copy is now separate). In build0
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/loader/wine.inf.in b/loader/wine.inf.in
 index 9288b58..7c491f5 100644
