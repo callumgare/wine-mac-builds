@@ -65,7 +65,7 @@ All guard patches in macfixes' patch sets, named as in
 | `simulate-writecopy` | `ntdll-simulate-writecopy` | with `WINE_SIMULATE_WRITECOPY=1`, a copy-on-write page should report `PAGE_READWRITE` as its old protection, as on Windows |
 | `suspend-context-syscall-return` | `ntdll-suspend-context-syscall-return` | `GetThreadContext` on a thread suspended on its way out of a syscall gives the dispatcher's registers, with rsp on Wine's kernel stack (Steam's client: Chromium's stack sampler faults copying from there) |
 | `winemac-activation-policy` | `winemac-activation-policy` | a helper process of an app that embeds Wine gets a Dock icon and the Wine menu and takes focus; the `ActivationPolicy` value set to `accessory` stops that. Needs a window server |
-| `winemac-plugins` | `winemac-plugins` | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`, the `Plugins` value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
+| `winemac-plugins` | `winemac-plugins` | the Mac driver loads no plugin libraries (`WINEMAC_PLUGINS`; absolute paths only, no registry value), so an app embedding Wine has to patch and re-sign winemac.so to add code to it. Needs Xcode's clang and a window server |
 | `winencpu` | `ntdll-cpu-count-cap` | `WINENCPU=n` must cap every processor count a program can ask for |
 | `wmi-threads` | `wbemprox-no-per-table-lock` | WMI queries of the same class from several threads hang on 10.0 (Big Fish games) |
 | **Graphics** | | |
