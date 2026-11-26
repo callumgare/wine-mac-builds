@@ -16,13 +16,26 @@ Origin: crossover
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Files: dlls/nsiproxy.sys/nsi.c, dlls/nsiproxy.sys/device.c
   Note: taken from CX 25.1.1, which carries the WineHQ change; CX's wow64
-    unix-call thunks for nsiproxy are left out (not in 10.0_8)
-Upstream: yes (Wine 10.8)
-Why: Wine 10.0 only reports IP address changes through netlink on Linux; on macOS NotifyAddrChange/NotifyIpInterfaceChange never fire. Watch a PF_SYSTEM kernel event socket instead, and name nsiproxy's threads. CX's wow64 unix-call thunks for nsiproxy are not in 10.0_8 and are left out.
+    unix-call thunks for nsiproxy are left out (not in 10.0_8). Sikarugir
+    10.0_8 ships it: nsiproxy.so: 'PF_SYSTEM socket creation failed',
+    'SIOCSKEVFILT failed', 'error receiving, len %d'; nsiproxy.sys:
+    UTF-16 wine_nsi_request, wine_nsi_notification; nsiproxy.so has no
+    __wine_unix_call_wow64_funcs
+Upstream: yes (Wine 10.8); the recv() comparison fix is a candidate (draft
+ in .local/bug-reports/)
+Needed until: 10.8 (WineHQ has it from 10.8)
+Why: On macOS, Wine 10.0's nsiproxy only watched netlink (Linux), so
+ NotifyAddrChange and NotifyIpInterfaceChange never fired. Watch a
+ PF_SYSTEM kernel event socket for IPv4/IPv6 address events instead, and
+ name nsiproxy's threads.
 Programs: none known; needed by winhttp-cache-autoproxy to notice network
  changes (Steam)
-Evidence: Sikarugir 10.0_8: nsiproxy.so: 'PF_SYSTEM socket creation failed', 'SIOCSKEVFILT failed', 'error receiving, len %d'; nsiproxy.sys: UTF-16 wine_nsi_request, wine_nsi_notification; nsiproxy.so has no __wine_unix_call_wow64_funcs.
-Status: 10.0: 2026-11-26: recv errors seen (signed comparison); not yet in a build
+Messages: "PF_SYSTEM socket creation failed, errno %d.", "SIOCSKEVFILT
+ failed, errno %d.", "error receiving, len %d, errno %d." (ERR, channel
+ nsi; WINEDEBUG=-all hides them)
+No test: needs a network change
+Status: 10.0: 2026-11-26: recv errors seen (signed comparison); not yet in
+ a build
 
 diff --git a/dlls/nsiproxy.sys/device.c b/dlls/nsiproxy.sys/device.c
 index c64f61e..fe12ba6 100644

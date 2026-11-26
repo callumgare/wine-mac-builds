@@ -3,6 +3,7 @@ Summary: EnableMouseInPointer semi-stub: turn it on and send WM_POINTER messages
 Category: input
 Kind: fix
 Origin: winehq
+  Version: 11.4
   Commit: 71b686ce9fdce65416080c834a9103a743dc095c,
     b94237cd34864bd8f920b44532f7827a73784563
   Bugs: 59415
@@ -13,8 +14,11 @@ Origin: winehq
   Changes: win32u_private.h context differs (10.0 has destroy_caret there);
     the user32 test hunks that drop todo_wine from pointer message sequences
     are left out, as 10.0's test_GetPointerInfo has no such checks
-Upstream: yes, since wine-11.3 (committed 2026-02-19; the button fix since
- wine-11.4)
+  Note: 71b686ce9fdc is in Wine 11.3 (committed 2026-02-19), b94237cd3486
+    in 11.4. Sikarugir 10.0_8 ships the first: its win32u has the
+    semi-stub and the mouse-to-WM_POINTER conversion.
+Upstream: yes (Wine 11.3; the button fix, b94237cd3486, since Wine 11.4)
+Needed until: 11.4 (WineHQ b94237cd3486)
 Why: EnableMouseInPointer and IsMouseInPointerEnabled were stubs that
  failed. Now the first EnableMouseInPointer call sets the process-wide
  state, a later call asking for the opposite fails with
@@ -27,10 +31,14 @@ Why: EnableMouseInPointer and IsMouseInPointerEnabled were stubs that
 Programs: In Falsus demo (Unreal Engine, WineHQ bug 59415): no input after
  the title screen. Unity 6 games (bug 53847: The Planet Crafter, How to
  Fish): the mouse is ignored
-Evidence: Sikarugir 10.0_8: its win32u has the semi-stub and the mouse-to-
- WM_POINTER conversion.
-Status: not yet built (2026-11-15).
- 10.0: 2026-11-26: WineHQ b94237cd (pointer button flags) added, applies as is; not yet in a build
+Uncertain: whether it's enough for every Unity 6 game: WineHQ bug 53847 is
+ still open, and so is bug 59429 (In Falsus's rhythm sections, after this
+ fix).
+Status: 10.0: 2026-11-25: build0 (without b94237cd) passes mouse-in-pointer
+ (i686, x86_64); a probe there got a second WM_POINTERDOWN and two
+ WM_POINTERUPs with two buttons.
+ 10.0: 2026-11-26: WineHQ b94237cd (pointer button flags) added, applies as
+ is; not yet in a build
 
 diff --git a/dlls/user32/tests/input.c b/dlls/user32/tests/input.c
 --- a/dlls/user32/tests/input.c
