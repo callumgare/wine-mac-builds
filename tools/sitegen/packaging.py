@@ -68,7 +68,7 @@ def component_versions(d):
 
 
 def anatomy():
-    name, desc = [el("span", "wine", class_="part plain", aria_hidden="true")], []
+    name, desc = [el("span", el("b", "wine"), class_="part plain", aria_hidden="true")], []
     for key, sep, txt, label, text in PARTS:
         if sep:
             name.append(el("span", sep, class_="sep", aria_hidden="true"))
