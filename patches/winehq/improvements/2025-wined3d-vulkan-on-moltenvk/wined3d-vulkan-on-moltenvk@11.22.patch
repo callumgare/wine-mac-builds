@@ -2,37 +2,67 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Use wined3d's Vulkan renderer for Direct3D 10 and 11 on MoltenVK
 Category: graphics
 Kind: feature
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 18311
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 18311 (dlls/wined3d/adapter_vk.c, directx.c, swapchain.c,
-    wined3d_vk.h), without the hunks 10.0_8 lacks: GTA IV/V (CW 19355/19356), multithread_safe,
-    MoltenVK multiple-viewport disable, render-area trim (CX 20098), zero-size swapchain (CX 23854)
+  Files: dlls/wined3d/adapter_vk.c, dlls/wined3d/directx.c,
+    dlls/wined3d/swapchain.c, dlls/wined3d/wined3d_vk.h
+  Changes: the same hunks as CX 26.3.0's CW HACK 18311 (identical code to
+    25.1.1), placed as CX 26 places them in the Wine 11 code: the
+    driver-properties chain goes after the new sampler-filter-minmax
+    properties, and the two extension-table entries stay after
+    VK_KHR_swapchain. Left out, as Sikarugir 10.0_8 lacks them: the GTA IV/V
+    hacks (CW 19355/19356), multithread_safe, the MoltenVK multiple-viewport
+    disable, the render-area trim (CX 20098) and the zero-size swapchain fix
+    (CX 23854)
+  Note: Sikarugir 10.0_8 ships it: wined3d.dll strings "Using the Vulkan
+    renderer for d3d10/11 applications.", "Not running on MoltenVK,
+    defaulting to the OpenGL backend.", "Application using < d3d10 API,
+    defaulting to the OpenGL backend."; its device-extension table has 14
+    entries ending VK_EXT_host_query_reset, VK_KHR_driver_properties
+    (CrossOver's two additions, the first a duplicate of an existing entry);
+    the Vulkan swapchain code compares driverID with 14 (MoltenVK);
+    multiple_viewports is set without a driverID check and there is no "No
+    attachments, trimming render area" string
 Origin: other
   Name: dblark/macos-wine-build
   Version: a6e452f
   URL: https://github.com/dblark/macos-wine-build
   Note: similar code in 0006-wined3d-moltenvk-hacks.patch
+Origin: wine-mac-builds
+  Version: 11.21
+  Changes: the d3d10 test uses WINED3D_LEGACY: WineHQ 11.22 folded
+    WINED3D_PIXEL_CENTER_INTEGER and the other pre-d3d10 flags into it (the
+    same bit, 0x80)
 Upstream: no
-Why: with renderer=auto, d3d10/11 apps get wined3d's Vulkan renderer when the Vulkan
- driver is MoltenVK (else OpenGL as before); Vulkan swapchains on MoltenVK get 3 images
- (CW bug 18838).
+Why: With renderer=auto, Direct3D 10 and 11 programs get wined3d's Vulkan
+ renderer when the Vulkan driver is MoltenVK, instead of the OpenGL one
+ (macOS's OpenGL stops at 4.1). Other programs (d3d8, d3d9 and ddraw set the
+ pre-d3d10 creation flag), and other Vulkan drivers, keep OpenGL. Vulkan
+ swapchains on MoltenVK get 3 images, as MoltenVK's documentation
+ recommends; with 2, fullscreen performance is poor (CW bug 18838).
+ renderer=gl in HKCU\Software\Wine\Direct3D (or WINE_D3D_CONFIG) restores
+ OpenGL.
 Programs: none known
-Evidence: Sikarugir 10.0_8: wined3d.dll strings "Using the Vulkan renderer for d3d10/11
- applications.", "Not running on MoltenVK, defaulting to the OpenGL backend.",
- "Application using < d3d10 API, defaulting to the OpenGL backend."; its device-extension
- table has 14 entries ending VK_EXT_host_query_reset, VK_KHR_driver_properties (CrossOver's
- two additions, the first a duplicate of an existing entry); the Vulkan swapchain code
- compares driverID with 14 (MoltenVK); multiple_viewports is set without a driverID check
- and there is no "No attachments, trimming render area" string
-Port: same hunks as CX 26.3.0's CW HACK 18311 (identical code to 25.1.1), placed as CX 26
- places them in the Wine 11 code: the driver-properties chain goes after the new
- sampler-filter-minmax properties, and the two extension-table entries stay after
- VK_KHR_swapchain. The same CX hunks as before are still left out (10.0_8 lacks them).
- To 11.22: WineHQ 11.22 folded WINED3D_PIXEL_CENTER_INTEGER and the other
- pre-d3d10 flags into WINED3D_LEGACY (same bit, 0x80), so the d3d10 test uses
- WINED3D_LEGACY.
+Messages: "Using the Vulkan renderer for d3d10/11 applications." (ERR on the
+ winediag channel, once per wined3d object a d3d10/11 program creates; shown
+ unless WINEDEBUG hides it); "Not running on MoltenVK, defaulting to the
+ OpenGL backend.", "Application using < d3d10 API, defaulting to the OpenGL
+ backend." (TRACE, hidden unless WINEDEBUG has +d3d)
+Known issues: every d3d8, d3d9 and ddraw program loads MoltenVK and creates
+ and destroys a Vulkan instance (per wined3d object) before falling back to
+ OpenGL, and each fallback leaks the adapter's device extension list (as in
+ CX 26.3.0). VK_EXT_host_query_reset is enabled twice where offered (MoltenVK
+ accepts it). wined3d_get_renderer() still reports OpenGL under auto, so
+ Wine's own d3d10/d3d11 tests read Vulkan-renderer differences as failures.
+Uncertain: whether the Vulkan renderer gives d3d10/11 programs anything the
+ OpenGL one doesn't: a run of d3d11-vulkan-renderer with this patch (11.22
+ quick build, 2026-11-25) reported feature level 9_3, which both probably
+ give on macOS (wined3d's Vulkan renderer needs geometry shaders for 10_0,
+ which MoltenVK isn't known to offer), and which renderer gave it wasn't
+ recorded. Whether the left-out CX hunks are needed: CX says multiple
+ viewports glitch "in multiple games" on MoltenVK.
 
 diff --git a/dlls/wined3d/adapter_vk.c b/dlls/wined3d/adapter_vk.c
 index b761f4c..275c424 100644
