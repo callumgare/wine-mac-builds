@@ -40,6 +40,9 @@ Status: 11.22: 2026-11-26: the Plugins registry value dropped and relative
  Second Chance loaded its helpers through it on meeka (macOS 26.7).
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
  M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: winemac-plugins.sh passes in a GUI session on quick
+ T025644: absolute paths load, missing and relative paths are logged and
+ skipped, the Plugins registry value isn't read
 
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
 index db14f64..591042a 100644

@@ -53,6 +53,10 @@ Status: 11.21: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7,
  M1 Max): smoke and the regression suite passed
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
  M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: same code as 11.22, shown there on macOS 15.6.1 (kiya)
+ 11.22: 2026-11-26: rosetta-xgetbv on macOS 15.6.1 (kiya, M2 Pro), 11.22 quick
+ T025644: XCR0 0x07, passes (i686, x86_64); quick 20261125T052251 without
+ this fix: 0xe7, fails
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644

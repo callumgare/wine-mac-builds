@@ -90,6 +90,10 @@ Status: 11.22: 2026-11-26: review fixes (the GL FBO table keyed by a
  Kotoeri's prediction list showing, which plain mode shares.
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
  M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: a GL program recreating its context 9 times under
+ tools/wmh-testhost (quick T025644): every frame right, no GL errors; the
+ pre-fix build (20261125T052251) also drew right (7 recreations), so the
+ stale-FBO case wasn't reproduced
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 index 5b633c2..26fccf9 100644
