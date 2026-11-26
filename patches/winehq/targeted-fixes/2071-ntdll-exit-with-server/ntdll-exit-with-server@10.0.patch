@@ -3,7 +3,9 @@ Summary: Exit a process when its wineserver is gone
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/ntdll/unix/server.c; written for wine-mac-builds.
+  Version: 11.22
+  Changes: the message is written with write(2) instead of MESSAGE(), which
+    hangs in a thread without a TEB on 10.0
 Upstream: no
 Why: A Wine thread only finds out that the wineserver has gone when its
  next request fails (abort_thread), and the process ends with its last
@@ -15,34 +17,27 @@ Why: A Wine thread only finds out that the wineserver has gone when its
  a kqueue in a thread of its own, with every signal blocked, and exits
  (status 1, "wine: the server is gone; exiting") when the server's end
  closes. The server closes that socket only when it exits or has killed
- the process, so nothing that should go on running is stopped.
+ the process, so nothing that should go on running is stopped. Measured
+ on 11.22 without it: a program whose threads only sleep, the prefix's
+ explorer.exe and its service processes were still running long after
+ wineserver -k9 (half an hour to two hours).
 Programs: Second Chance (an app that embeds Wine): games went on running
- after their wineserver was killed
-Uncertain: macOS only (kqueue); other systems keep the old behaviour.
-Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
- threads only sleep was still running after wineserver -k9 (1 run, and
- the regression test after 10 s). With this change it exited at once in 3
- of 3 runs. In that same unfixed run, the prefix's explorer.exe (its
- desktop thread waits in a message loop) was still running half an hour
- after its wineserver was killed, and 12 service processes of two such
- test prefixes (services.exe, plugplay, svchost, winedevice) were still
- running nearly two hours later. On Second Chance's slot-1, a steam.exe
- whose wineserver had gone spun at 96% CPU for about six hours with its
- services and explorer, slowing the other tests on that Mac.
-Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
- published): server-gone
- passes (the program exited after its wineserver was killed; 1 run).
- The build's full suite: 51 passed, 0 failed, 0 skipped.
- 2026-11-22 (evening): this revision writes the message with
- write() instead of MESSAGE(): in a local test build of the first revision
- (macfixes-10.0-build0, not published) server-gone failed 4 of 4, and the
- watcher thread was found stuck in wine_dbg_printf (10.0's debug output
- needs a TEB, which this thread doesn't have; 11.x copes). With this
- revision's ntdll.so swapped into that build, server-gone passes 3 of 3.
- Not yet in a build as it is now.
- 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
- server-gone fails on macfixes-10.0-build7 (1 run), as on 11.22
- before this patch.
+ after their wineserver was killed; a steam.exe whose wineserver had gone
+ spun at 96% CPU for about six hours with its services and explorer
+Seen on: macOS 26.7.2 (11.22, a program whose two threads only sleep,
+ after wineserver -k9)
+Messages: "wine: the server is gone; exiting" (written to stderr with
+ write(), shown whatever WINEDEBUG says)
+Uncertain: macOS only (kqueue); other systems keep the old behaviour. The
+ cost of the watcher thread waking each time the server sends the
+ process a file descriptor isn't measured.
+Expects before it: ntdll-msync (context),
+ ntdll-async-iosb-unwritable (context); in dlls/ntdll/unix/server.c
+Status: 10.0: 2026-11-22: in the second local test build (macfixes-10.0-build0
+ of a243d7e, not published): server-gone passes (1 run); the full suite 51
+ passed, 0 failed. It fails on macfixes-10.0-build7.
+ 2026-11-26: diff refreshed (ntdll-d3dmetal-ms-abi-thunks dropped), so it
+ applies at fuzz 0; code unchanged.
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 --- a/dlls/ntdll/unix/server.c
@@ -55,7 +50,7 @@ diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
  #ifndef _POSIX_SPAWN_DISABLE_ASLR
  #define _POSIX_SPAWN_DISABLE_ASLR 0x0100
  #endif
-@@ -1636,7 +1637,67 @@
+@@ -1571,7 +1572,67 @@
  }
  
  
@@ -123,9 +118,9 @@ diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
   *           server_init_process
   *
   * Start the server and create the initial socket pair.
-@@ -1714,6 +1773,10 @@
-     reply_pipe = init_thread_pipe( data );
-     close( reply_pipe );
+@@ -1649,6 +1710,10 @@
+ 
+     reply_pipe = init_thread_pipe();
  
 +#ifdef __APPLE__
 +    start_server_watch();

@@ -6,13 +6,34 @@ Origin: crossover
   Version: 25.1.1
   CW-Hacks: 20760
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 CW HACK 20760
-    Source: (sources/wine/dlls/wow64cpu/cpu.c)
-Upstream: no
-Why: Under Rosetta 2 (CPU brand "VirtualApple") use lcall/lretq rather than ljmp for 32-to-64-bit transitions, to avoid a SIGUSR1 race.
+  Files: dlls/wow64cpu/cpu.c
+  Note: Sikarugir 10.0_8 ships it: wow64cpu.dll: "VirtualApple"; two lretq
+    in its disassembly
+  Changes: verbatim
+Upstream: declined (WineHQ bugs 60034 and 60494, closed as a Rosetta bug)
+Why: Under Rosetta 2, wow64cpu's far jump between 32- and 64-bit code
+ sometimes lands at the right address without switching mode, typically
+ after the program has rewritten code it already ran, and the thread
+ crashes at the start of syscall_32to64 (CrossOver's comment calls it a
+ SIGUSR1 race). Under Rosetta (CPU brand "VirtualApple"), switch with
+ lcall into 64-bit code and lretq back instead of ljmp.
 Programs: Iji: crashes in wow64cpu's 32-to-64-bit switch under Rosetta
- (plain 11.21, fault at syscall_32to64)
-Evidence: Sikarugir 10.0_8: wow64cpu.dll: "VirtualApple"; two lretq in its disassembly
+ (plain 11.21, fault at syscall_32to64); MSN Messenger 7.5, Resource
+ Hacker 5.2.8, UltraViewer's installer, wine-mono and Direct3D 9 programs
+ (WineHQ bugs 60034, 60281, 60494)
+Seen on: macOS 26.6.2 (M3 Pro, WineHQ bug 60034); macOS 15.5 (M1), macOS
+ 26.2 (M2) and macOS 27.0.1 (WineHQ bug 60494)
+Uncertain: bug 60494's reporter saw a push/lret variant (64-to-32 only)
+ still fail 3 of 12 runs; whether CrossOver's lcall in the 32-to-64
+ direction avoids the failure entirely isn't shown
+References: https://bugs.winehq.org/show_bug.cgi?id=60034,
+ https://bugs.winehq.org/show_bug.cgi?id=60494,
+ https://bugs.winehq.org/show_bug.cgi?id=60281
+No test: no crash in 12 attempts at provoking it on our Macs; bug 60034's
+ program passes with the patch, and wasn't run without it
+Status: 10.0: 2026-11-25: bug 60034's test program (500 rounds of
+ rewrite and call, Sleep(0) each) passes 6 of 6 on 10.0 build0 (macOS
+ 26.7.2, M1 Max)
 
 diff --git a/dlls/wow64cpu/cpu.c b/dlls/wow64cpu/cpu.c
 index 6c6b235..2edac50 100644

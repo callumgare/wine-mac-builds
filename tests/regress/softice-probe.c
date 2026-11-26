@@ -2,7 +2,7 @@
  *
  * Arch: i686
  * Timeout: 30
- * Guards: ntdll-rosetta-skip-9x-debugger-probes
+ * Guards: ntdll-skip-9x-debugger-probes
  *
  * On macOS, Wine runs 32-bit code in an LDT code segment (%cs 0x107) rather
  * than NT's 0x23. Armadillo, the DRM in Big Fish games, tells Windows 9x

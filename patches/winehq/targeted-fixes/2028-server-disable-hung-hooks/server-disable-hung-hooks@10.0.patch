@@ -2,15 +2,34 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Disable a global low-level hook that stops answering, so input keeps working
 Category: input
 Kind: fix
-Origin: crossover
+Origin: crossover (ported here)
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (server/queue.c, server/hook.c, server/user.h; no CW number)
-    Source: (sources/wine/server/)
+  Files: server/hook.c, server/queue.c, server/user.h
+  Changes: removes the hung hook with remove_hook(), where CX only cleared
+    its proc and left the hook counts counting it. The hung-hook hunks
+    only; CX's esync/msync hunks of queue.c are left out
+  Note: Sikarugir 10.0_8 ships it: wineserver: 'disabling hung hook: tid
+    %04x, proc %#lx'
 Upstream: no
-Why: When a global low-level hook's thread doesn't answer within the 2 s timeout, clear that hook's proc so one stuck hook can't stall input for every app. Only the hung-hook hunks of CX's queue.c are taken; its esync/msync hunks are not.
-Programs: none known
-Evidence: Sikarugir 10.0_8: wineserver: 'disabling hung hook: tid %04x, proc %#lx'.
+Why: A global low-level keyboard or mouse hook is called by sending a
+ message to the thread that set it, and input waits up to 2 s for the
+ answer. When a hook's thread doesn't answer in time, the hook is now
+ removed (remove_hook()), so one stuck hook can't delay every key press and
+ mouse event on the desktop until Wine considers the thread hung (5 s
+ without reading messages). Windows 7 and later do the same: a low-level
+ hook that times out is removed without notice. WineHQ 11.22 still only
+ times out (send_hook_ll_message).
+Programs: none known; programs that set a low-level hook and then stop
+ reading messages (launchers, overlays, hotkey tools)
+Messages: "disabling hung hook: tid %04x, proc %#lx" (wineserver's stderr,
+ only at wineserver debug level 2 or more, e.g. wineserver -d2)
+Uncertain: CrossOver 26 no longer carries this; why isn't known.
+References: https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc (Remarks)
+Status: 10.0: 2026-11-26: remove_hook() instead of clearing proc; not yet in
+ a build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/server/hook.c b/server/hook.c
 index ffe7206..9c61c7b 100644
@@ -47,7 +66,7 @@ index ffe7206..9c61c7b 100644
 +    {
 +        if (hook->proc == proc && hook->owner->id == thread_id)
 +        {
-+            hook->proc = 0;
++            remove_hook( hook );  /* keeps the hook counts right */
 +            return;
 +        }
 +        hook = HOOK_ENTRY( list_next( &global_hooks->hooks[index], &hook->chain ) );

@@ -4,6 +4,7 @@
 # Versions: 11.22
 # Timeout: 150
 # Guards: win32u-desktop-wait
+# Fails without on: wine-macfixes-11.22-build0+0068+host11-test, macOS 26.7.2, M1 Max, 2026-11-22
 #
 # The first process of a session to need the desktop starts explorer.exe
 # and waited only 10 s for it. On a Mac with every core busy, explorer

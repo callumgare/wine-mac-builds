@@ -1,0 +1,87 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Clear Mach exception ports inherited from the parent, such as a crash reporter's
+Category: system
+Kind: fix
+Origin: wine-mac-builds
+  Note: not in Sikarugir
+Upstream: candidate (not drafted; kept on Second Chance's list for later)
+Why: Mach task exception ports are inherited across fork and exec. When
+ the program that starts Wine has a task-level crash handler (Sentry,
+ KSCrash), faults, bad instructions, breakpoints and software exceptions in
+ the Wine process go to it rather than becoming the signals Wine's
+ exception handling is built on, and a Windows program hangs at its first
+ such exception that goes to the handler. ntdll now clears every task
+ exception port (EXC_MASK_ALL, as Second Chance does before starting Wine)
+ when it sets up signal handling, except under a debugger (P_TRACED),
+ which uses them. It used to clear only bad access, bad instruction and
+ arithmetic, and the first int3 still hung under an inherited breakpoint
+ port (measured on 10.0 and 11.22).
+Programs: none known by name; any program started by a launcher whose
+ crash handler takes the task's exception ports (Sentry, KSCrash). Second
+ Chance clears the ports itself before starting Wine.
+Seen on: macOS 26.7.2 (M1 Max): a launcher that points the ports at a port
+ nobody answers, then runs Wine (10.0 and 11.22)
+Messages: "task_set_exception_ports failed: %d" (WARN, shown only with
+ WINEDEBUG=warn+seh)
+Status: 10.0: 2026-11-26: clears EXC_MASK_ALL instead of three masks.
+ The three-mask version was in macfixes-10.0-build2.
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -63,6 +63,7 @@
+ #endif
+ #ifdef __APPLE__
+ # include <mach/mach.h>
++# include <sys/sysctl.h>
+ #endif
+ 
+ #include "ntstatus.h"
+@@ -2803,6 +2804,34 @@ static void *mac_thread_gsbase(void)
+ #endif
+ 
+ 
++#ifdef __APPLE__
++/***********************************************************************
++ *           clear_inherited_exception_ports
++ *
++ * Task exception ports are inherited across fork and exec. If the program
++ * that started Wine set some (a crash reporter such as Sentry or KSCrash,
++ * which take faults, bad instructions, breakpoints and software
++ * exceptions), those Mach exceptions go to that handler instead of becoming
++ * the signals Wine's exception handling depends on, and a Windows program
++ * that relies on its own exception handling hangs. Clear them all, so they
++ * always become signals. Not while a debugger is attached (it receives
++ * exceptions through these ports).
++ */
++static void clear_inherited_exception_ports(void)
++{
++    struct kinfo_proc info;
++    size_t size = sizeof(info);
++    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
++    kern_return_t kr;
++
++    info.kp_proc.p_flag = 0;
++    if (!sysctl( mib, 4, &info, &size, NULL, 0 ) && (info.kp_proc.p_flag & P_TRACED)) return;
++    kr = task_set_exception_ports( mach_task_self(), EXC_MASK_ALL,
++                                   MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE );
++    if (kr != KERN_SUCCESS) WARN_(seh)( "task_set_exception_ports failed: %d\n", kr );
++}
++#endif
++
+ /**********************************************************************
+  *		signal_init_process
+  */
+@@ -2812,6 +2841,10 @@ void signal_init_process(void)
+     WOW_TEB *wow_teb = get_wow_teb( NtCurrentTeb() );
+     void *ptr, *kernel_stack = (char *)ntdll_get_thread_data()->kernel_stack + kernel_stack_size;
+ 
++#ifdef __APPLE__
++    clear_inherited_exception_ports();
++#endif
++
+     amd64_thread_data()->syscall_frame = (struct syscall_frame *)((ULONG_PTR)((char *)kernel_stack
+                                          - sizeof(struct syscall_frame) - xstate_features_size) & ~(ULONG_PTR)63);
+     amd64_thread_data()->xstate_features_size = xstate_features_size;

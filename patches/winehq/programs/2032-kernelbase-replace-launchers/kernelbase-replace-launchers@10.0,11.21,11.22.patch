@@ -1,39 +1,83 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Skip the launchers of ELDEN RING, Armored Core VI and Baldur's Gate 3; run Witcher 3's DX11 build
+Summary: Skip the launchers of ELDEN RING, Armored Core VI and Baldur's Gate 3
 Category: system
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 24.0.7
   CW-Hacks: 22686, 22753, 22704
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz
-  Note: CrossOver 24.0.7 CW HACKs 22686, 22753, 22704; witcher3 entry reproduced from 10.0_8's table
-    Source: (sources/wine/dlls/kernelbase/process.c)
+  Files: dlls/kernelbase/process.c
+  Changes: matches only the program being started (the end of its path, in
+    any case), not a substring anywhere in the application name or command
+    line (CX uses wcsstr on both); on the command line only its first word
+    is replaced. Replaces only when the game's file exists. A replacement
+    longer than MAX_PATH is skipped (CX's lstrcpyW overflows)
+  Note: Sikarugir 10.0_8 ships it: kernelbase.dll (both arches): 'HACK:
+    replacing %s with %s', 'app %s cmdline %s after all hacks', function
+    name hack_replace_command_line, and a 4-entry {substring, replacement}
+    table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE
+    VI, Baldurs Gate 3, and a fourth, Sikarugir's own (The Witcher 3's DX12
+    build to its DX11 one), which this patch leaves out
 Upstream: no
-Why: Start ELDEN RING / Armored Core VI without EasyAntiCheat's start_protected_game.exe, Baldur's Gate 3 without its Larian launcher, and The Witcher 3's DX11 build instead of DX12. Copy into name[] is bounded with lstrcpynW (CX uses lstrcpyW).
+Why: Start ELDEN RING and Armored Core VI without EasyAntiCheat's
+ start_protected_game.exe, which doesn't work in Wine on macOS, and
+ Baldur's Gate 3 without its Larian launcher. When the program being
+ started is one of these files (its path ends with the launcher's folder
+ and name, in any case), kernelbase starts the game's own executable from
+ the same folder instead, if it exists, and puts the game's name in place
+ of the launcher's at the start of the command line. A path to a launcher
+ given as an argument to another program is left alone.
 Programs: ELDEN RING and Armored Core VI: start through EasyAntiCheat's
  start_protected_game.exe; Baldur's Gate 3: starts through its Larian
- launcher; The Witcher 3: runs its DX12 build instead of DX11
-Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): 'HACK: replacing %s with %s', 'app %s cmdline %s after all hacks', function name hack_replace_command_line, and a 4-entry {substring, replacement} table in .rdata (x86_64 file offset 0x9be80): ELDEN RING, ARMORED CORE VI, Baldurs Gate 3, \bin\x64_dx12\witcher3.exe -> \bin\x64\witcher3.exe.
-Port: unchanged from 10.0 (applies with offsets; CreateProcessInternalW still has the
- same app_name/tidy_cmdline handling). CX 26 no longer carries these launcher replacements
- and wine-staging has none, so the 10.0 form is kept.
+ launcher
+Matches: path \ELDEN RING\Game\start_protected_game.exe, \ARMORED CORE VI
+ FIRES OF RUBICON\Game\start_protected_game.exe, \Baldurs Gate
+ 3\Launcher\LariLauncher.exe (the end of the started program's path, any
+ case)
+Messages: "HACK: replacing %s with %s", "HACK: not replacing %s: %s not
+ found" (FIXME, channel process; WINEDEBUG=-all or fixme-all hides them);
+ "app %s cmdline %s after all hacks" (TRACE, channel process; only with
+ +process)
+Risk: always on: changes which program CreateProcess starts, for these three
+ launcher paths only, and only when the game's file is there
+Uncertain: why CrossOver dropped these after 24.x (CX 26.3.0 has none), and
+ whether each game still needs it. Skipping EasyAntiCheat leaves the game
+ offline-only. Whether bg3_dx11.exe started this way still starts the
+ launcher itself (reported on Windows after a 2023 patch), which would
+ loop. A program started with an unquoted path containing spaces and an
+ explicit application name keeps the launcher's name on its command line.
+References: https://steamcommunity.com/app/1086940/discussions/0/3823048293507516727 (bg3_dx11.exe bringing the launcher up)
+Status: 10.0, 11.21, 11.22: 2026-11-26: Witcher 3 entry dropped (review
+ decision 13); matches the program's own path case-insensitively, rewrites
+ only the command line's first word, replaces only when the game exists;
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
-index c58e977..baa4c08 100644
+index c58e977..a9bd78e 100644
 --- a/dlls/kernelbase/process.c
 +++ b/dlls/kernelbase/process.c
-@@ -520,6 +520,66 @@ done:
+@@ -520,6 +520,89 @@ done:
      return ret;
  }
  
 +/* CROSSOVER HACK: start the game itself instead of a launcher that doesn't
-+ * work in Wine; see the table for the bugs. */
-+static WCHAR *hack_replace_command_line( const WCHAR *cmd )
++ * work in Wine; see the table for the bugs. Only the program being started
++ * is matched (the end of its path, in any case), and only when the game's
++ * file exists. On a match, returns TRUE with the game's path in new_app,
++ * and in *new_cmdline the command line with its first word naming the game
++ * (NULL when that word doesn't name the launcher). */
++static BOOL hack_replace_launcher( const WCHAR *app_name, const WCHAR *cmdline,
++                                   WCHAR *new_app, SIZE_T new_app_len, WCHAR **new_cmdline )
 +{
 +    static const struct
 +    {
-+        const WCHAR *substring;
-+        const WCHAR *replacement;
++        const WCHAR *launcher;
++        const WCHAR *game;
 +    }
 +    replacements[] =
 +    {
@@ -48,66 +92,82 @@ index c58e977..baa4c08 100644
 +        /* CW HACK 22704 */
 +        { L"\\Baldurs Gate 3\\Launcher\\LariLauncher.exe",
 +          L"\\Baldurs Gate 3\\bin\\bg3_dx11.exe" },
-+
-+        /* Sikarugir: run The Witcher 3's DX11 build instead of the DX12 one */
-+        { L"\\bin\\x64_dx12\\witcher3.exe",
-+          L"\\bin\\x64\\witcher3.exe" },
 +    };
-+    WCHAR *new_command, *pos;
-+    SIZE_T substring_len, replacement_len, new_len;
++    const WCHAR *start, *end;
++    SIZE_T len, launcher_len = 0, game_len, prefix;
 +    unsigned int i;
++    DWORD attr;
 +
-+    if (!cmd) return NULL;
-+
++    *new_cmdline = NULL;
++    if (!app_name) return FALSE;
++    len = lstrlenW( app_name );
 +    for (i = 0; i < ARRAY_SIZE(replacements); ++i)
 +    {
-+        pos = wcsstr( cmd, replacements[i].substring );
-+        if (!pos) continue;
++        launcher_len = lstrlenW( replacements[i].launcher );
++        if (len >= launcher_len && !wcsicmp( app_name + len - launcher_len, replacements[i].launcher ))
++            break;
++    }
++    if (i == ARRAY_SIZE(replacements)) return FALSE;
 +
-+        substring_len = lstrlenW( replacements[i].substring );
-+        replacement_len = lstrlenW( replacements[i].replacement );
-+        new_len = lstrlenW( cmd );
-+        if (replacement_len > substring_len)
-+            new_len += replacement_len - substring_len;
-+
-+        new_command = RtlAllocateHeap( GetProcessHeap(), 0, sizeof(WCHAR) * (new_len + 1) );
-+        if (!new_command) return NULL;
-+
-+        lstrcpyW( new_command, cmd );
-+        new_command[pos - cmd] = 0;
-+        lstrcatW( new_command, replacements[i].replacement );
-+        lstrcatW( new_command, pos + substring_len );
-+
-+        FIXME( "HACK: replacing %s with %s\n", debugstr_w(cmd), debugstr_w(new_command) );
-+
-+        return new_command;
++    game_len = lstrlenW( replacements[i].game );
++    if (len - launcher_len + game_len >= new_app_len) return FALSE;
++    memcpy( new_app, app_name, (len - launcher_len) * sizeof(WCHAR) );
++    lstrcpyW( new_app + len - launcher_len, replacements[i].game );
++    attr = GetFileAttributesW( new_app );
++    if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
++    {
++        FIXME( "HACK: not replacing %s: %s not found\n", debugstr_w(app_name), debugstr_w(new_app) );
++        return FALSE;
 +    }
 +
-+    return NULL;
++    if (cmdline)
++    {
++        if (cmdline[0] == '"')
++        {
++            start = cmdline + 1;
++            if (!(end = wcschr( start, '"' ))) end = start + lstrlenW( start );
++        }
++        else
++        {
++            for (start = end = cmdline; *end && *end != ' ' && *end != '\t'; end++) ;
++        }
++        if ((SIZE_T)(end - start) >= launcher_len &&
++            !wcsnicmp( end - launcher_len, replacements[i].launcher, launcher_len ))
++        {
++            prefix = end - launcher_len - cmdline;
++            *new_cmdline = RtlAllocateHeap( GetProcessHeap(), 0,
++                                            (lstrlenW( cmdline ) - launcher_len + game_len + 1) * sizeof(WCHAR) );
++            if (!*new_cmdline) return FALSE;
++            memcpy( *new_cmdline, cmdline, prefix * sizeof(WCHAR) );
++            lstrcpyW( *new_cmdline + prefix, replacements[i].game );
++            lstrcatW( *new_cmdline, end );
++        }
++    }
++
++    FIXME( "HACK: replacing %s with %s\n", debugstr_w(app_name), debugstr_w(new_app) );
++    return TRUE;
 +}
 +
  /**********************************************************************
   *           CreateProcessInternalW   (kernelbase.@)
   */
-@@ -560,6 +620,27 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+@@ -560,6 +643,25 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
          app_name = name;
      }
  
-+    /* CROSSOVER HACK: various; see hack_replace_command_line */
++    /* CROSSOVER HACK: see hack_replace_launcher */
 +    {
-+        WCHAR *new_cmd;
++        WCHAR new_app[MAX_PATH], *new_cmd;
 +
-+        if ((new_cmd = hack_replace_command_line( app_name )))
++        if (hack_replace_launcher( app_name, tidy_cmdline, new_app, ARRAY_SIZE(new_app), &new_cmd ))
 +        {
-+            lstrcpynW( name, new_cmd, ARRAY_SIZE(name) );
++            lstrcpyW( name, new_app );
 +            app_name = name;
-+            RtlFreeHeap( GetProcessHeap(), 0, new_cmd );
-+        }
-+
-+        if ((new_cmd = hack_replace_command_line( tidy_cmdline )))
-+        {
-+            if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
-+            tidy_cmdline = new_cmd;
++            if (new_cmd)
++            {
++                if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++                tidy_cmdline = new_cmd;
++            }
 +        }
 +    }
 +    /* end CROSSOVER HACK */

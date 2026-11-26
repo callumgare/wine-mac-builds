@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -108,12 +109,25 @@ def patch_entry(f):
         "name": c.patch.name, "set": c.patch.set, "number": c.patch.number, "file": f,
         "versions": c.versions, "sha256": sha256(ROOT / f), "diff_sha256": diff_sha256(f),
         "summary": header.get("summary"), "category": header.get("category"),
-        "kinds": header.get("kinds"),
+        "kinds": header.get("kinds"), "feature": header.get("feature"),
         # One entry per source the patch comes from (the header's Origin
         # blocks): project, ported_here, and its sub-keys in snake_case.
         "origins": header.get("origins", []),
         "header": header,
     }
+
+
+def feature_entries(applied):
+    """The features the build's patches make up (their headers' Feature), each
+    with its status for this Wine version from patches/features.md."""
+    known = patchsets.features()
+    out = []
+    for name in sorted({p["feature"] for p in applied if p.get("feature")}):
+        f = known.get(name, {})
+        out.append({"name": name, "summary": f.get("summary"),
+                    "status": f.get("status", {}).get(env["WINE_VERSION"]),
+                    "patches": [p["name"] for p in applied if p.get("feature") == name]})
+    return out
 
 
 def patch_set_entry(name):
@@ -196,6 +210,23 @@ if (T / gst_lic).is_dir() and any((T / gst_lic).iterdir()):
 else:
     missing_licenses.append("GStreamer.framework")
 
+# Code a patch adds to Wine under its own licence. bcdec (the BC7 decoder
+# winemac-bc7-texture-decode adds) is MIT or the Unlicense, at the user's
+# choice; ship its text, so the MIT notice goes with the binaries.
+bcdec = SRC / "dlls/winemac.drv/opengl_bcdec.h"
+if bcdec.exists():
+    text = bcdec.read_text(encoding="utf-8-sig")
+    m = re.search(r"/\* LICENSE:\n(.*?)\*/\s*$", text, re.S)
+    v = re.match(r"/\* bcdec\.h - v(\S+)", text)
+    components.append({"name": "bcdec", "version": v.group(1) if v else None,
+                       "license": "MIT OR Unlicense",
+                       "from": "dlls/winemac.drv/opengl_bcdec.h, added by winemac-bc7-texture-decode"})
+    if m:
+        (licenses_dir / "bcdec").mkdir()
+        (licenses_dir / "bcdec" / "LICENSE").write_text(m.group(1).strip() + "\n")
+    else:
+        missing_licenses.append("bcdec")
+
 components.append({"name": "wine-gecko", "version": env["GECKO_VERSION"], "license": "MPL-2.0",
                    "files": [{"url": env["GECKO_X86_URL"], "sha256": env["GECKO_X86_SHA256"]},
                              {"url": env["GECKO_X86_64_URL"], "sha256": env["GECKO_X86_64_SHA256"]}]})
@@ -218,6 +249,9 @@ info = {
     # under components (wine).
     "patch_base": env["PATCH_BASE"],
     "patch_sets": [patch_set_entry(s) for s in env["PATCH_SETS_LIST"].split()],
+    # Features several patches make up (patches/features.md), with whether
+    # each works on this Wine version.
+    "features": feature_entries(components[0]["patches"]),
     "wine_version": env["WINE_VERSION"],
     # What `wine --version` prints: WineHQ's version string, plus the
     # flavour's label from the version-label patch set (the smoke test

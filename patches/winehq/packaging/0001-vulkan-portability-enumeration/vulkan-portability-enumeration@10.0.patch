@@ -3,18 +3,38 @@ Summary: Let Wine's Vulkan find MoltenVK (portability enumeration)
 Category: graphics
 Kind: fix
 Origin: gcenx (ported here)
-  Note: Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
-    (patch 0001), rewritten for wine-mac-builds for Wine 10.0, where winevulkan
-    (not win32u) builds the host instance's create info and there's no
-    host_extensions table.
-    Source: none; follows Gcenx's 0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
-Upstream: no (not in WineHQ as of 11.21)
-Why: as patch 0001. If the host loader offers VK_KHR_portability_enumeration,
- enable it and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR, so the
- bundled Vulkan loader doesn't hide MoltenVK. (Sikarugir's 10.0_8 doesn't need
- this: its wrapper supplies MoltenVK as libvulkan.1.dylib, with no loader.)
-Programs: none known
+  Commit: 83ca5d2b3104
+  URL: https://github.com/Gcenx/macports-wine/blob/fc0301b4896daf29bdf7140d7c67ed01f12aaacd/emulators/wine-devel/files/0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
+  File: emulators/wine-devel/files/0001-win32u-Enable-host-Vulkan-portability-enumeration.diff
+  Changes: rewritten for Wine 10.0, where winevulkan (not win32u) builds the
+    host instance's create info and there's no host_extensions table: a
+    helper enumerates the host's instance extensions, and the extension is
+    added to the copied list
+Upstream: pending (MR !11538; Gcenx, opened 2026-07-31, open on 2026-11-25; not
+ in master at 11.22)
+Needed until: MR !11538 is merged
+Why: MoltenVK is a "portability" Vulkan driver: the Vulkan loader offers it
+ only to an instance created with VK_KHR_portability_enumeration and
+ VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR. Wine's host instance (built
+ by winevulkan in Wine 10.0) asks for neither, so with the loader this project
+ bundles (libvulkan.1.dylib) Vulkan has no device. If the host loader offers
+ VK_KHR_portability_enumeration, this enables it and sets
+ VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR. Sikarugir's 10.0_8 doesn't
+ need this: its wrapper supplies MoltenVK as libvulkan.1.dylib, with no
+ loader.
+Programs: none known; every Vulkan user (DXVK, vkd3d, wined3d's Vulkan
+ renderer) would find no device
+Seen on: macOS 26.7.2 (a native x86_64 program with the 11.22 build0's bundled
+ loader and MoltenVK manifest: vkCreateInstance returns
+ VK_ERROR_INCOMPATIBLE_DRIVER without portability enumeration, and finds one
+ GPU with it)
+References: https://gitlab.winehq.org/wine/wine/-/merge_requests/11538
+Related: ntdll-vulkan-bundled-driver; that one makes the loader find
+ MoltenVK's manifest, this one makes it offer the driver
+No test: build/smoke.sh's Vulkan step creates an instance and finds a GPU,
+ which fails without this
 
+diff --git a/dlls/winevulkan/vulkan.c b/dlls/winevulkan/vulkan.c
 --- a/dlls/winevulkan/vulkan.c
 +++ b/dlls/winevulkan/vulkan.c
 @@ -635,6 +635,23 @@

@@ -1,0 +1,64 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: ntdll: is_apple_silicon(), whether the process runs under Rosetta 2, for other patches
+Category: cpu
+Kind: workaround
+Origin: crossover
+  Version: 26.3.0
+  CW-Hacks: 18947
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Files: dlls/ntdll/unix/virtual.c
+  Changes: only is_apple_silicon() from CW HACK 18947, verbatim, in its own
+    #ifdef __APPLE__ block
+Upstream: no
+Why: Adds a static helper to dlls/ntdll/unix/virtual.c that asks
+ sysctl.proc_translated once whether the process runs translated by
+ Rosetta 2. CrossOver defines it with CW HACK 18947
+ (ntdll-rosetta-cross-process-code-writes), and
+ ntdll-rosetta-refuse-ldt-entries calls it too. Kept in a patch of its own
+ so either can be dropped without breaking the other. It changes nothing
+ by itself.
+Programs: none known
+No test: it changes nothing by itself; its callers' tests cover it
+ (cross-process-code-write, ldt-program-selector)
+Status: 10.0, 11.21, 11.22: 2026-11-26: split out of
+ ntdll-rosetta-cross-process-code-writes; the patched source is the same
+ apart from an #endif/#ifdef pair between the two blocks. Not yet in a
+ build.
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -6671,6 +6671,27 @@
+ }
+ 
+ 
++#ifdef __APPLE__
++static int is_apple_silicon(void)
++{
++    static int apple_silicon_status, did_check = 0;
++    if (!did_check)
++    {
++        /* returns 0 for native process or on error, 1 for translated */
++        int ret = 0;
++        size_t size = sizeof(ret);
++        if (sysctlbyname( "sysctl.proc_translated", &ret, &size, NULL, 0 ) == -1)
++            apple_silicon_status = 0;
++        else
++            apple_silicon_status = ret;
++
++        did_check = 1;
++    }
++
++    return apple_silicon_status;
++}
++#endif
++
+ /***********************************************************************
+  *             NtWriteVirtualMemory   (NTDLL.@)
+  *             ZwWriteVirtualMemory   (NTDLL.@)

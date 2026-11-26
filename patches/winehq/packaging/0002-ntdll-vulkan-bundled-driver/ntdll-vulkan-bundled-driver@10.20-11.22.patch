@@ -2,18 +2,37 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Point the Vulkan loader at the bundled MoltenVK driver
 Category: graphics
 Kind: fix
-Origin: wine-mac-builds
-  Note: written for wine-mac-builds, reproducing behaviour of Gcenx's 11.21 binaries
-    Source: none published. Gcenx's 11.21 ntdll.so does this (read from its disassembly: init_paths checks VK_DRIVER_FILES, VK_ICD_FILENAMES and VK_ADD_DRIVER_FILES, then sets VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d if that's a directory), but it isn't in his macports-wine overlay (any commit), WineHQ 11.21 or master, or wine-staging, as of 2026-11-12.
+Origin: reconstructed
+  Version: Gcenx wine-devel 11.21
+  Binary: lib/wine/x86_64-unix/ntdll.so
+  Functions: init_paths
+  Note: no published source: not in his macports-wine overlay (any
+    commit), WineHQ 11.21 or master, or wine-staging (checked 2026-11-12).
+    Our code, written from what the disassembly does: check the three
+    variables, then set VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d
+    if that's a directory.
+  Changes: none: the binary's behaviour, in our own code
 Upstream: no
-Why: the Vulkan loader only searches its build prefix, /usr/local, /etc and
+Why: The Vulkan loader only searches its build prefix, /usr/local, /etc and
  ~/.config for driver manifests, so without this a relocatable build finds no
  Vulkan driver (MoltenVK) at all: "vkCreateInstance: Found no drivers!".
- Setting VK_DRIVER_FILES (not VK_ADD_) means only the shipped MoltenVK is
- used, as in Gcenx's builds. Users can still override with any of the three
- variables.
-Programs: none known
+ When Wine runs from an installed tree and none of VK_DRIVER_FILES,
+ VK_ICD_FILENAMES and VK_ADD_DRIVER_FILES is set, ntdll sets
+ VK_DRIVER_FILES to <lib/wine>/../../share/vulkan/icd.d if that's a
+ directory. Setting VK_DRIVER_FILES (not VK_ADD_) means only the shipped
+ MoltenVK is used, as in Gcenx's builds; users can still override it with
+ any of the three variables. Wine leaves VK_* variables out of the Windows
+ environment, so programs don't see it (checked on an 11.22 quick build).
+Programs: none known; every Vulkan user (DXVK, vkd3d, wined3d's Vulkan
+ renderer) would find no device
+Related: vulkan-portability-enumeration; that one makes the loader offer
+ MoltenVK, this one makes it find MoltenVK's manifest
+No test: build/smoke.sh's Vulkan step guards it: its probe runs in a sandbox
+ that denies /opt/wmb, /usr/local and /opt/homebrew, where the loader finds
+ no manifest without this. Outside that sandbox, on a Mac with the toolchain
+ in /opt/wmb, the loader finds the toolchain's MoltenVK without it.
 
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
 @@ -378,7 +378,22 @@

@@ -5,6 +5,7 @@
  * Libs: -mwindows -ld3d8 -luser32
  * Wrapper: needs-opengl
  * Guards: wined3d-exact-dirty-range-internal-buffers
+ * Fails without on: wine-macfixes-11.22-build7, macOS 26.7, M1 Max, 2026-11-17; wine-11.22-build1, macOS 26.7, M1 Max, 2026-11-17
  *
  * Wine 11.22's wined3d marks a whole buffer dirty whenever it is mapped for
  * writing (upstream b6810e41), so each small write to one of wined3d's own

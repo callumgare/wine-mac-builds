@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later
  *
  * Arch: x86_64
+ * Versions: 10.0
  * Timeout: 30
  * Guards: kernelbase-nvngx-d3dmetal
  *
@@ -9,6 +10,8 @@
  * FILE_SHARE_READ, OPEN_EXISTING) to read it. With D3DMetal, that has to be
  * D3DMetal's own nvngx.dll, so kernelbase redirects exactly that open to
  * $CX_D3DMETALPATH/wine/x86_64-windows/nvngx.dll when the file exists.
+ * Wine 10.0 only: D3DMetal 3.0 needs Wine 10.4's GSBASE model, so the 11.x
+ * builds leave this out.
  *
  * Passes when, with CX_D3DMETALPATH naming a directory (an absolute Unix
  * path) whose wine\x86_64-windows\nvngx.dll holds a known text, that open

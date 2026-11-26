@@ -3,14 +3,50 @@ Summary: WINEDLLPATH_<renderer>: per-renderer DLL search paths set by the launch
 Category: graphics
 Kind: feature
 Origin: reconstructed
-  Note: reconstructed for wine-mac-builds from Sikarugir's WS12WineSikarugir10.0_8 (no published source): ntdll.so set_dll_path (inlined into init_paths, 0x1e312-0x1e835) and the launcher check at 0x21900
-    Source: none published; behaviour read from the compiled 10.0_8 binary
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 ntdll.so
+  Functions: set_dll_path (inlined into init_paths, 0x1e312-0x1e835), the
+    launcher check at 0x21900
+  Changes: argv from ntdll's main_argc/main_argv instead of
+    _NSGetArgc/_NSGetArgv (the same array on macOS: the preloader shifts argv
+    in place); the launcher check runs once per variable that has an entry
+    instead of once per entry (same result)
+  Note: Sikarugir-only: no CrossOver 26, wine-staging or WineHQ equivalent
 Upstream: no
-Why: Lets the launcher script put each renderer's DLLs on Wine's DLL search path through its own variable (WINEDLLPATH_D3DMETAL, _CNCD, _D9VK, _DXVK, _DXMT, in that order, each a ':'-separated list), searched before Wine's own builtin directory and before WINEDLLPATH. The D3DMetal, D9VK and DXVK lists are left out for launcher and overlay processes (Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar launcher/Social Club, Steam web helper and overlay, Ubisoft Connect), matched by substring on argv[1], so their Chromium UIs keep using wined3d.
+Why: Lets the launcher script put each renderer's DLLs on Wine's DLL search
+ path through its own variable (WINEDLLPATH_D3DMETAL, _CNCD, _D9VK, _DXVK,
+ _DXMT, in that order), each a ':'-separated list of folders laid out like
+ Wine's lib/wine (x86_64-windows, i386-windows, x86_64-unix). They're
+ searched before Wine's own builtin directory and before WINEDLLPATH, so a
+ renderer's d3d11.dll or dxgi.dll replaces Wine's. The D3DMetal, D9VK and
+ DXVK lists are left out for launcher and overlay processes, matched by
+ case-sensitive substring on argv[1], so their Chromium UIs keep using
+ wined3d; the games they start still get them (shown on 10.0 build0: a
+ Battle.net.exe got Wine's dxgi, its child D3DMetal's). With none of the
+ variables set, the search path is unchanged.
 Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
  launcher/Social Club, Steam web helper and overlay, Ubisoft Connect: their
  Chromium UIs would get the D3DMetal, D9VK or DXVK DLLs instead of wined3d
-Uncertain: 10.0_8 reads argv through _NSGetArgc/_NSGetArgv; this uses ntdll's main_argc/main_argv, which hold the same array on macOS (the preloader shifts argv in place). 10.0_8 runs the launcher check per path entry; here it runs once per variable that has at least one entry (same result). Matching is case-sensitive strstr, as in 10.0_8.
+Matches: exe Battle.net.exe, battlenet.overlay.runtime.exe,
+ BlizzardBrowser.exe, BlizzardError.exe, EACefSubProcess.exe,
+ EADesktop.exe, Link2EA.exe, EpicGamesLauncher.exe, EpicWebHelper.exe,
+ EOSOverlayRenderer-Win32-Shipping.exe,
+ EOSOverlayRenderer-Win64-Shipping.exe, GalaxyClient.exe, GalaxyClient
+ Helper.exe, GOG Galaxy Notifications Renderer.exe, steamwebhelper.exe,
+ gameoverlayui.exe, gameoverlayui64.exe, UbisoftConnect.exe,
+ UplayWebCore.exe, UpcElevationService.exe; path Rockstar
+ Games\Launcher\Launcher.exe, Rockstar Games\Social
+ Club\SocialClubHelper.exe
+Enable: env WINEDLLPATH_D3DMETAL=<d3dmetal>/wine (each process that has it)
+ env WINEDLLPATH_CNCD=<folders> (each process that has it)
+ env WINEDLLPATH_D9VK=<folders> (each process that has it; not launchers)
+ env WINEDLLPATH_DXVK=<folders> (each process that has it; not launchers)
+ env WINEDLLPATH_DXMT=<folders> (each process that has it)
+Risk: loads DLLs from the folders the variables name, ahead of Wine's own;
+ whoever sets the environment chooses them
+Related: wine-inf-d3dmetal-placeholder-dlls, winemetal-stub; files in the
+ prefix that let DLLs of those names on these paths load
+Status: 10.0: 2026-11-26: header only. In build0
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 9442a15..c83d0fd 100644

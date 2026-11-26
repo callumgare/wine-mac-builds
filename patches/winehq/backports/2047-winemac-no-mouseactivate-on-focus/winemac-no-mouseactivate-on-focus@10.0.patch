@@ -1,0 +1,58 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Activate a window that gains Mac focus without asking it with a simulated WM_MOUSEACTIVATE
+Category: input
+Kind: fix
+Origin: winehq
+  Version: 10.6
+  Commit: b568eaac4aeb307d289ae6992457411adce6068e
+  Bugs: 48121
+  Authors: Rémi Bernon
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/b568eaac4aeb307d289ae6992457411adce6068e
+  Changes: the same change in CrossOver's text: the old if-block's braces
+    are kept, with CrossOver's hack comment, instead of being unindented
+Origin: crossover
+  Version: 25.1.1
+  CW-Hacks: 18896
+  Files: dlls/winemac.drv/window.c
+  Changes: only the window.c part. CrossOver's hack also changed
+    cocoa_window.m (WINDOW_GOT_FOCUS for focus changes Wine makes itself);
+    that part was dropped on 2026-11-26 (no program known, WineHQ never
+    took it, and WineHQ master removes that event).
+  Note: Sikarugir 10.0_8 ships it: its macdrv_window_got_focus makes no
+    NtUserGetAncestor or NtUserMessageCall call (125 vs 142 instructions,
+    function comparison 2026-11-15)
+Upstream: yes (Wine 10.6; b568eaac4aeb)
+Needed until: 10.6 (WineHQ b568eaac4aeb)
+Why: When a Mac window gained focus, the Mac driver sent it a simulated
+ WM_MOUSEACTIVATE (a click on its menu, HTMENU) to ask whether it wanted to
+ be activated. Windows sends no such message on alt-tab or
+ SetForegroundWindow, and Unity only reactivates when the last
+ WM_MOUSEACTIVATE hit the client area, so Unity games never got focus back
+ after the user switched away (WineHQ bug 48121). Now the window is
+ activated without asking, as WineHQ does from 10.6.
+Programs: Unity games (WineHQ bug 48121: Magic: The Gathering Arena,
+ Subnautica: Below Zero, Desperados III, Yooka-Laylee and the Impossible
+ Lair): no input after switching away and back
+No test: needs real Cocoa focus events
+Status: 10.0: 2026-11-26: reduced to the window.c hunk
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+index 115820e..7223389 100644
+--- a/dlls/winemac.drv/window.c
++++ b/dlls/winemac.drv/window.c
+@@ -1899,12 +1899,7 @@ void macdrv_window_got_focus(HWND hwnd, const macdrv_event *event)
+ 
+     if (can_window_become_foreground(hwnd) && !(style & WS_MINIMIZE))
+     {
+-        /* simulate a mouse click on the menu to find out
+-         * whether the window wants to be activated */
+-        LRESULT ma = send_message(hwnd, WM_MOUSEACTIVATE,
+-                                  (WPARAM)NtUserGetAncestor(hwnd, GA_ROOT),
+-                                  MAKELONG(HTMENU, WM_LBUTTONDOWN));
+-        if (ma != MA_NOACTIVATEANDEAT && ma != MA_NOACTIVATE)
++        /* CrossOver Hack #18896: don't send WM_MOUSEACTIVATE, it breaks Unity games */
+         {
+             TRACE("setting foreground window to %p\n", hwnd);
+             NtUserSetForegroundWindow(hwnd);

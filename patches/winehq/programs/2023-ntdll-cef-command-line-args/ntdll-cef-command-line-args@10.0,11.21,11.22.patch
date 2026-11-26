@@ -1,0 +1,227 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Let three CEF builds take switches from the command line (command_line_args_disabled)
+Category: system
+Kind: workaround
+Origin: crossover (ported here)
+  Version: 26.3.0
+  CW-Hacks: 19252, 23854, 25737
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Files: dlls/ntdll/loader.c
+  Changes: only the command_line_args_disabled entries of CX's
+    apply_binary_patches (the same in 25.1.1 and 26.3.0), in a function of
+    their own called earlier in build_module, after the relay/snoop setup;
+    the %gs and cohtml entries are ntdll-cef-gs-stack-base and
+    ntdll-cohtml-branch. The bounds check counts the patch's size, and the
+    protection change covers the patched bytes rather than one page
+  Note: Sikarugir 10.0_8 ships it: ntdll.dll (x86_64) has 'CEF
+    cmd_line_args_disabled 90.6.7'; i386 ntdll.dll has 'CEF
+    cmd_line_args_disabled x86 111.2.7' and 'x86 135.0.20'
+Upstream: no
+Why: These libcef.dll builds copy command_line_args_disabled from the
+ cef_settings_t a program passes to cef_initialize, and these programs set
+ it, so CEF ignores switches given on the command line. When libcef.dll
+ loads and the bytes at a known offset match (x86_64 CEF 90.6.7; 32-bit
+ CEF 111.2.7 and 135.0.20), the copy is rewritten to store 0.
+Programs: Epic Games Launcher (CEF 90.6.7), Ubisoft Connect (32-bit CEF
+ 111.2.7, 135.0.20): ignore command-line switches
+Matches: dll libcef.dll (exact case); bytes at fixed offsets: 0x3807
+ (x86_64 CEF 90.6.7), 0x114a43 (32-bit CEF 111.2.7), 0x11e92d (32-bit CEF
+ 135.0.20)
+Messages: "Found matching %s, applying patch '%s'", "%s doesn't match patch
+ '%s'", "%s too small to match patch '%s'" (TRACE, channel module; only
+ with +module)
+Risk: always on: rewrites code in third-party DLLs, but only on an exact
+ byte match at a fixed offset, so only in the builds CX tested
+Uncertain: what CX passes these launchers on the command line; nothing in
+ this build does (kernelbase-cef-append-flags has no Epic or Ubisoft
+ entry), so it matters only with a user's CommandLineAppend
+ (kernelbase-commandline-append) or the launcher's own switches. Not run
+ with either program.
+Related: ntdll-cef-gs-stack-base, kernelbase-cef-append-flags,
+ kernelbase-commandline-append; the other libcef.dll patch at load, and the
+ two that add switches to command lines
+No test: needs specific CEF builds
+Status: 10.0, 11.21, 11.22: 2026-11-26: split out of ntdll-cef-binary-patches
+ (review decision 8), with the bounds and protection fixes; not yet in a
+ build
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -2334,6 +2334,157 @@ done:
+ }
+ 
+ 
++#if defined(__i386__) || defined(__x86_64__)
++/* CW HACKs 23854, 19252, 25737: these libcef.dll builds copy command_line_args_disabled
++ * from the cef_settings_t passed to cef_initialize; make them store 0 instead, so CEF
++ * takes switches from the command line. Only where the bytes at the offset match. */
++static void apply_cef_command_line_patches( WINE_MODREF *wm )
++{
++#ifdef __x86_64__
++    static const char before_epic_cmd_line_args_90_6_7[] = {
++        0x8b, 0x47, 0x64,
++        0x89, 0x43, 0x64,
++        0x8b, 0x47, 0x68,              /* mov eax, dword ptr [rdi+0x68] */
++        0x89, 0x43, 0x68,              /* mov dword ptr [rbx + 0x68], eax */
++    };
++    static const char after_epic_cmd_line_args_90_6_7[] = {
++        0x8b, 0x47, 0x64,
++        0x89, 0x43, 0x64,
++        0x31, 0xc0,                     /* xor eax, eax */
++        0x90,                           /* nop */
++        0x89, 0x43, 0x68                /* mov dword ptr [rsi+0x68], eax */
++    };
++    C_ASSERT( sizeof(before_epic_cmd_line_args_90_6_7) == sizeof(after_epic_cmd_line_args_90_6_7) );
++#endif  /* __x86_64__ */
++
++#ifdef __i386__
++    static const char before_cmd_line_args_111_2_7[] = {
++        0x8b, 0x47, 0x38,
++        0x89, 0x46, 0x38,
++        0x8b, 0x47, 0x3c,               /* mov eax, dword ptr [edi+0x3c] */
++        0x89, 0x46, 0x3c                /* mov dword ptr [esi+0x3c], eax */
++    };
++    static const char after_cmd_line_args_111_2_7[] = {
++        0x8b, 0x47, 0x38,
++        0x89, 0x46, 0x38,
++        0x31, 0xc0,                     /* xor eax, eax */
++        0x90,                           /* nop */
++        0x89, 0x46, 0x3c                /* mov dword ptr [esi+0x3c], eax */
++    };
++    C_ASSERT( sizeof(before_cmd_line_args_111_2_7) == sizeof(after_cmd_line_args_111_2_7) );
++
++    static const char before_cmd_line_args_135_0_20[] = {
++        0x8b, 0x47, 0x34,
++        0x89, 0x46, 0x34,
++        0x8b, 0x47, 0x38,               /* mov eax, dword ptr [edi+0x38] */
++        0x89, 0x46, 0x38                /* mov dword ptr [esi+0x38], eax */
++    };
++    static const char after_cmd_line_args_135_0_20[] = {
++        0x8b, 0x47, 0x34,
++        0x89, 0x46, 0x34,
++        0x31, 0xc0,                     /* xor eax, eax */
++        0x90,                           /* nop */
++        0x89, 0x46, 0x38                /* mov dword ptr [esi+0x38], eax */
++    };
++    C_ASSERT( sizeof(before_cmd_line_args_135_0_20) == sizeof(after_cmd_line_args_135_0_20) );
++#endif  /* __i386__ */
++
++
++    struct
++    {
++        const WCHAR *libname;
++        const char *name;
++        const void *before, *after;
++        size_t size;
++        ULONG_PTR offset;
++        BOOL stop_patching_after_success;
++    } static const patches[] =
++    {
++#ifdef __x86_64__
++        /* CW HACK 23854:
++         * Ignore the command_line_args_disabled flag in the cef_settings_t
++         * passed to cef_inititalize. Always set it to 0.
++         */
++        {
++            L"libcef.dll",
++            "CEF cmd_line_args_disabled 90.6.7",
++            before_epic_cmd_line_args_90_6_7,
++            after_epic_cmd_line_args_90_6_7,
++            sizeof(before_epic_cmd_line_args_90_6_7),
++            0x3807,
++            TRUE
++        },
++#endif  /* __x86_64__ */
++
++#ifdef __i386__
++        /* CW HACK 19252:
++         * 32-bit libcef 111.2.7+gebf5d6a+chromium-111.0.5563.148.
++         * (For Ubisoft Connect, has same offsets as CEF builds).
++         * Ignore the command_line_args_disabled flag in the cef_settings_t
++         * passed to cef_inititalize. Always set it to 0.
++         */
++        {
++            L"libcef.dll",
++            "CEF cmd_line_args_disabled x86 111.2.7",
++            before_cmd_line_args_111_2_7,
++            after_cmd_line_args_111_2_7,
++            sizeof(before_cmd_line_args_111_2_7),
++            0x114a43,
++            TRUE
++        },
++
++        /* CW HACK 25737:
++           32-bit libcef 135.0.20+ge7de5c3+chromium-135.0.7049.85.
++           For command_line_args_disabled in an updated Ubisoft Connect. */
++        {
++            L"libcef.dll",
++            "CEF cmd_line_args_disabled x86 135.0.20",
++            before_cmd_line_args_135_0_20,
++            after_cmd_line_args_135_0_20,
++            sizeof(before_cmd_line_args_135_0_20),
++            0x11e92d,
++            TRUE
++        },
++#endif  /* __i386__ */
++    };
++
++    unsigned int i;
++    WCHAR *libname = wm->ldr.BaseDllName.Buffer;
++
++    for (i = 0; i < ARRAY_SIZE(patches); i++)
++    {
++        DWORD old_prot;
++        void *dllbase = wm->ldr.DllBase;
++        void *target = (void *)((ULONG_PTR)dllbase + patches[i].offset);
++        void *addr = target;
++        SIZE_T size = patches[i].size;
++
++        if (wcscmp( libname, patches[i].libname ))
++            continue;
++
++        if (wm->ldr.SizeOfImage < patches[i].offset + patches[i].size)
++        {
++            TRACE( "%s too small to match patch '%s'\n", debugstr_w(libname), patches[i].name );
++            continue;
++        }
++        if (memcmp( target, patches[i].before, patches[i].size ))
++        {
++            TRACE( "%s doesn't match patch '%s'\n", debugstr_w(libname), patches[i].name );
++            continue;
++        }
++
++        TRACE( "Found matching %s, applying patch '%s'\n", debugstr_w(libname), patches[i].name );
++        NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, PAGE_EXECUTE_READWRITE, &old_prot );
++        memcpy( target, patches[i].after, patches[i].size );
++        NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, old_prot, &old_prot );
++
++        if (patches[i].stop_patching_after_success)
++            break;
++    }
++}
++#endif
++
++
+ /*************************************************************************
+  *		build_module
+  *
+@@ -2418,6 +2569,12 @@ static NTSTATUS build_module( LPCWSTR load_path, const UNICODE_STRING *nt_name,
+         if ((wm->ldr.Flags & LDR_IMAGE_IS_DLL) && TRACE_ON(snoop)) SNOOP_SetupDLL( *module );
+     }
+ 
++#if defined(__i386__) || defined(__x86_64__)
++    /* CW HACKs 23854, 19252, 25737 */
++    if (!wcscmp( wm->ldr.BaseDllName.Buffer, L"libcef.dll" ))
++        apply_cef_command_line_patches( wm );
++#endif
++
+     TRACE_(loaddll)( "Loaded %s at %p: %s\n", debugstr_w(wm->ldr.FullDllName.Buffer), *module,
+                      is_builtin ? "builtin" : "native" );
+ 

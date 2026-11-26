@@ -1,24 +1,79 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: msync (and esync on 11.22): waits without wineserver round trips, off unless enabled
+Summary: msync (and esync where CrossOver had it): waits without wineserver round trips, off unless enabled
 Category: sync
-Kind: performance
-Origin: crossover
+Kind: feature, performance
+Origin: crossover (ported here)
   Version: 26.3.0
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 msync (sources/wine/{server,dlls/ntdll/unix}/msync.[ch] verbatim, and the msync hunks of dlls/ntdll/{Makefile.in,unix/{loader,sync}.c}, server/{Makefile.in,inproc_sync.c,main.c,thread.c,protocol.def}); no CodeWeavers hack number. include/wine/server_protocol.h, server/request_{handlers,trace}.h regenerated with tools/make_requests.
+  Files: server/msync.c, server/msync.h, dlls/ntdll/unix/msync.c,
+    dlls/ntdll/unix/msync.h, dlls/ntdll/Makefile.in,
+    dlls/ntdll/unix/loader.c, dlls/ntdll/unix/sync.c, server/Makefile.in,
+    server/inproc_sync.c, server/main.c, server/thread.c,
+    server/protocol.def
+  Changes: msync.[ch] as CX has them, and the msync hunks of the others;
+    include/wine/server_protocol.h, server/request_{handlers,trace}.h
+    regenerated with tools/make_requests. CX 26.3.0 re-implements msync as
+    a macOS backend of Wine 11's in-process sync framework (inproc_sync,
+    used with Linux ntsync) instead of carrying its own wait and object
+    plumbing; this copy takes that form, not the 10.0 copy's. Against CX:
+    server/inproc_sync.c's macOS object_ops uses 11.21's
+    designated-initialiser form (CX's positional table matches Wine 11.0's
+    struct object_ops). dlls/ntdll/unix/sync.c: the macOS
+    linux_wait_objs() takes 11.21's WAIT_TYPE and passes type != WaitAll
+    to msync_wait_objs() (CX passes the WAIT_TYPE straight into a BOOLEAN,
+    which works only because WaitAll is 0). dlls/ntdll/unix/thread.c (not
+    in CX): pthread_exit_wrapper() no longer close()s data->alert_fd when
+    msync is on, because it then holds an msync shm index, not a file
+    descriptor (CX 26.3.0 closes whatever fd has that number).
+    SERVER_PROTOCOL_VERSION bumps to 980 (972 on 11.21) (shm_idx added to the get_inproc_sync_fd reply).
+    dlls/ntdll/unix/msync.c: msync_release_mutex_obj() returns 1 minus the
+    recursion count as NtReleaseMutant's previous count, as Windows and the
+    server path do (CX returns the recursion count; ntdll's sync test
+    failed); msync_init()'s exits on a server/client mismatch print with
+    MESSAGE, not ERR, so they show under WINEDEBUG=-all (a mismatched
+    process used to exit with status 1 and print nothing). server/msync.c:
+    a mutex whose server object is destroyed (last handle closed) stays on
+    an orphan list while its shm is still referenced, so
+    msync_abandon_mutexes() still abandons it when its owner dies (CX frees
+    it, and a thread waiting on it hung for ever: kernel32's sync test, 3
+    of 3 on 11.22). esync (WINEESYNC) is left out: CX 26.3.0 dropped it.
+  Note: no CodeWeavers hack number. Sikarugir 10.0_8 ships msync (CX
+    25.1.1's form, with esync): wineserver has "WINEMSYNC",
+    "WINEMSYNC_QLIMIT", "/wine-%lx-msync", "msync: bootstrapped mach port
+    on %s.", "msync: up and running."; ntdll.so has "Server is running
+    with WINEMSYNC but this process is not, ...".
 Upstream: no
-Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach messages plus shared memory and __ulock waits, CodeWeavers' macOS-native variant of esync). Off unless the variable is set.
-Programs: none known
-Evidence: Sikarugir 10.0_8: wineserver has "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-msync", "msync: bootstrapped mach port on %s.", "msync: up and running."; ntdll.so has "Server is running with WINEMSYNC but this process is not, ...". (10.0_8 also carries esync; see below.)
-Port: to 11.21: replaces the 10.0 patch (CX 25.1.1's esync + msync, ~7700 lines). Wine 11 has upstream's in-process sync framework (inproc_sync, used with Linux ntsync), and CX 26.3.0 re-implements msync as a macOS backend of that framework instead of carrying its own wait/object plumbing; this patch takes CX 26.3.0's form. Changes against CX 26.3.0:
- - server/inproc_sync.c: the macOS object_ops uses 11.21's designated-initialiser form (CX's positional table matches Wine 11.0's struct object_ops).
- - dlls/ntdll/unix/sync.c: the macOS linux_wait_objs() takes 11.21's WAIT_TYPE and passes type != WaitAll to msync_wait_objs() (CX passes the WAIT_TYPE straight into a BOOLEAN, which works only because WaitAll is 0).
- - dlls/ntdll/unix/thread.c (not in CX): pthread_exit_wrapper() no longer close()s data->alert_fd when msync is on, because it then holds an msync shm index, not a file descriptor. CX 26.3.0 closes it unconditionally, which closes whatever fd has that number.
- - SERVER_PROTOCOL_VERSION bumps to 980 (shm_idx added to the get_inproc_sync_fd reply; 972 on 11.21).
- esync (WINEESYNC) is gone: CX 26.3.0 dropped it and 11.21 has no esync; on macOS its pipe-based fallback was the slow path anyway. Not compiled or run here.
+Why: Faster in-process synchronisation on macOS: msync (WINEMSYNC=1, Mach
+ messages plus shared memory and __ulock waits, CodeWeavers' macOS-native
+ variant of esync), so most waits on events, mutexes and semaphores make
+ no wineserver request. Off unless WINEMSYNC=1 is set for wineserver and
+ every Wine process of the prefix; a process whose setting differs from
+ its wineserver's exits. esync, which the 10.0 copy also has, isn't here:
+ CrossOver 26.3.0 dropped it, and on macOS its pipe-based fallback was the
+ slow path anyway.
+Programs: none known; a general performance option for programs that
+ synchronise many threads (games)
+Enable: env WINEMSYNC=1 (wineserver and every process)
+ env WINEMSYNC_QLIMIT=<n> (wineserver; the Mach message queue limit)
+Messages: "wine: the server is running with WINEMSYNC but this process is
+ not, please enable WINEMSYNC or restart wineserver.", "wine: msync:
+ failed bootstrap_look_up for %s; is the server running without
+ WINEMSYNC? Set it for the server and every process, or restart
+ wineserver." (MESSAGE, shown whatever WINEDEBUG says); "msync: up and
+ running." (wineserver, on stderr, when on)
+Known issues: with WINEMSYNC=1, a Windows program that starts a child with
+ its own environment block (no WINEMSYNC) gets a child that exits at once
+ (each process reads the variable itself).
+Uncertain: the mutex fixes are written from the review's measurements and
+ compiled (syntax only); not yet run. Performance against plain
+ wineserver waits isn't measured.
+Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
+Status: 11.22: 2026-11-26: NtReleaseMutant previous count, abandoned mutex
+ after its last handle is closed, mismatch printed with MESSAGE
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/Makefile.in b/dlls/ntdll/Makefile.in
-index 4c43b77..c23d33c 100644
 --- a/dlls/ntdll/Makefile.in
 +++ b/dlls/ntdll/Makefile.in
 @@ -53,6 +53,7 @@ SOURCES = \
@@ -30,7 +85,6 @@ index 4c43b77..c23d33c 100644
  	unix/loadorder.c \
  	unix/process.c \
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
-index 9ac47c0..7215322 100644
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
 @@ -86,6 +86,7 @@
@@ -51,10 +105,9 @@ index 9ac47c0..7215322 100644
      init_files();
 diff --git a/dlls/ntdll/unix/msync.c b/dlls/ntdll/unix/msync.c
 new file mode 100644
-index 0000000..ae46bf3
 --- /dev/null
 +++ b/dlls/ntdll/unix/msync.c
-@@ -0,0 +1,1162 @@
+@@ -0,0 +1,1163 @@
 +/*
 + * mach semaphore-based synchronization objects
 + *
@@ -654,7 +707,7 @@ index 0000000..ae46bf3
 +
 +        if (ret != STATUS_INVALID_PARAMETER)
 +        {
-+            ERR("Server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
++            MESSAGE("wine: the server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
 +            exit(1);
 +        }
 +
@@ -684,13 +737,13 @@ index 0000000..ae46bf3
 +
 +    if (task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &bootstrap_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed task_get_special_port\n");
++        MESSAGE("wine: msync: failed task_get_special_port\n");
 +        exit(1);
 +    }
 +
 +    if (bootstrap_look_up(bootstrap_port, message_port_name, &server_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed bootstrap_look_up for %s\n", message_port_name);
++        MESSAGE("wine: msync: failed bootstrap_look_up for %s; is the server running without WINEMSYNC? Set it for the server and every process, or restart wineserver.\n", message_port_name);
 +        exit(1);
 +    }
 +
@@ -698,7 +751,7 @@ index 0000000..ae46bf3
 +
 +    if (!shm_tid_map)
 +    {
-+        ERR("Failed to map tid shared memory");
++        MESSAGE("wine: msync: failed to map tid shared memory\n");
 +        exit(1);
 +    }
 +}
@@ -815,7 +868,8 @@ index 0000000..ae46bf3
 +    if (mutex->tid != GetCurrentThreadId())
 +        return STATUS_MUTANT_NOT_OWNED;
 +
-+    if (prev_count) *prev_count = mutex->count;
++    /* Windows (and the server path) return 1 - the recursion count. */
++    if (prev_count) *prev_count = 1 - mutex->count;
 +
 +    if (!--mutex->count)
 +    {
@@ -1219,7 +1273,6 @@ index 0000000..ae46bf3
 +#endif /* __APPLE__ */
 diff --git a/dlls/ntdll/unix/msync.h b/dlls/ntdll/unix/msync.h
 new file mode 100644
-index 0000000..43af926
 --- /dev/null
 +++ b/dlls/ntdll/unix/msync.h
 @@ -0,0 +1,49 @@
@@ -1273,7 +1326,6 @@ index 0000000..43af926
 +
 +#endif /* __APPLE__ */
 diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
-index a6e4485..e5e7c6f 100644
 --- a/dlls/ntdll/unix/sync.c
 +++ b/dlls/ntdll/unix/sync.c
 @@ -71,6 +71,7 @@
@@ -1284,12 +1336,13 @@ index a6e4485..e5e7c6f 100644
  
  WINE_DEFAULT_DEBUG_CHANNEL(sync);
  
-@@ -449,6 +450,54 @@ static NTSTATUS linux_wait_objs( int device, DWORD count, const int *objs, WAIT_
+@@ -448,7 +449,55 @@ static NTSTATUS linux_wait_objs( int device, DWORD cou
+     if (errno == ETIMEDOUT) return STATUS_TIMEOUT;
      return errno_to_status( errno );
  }
- 
-+#elif defined(__APPLE__)
 +
++#elif defined(__APPLE__)
+ 
 +static NTSTATUS linux_release_semaphore_obj( int obj, ULONG count, ULONG *prev_count )
 +{
 +    return msync_release_semaphore_obj( obj, count, prev_count );
@@ -1339,7 +1392,7 @@ index a6e4485..e5e7c6f 100644
  #else /* NTSYNC_IOC_EVENT_READ */
  
  static NTSTATUS linux_release_semaphore_obj( int obj, ULONG count, ULONG *prev_count )
-@@ -634,7 +683,13 @@ static void release_inproc_sync( struct inproc_sync *sync )
+@@ -634,7 +683,13 @@ static void release_inproc_sync( struct inproc_sync *s
      LONG ref = InterlockedDecrement( &sync->refcount );
  
      assert( ref >= 0 );
@@ -1354,7 +1407,7 @@ index a6e4485..e5e7c6f 100644
  }
  
  static struct inproc_sync *get_cached_inproc_sync( HANDLE handle )
-@@ -675,8 +730,15 @@ static NTSTATUS get_server_inproc_sync( HANDLE handle, struct inproc_sync *sync
+@@ -675,8 +730,15 @@ static NTSTATUS get_server_inproc_sync( HANDLE handle,
          {
              obj_handle_t fd_handle;
              sync->refcount = 1;
@@ -1391,7 +1444,6 @@ index a6e4485..e5e7c6f 100644
          }
          SERVER_END_REQ;
 diff --git a/dlls/ntdll/unix/thread.c b/dlls/ntdll/unix/thread.c
-index 11171cc..af57f4e 100644
 --- a/dlls/ntdll/unix/thread.c
 +++ b/dlls/ntdll/unix/thread.c
 @@ -76,6 +76,7 @@
@@ -1402,7 +1454,7 @@ index 11171cc..af57f4e 100644
  
  WINE_DEFAULT_DEBUG_CHANNEL(thread);
  WINE_DECLARE_DEBUG_CHANNEL(seh);
-@@ -1140,7 +1141,8 @@ static void contexts_from_server( CONTEXT *context, struct context_data server_c
+@@ -1140,7 +1141,8 @@ static DECLSPEC_NORETURN void pthread_exit_wrapper( in
  static DECLSPEC_NORETURN void pthread_exit_wrapper( int status )
  {
      struct thread_data *data = get_thread_data();
@@ -1413,7 +1465,6 @@ index 11171cc..af57f4e 100644
      close( data->wait_fd[1] );
      close( data->reply_fd );
 diff --git a/include/wine/server_protocol.h b/include/wine/server_protocol.h
-index e2d112e..53d374f 100644
 --- a/include/wine/server_protocol.h
 +++ b/include/wine/server_protocol.h
 @@ -6049,6 +6049,8 @@ struct get_inproc_sync_fd_reply
@@ -1434,7 +1485,6 @@ index e2d112e..53d374f 100644
  
  #endif /* __WINE_WINE_SERVER_PROTOCOL_H */
 diff --git a/server/Makefile.in b/server/Makefile.in
-index 0dd5395..8fe7334 100644
 --- a/server/Makefile.in
 +++ b/server/Makefile.in
 @@ -16,6 +16,7 @@ SOURCES = \
@@ -1446,7 +1496,6 @@ index 0dd5395..8fe7334 100644
  	hook.c \
  	inproc_sync.c \
 diff --git a/server/inproc_sync.c b/server/inproc_sync.c
-index 522d9a4..d3dfab4 100644
 --- a/server/inproc_sync.c
 +++ b/server/inproc_sync.c
 @@ -32,6 +32,7 @@
@@ -1457,10 +1506,12 @@ index 522d9a4..d3dfab4 100644
  
  #ifdef HAVE_LINUX_NTSYNC_H
  # include <linux/ntsync.h>
-@@ -223,6 +224,177 @@ static int get_obj_inproc_sync( struct object *obj, int *type )
-     return fd;
- }
+@@ -221,8 +222,179 @@ static int get_obj_inproc_sync( struct object *obj, in
  
+     release_object( sync );
+     return fd;
++}
++
 +#elif defined(__APPLE__)
 +
 +#include <fcntl.h>
@@ -1549,8 +1600,8 @@ index 522d9a4..d3dfab4 100644
 +        return NULL;
 +    }
 +    return mutex;
-+}
-+
+ }
+ 
 +struct inproc_sync *create_inproc_semaphore_sync( unsigned int initial, unsigned int max )
 +{
 +    struct inproc_sync *sem;
@@ -1649,7 +1700,6 @@ index 522d9a4..d3dfab4 100644
      release_object( obj );
  }
 diff --git a/server/main.c b/server/main.c
-index 46419a0..19127ce 100644
 --- a/server/main.c
 +++ b/server/main.c
 @@ -40,6 +40,7 @@
@@ -1672,10 +1722,9 @@ index 46419a0..19127ce 100644
      set_current_time();
 diff --git a/server/msync.c b/server/msync.c
 new file mode 100644
-index 0000000..eecf9b3
 --- /dev/null
 +++ b/server/msync.c
-@@ -0,0 +1,821 @@
+@@ -0,0 +1,864 @@
 +/*
 + * mach semaphore-based synchronization objects
 + *
@@ -2330,6 +2379,14 @@ index 0000000..eecf9b3
 +
 +static struct list mutex_list = LIST_INIT(mutex_list);
 +
++/* wine-mac-builds: mutexes whose server object is gone (their last handle was
++ * closed) but whose shm a client may still use: a thread can be waiting on
++ * one. Windows keeps the object while a wait references it, and abandons it
++ * when its owner dies; without this list msync_abandon_mutexes() never saw
++ * such a mutex and the waiter hung. An entry is freed once the shm's refcount
++ * is 0 (every client has closed it), or when its index is allocated again. */
++static struct list orphan_mutex_list = LIST_INIT(orphan_mutex_list);
++
 +void msync_destroy( struct msync *msync )
 +{
 +    struct msync_shm *shm = get_shm( msync->shm_idx );
@@ -2339,7 +2396,10 @@ index 0000000..eecf9b3
 +    if (!msync->shm_idx) return;
 +
 +    destroy_all( msync->shm_idx );
-+    free( msync );
++    if (shm->msync_type == MSYNC_MUTEX)
++        list_add_tail( &orphan_mutex_list, &msync->mutex_entry );
++    else
++        free( msync );
 +}
 +
 +static void *get_shm( unsigned int idx )
@@ -2396,6 +2456,18 @@ index 0000000..eecf9b3
 +    }
 +
 +    last_allocated_idx = shm_idx;
++
++    /* an orphaned mutex that had this index is gone for good */
++    {
++        struct msync *orphan, *next;
++
++        LIST_FOR_EACH_ENTRY_SAFE( orphan, next, &orphan_mutex_list, struct msync, mutex_entry )
++        {
++            if (orphan->shm_idx != shm_idx) continue;
++            list_remove( &orphan->mutex_entry );
++            free( orphan );
++        }
++    }
 +
 +    assert(shm);
 +    shm->low = low;
@@ -2457,7 +2529,27 @@ index 0000000..eecf9b3
 +
 +void msync_abandon_mutexes( thread_id_t tid )
 +{
-+    struct msync *msync;
++    struct msync *msync, *next;
++
++    LIST_FOR_EACH_ENTRY_SAFE( msync, next, &orphan_mutex_list, struct msync, mutex_entry )
++    {
++        struct mutex *mutex = get_shm( msync->shm_idx );
++
++        if (!__atomic_load_n( &mutex->refcount, __ATOMIC_SEQ_CST ))
++        {
++            list_remove( &msync->mutex_entry );
++            free( msync );
++            continue;
++        }
++        if (mutex->msync_type == MSYNC_MUTEX && mutex->tid == tid)
++        {
++            if (debug_level)
++                fprintf( stderr, "msync_abandon_mutexes() orphaned idx=%d\n", msync->shm_idx );
++            mutex->tid = ~0;
++            mutex->count = 0;
++            signal_all ( msync->shm_idx, (int *)mutex );
++        }
++    }
 +
 +    LIST_FOR_EACH_ENTRY( msync, &mutex_list, struct msync, mutex_entry )
 +    {
@@ -2499,7 +2591,6 @@ index 0000000..eecf9b3
 +#endif /* __APPLE__ */
 diff --git a/server/msync.h b/server/msync.h
 new file mode 100644
-index 0000000..4d834c4
 --- /dev/null
 +++ b/server/msync.h
 @@ -0,0 +1,51 @@
@@ -2555,7 +2646,6 @@ index 0000000..4d834c4
 +
 +#endif /* __APPLE__ */
 diff --git a/server/protocol.def b/server/protocol.def
-index eca3375..81e2a4d 100644
 --- a/server/protocol.def
 +++ b/server/protocol.def
 @@ -4227,6 +4227,7 @@ enum inproc_sync_type
@@ -2567,10 +2657,9 @@ index eca3375..81e2a4d 100644
  
  
 diff --git a/server/request_handlers.h b/server/request_handlers.h
-index 22df234..0aa8b84 100644
 --- a/server/request_handlers.h
 +++ b/server/request_handlers.h
-@@ -2325,7 +2325,8 @@ C_ASSERT( offsetof(struct get_inproc_sync_fd_request, handle) == 12 );
+@@ -2325,7 +2325,8 @@ C_ASSERT( offsetof(struct get_inproc_sync_fd_reply, ac
  C_ASSERT( sizeof(struct get_inproc_sync_fd_request) == 16 );
  C_ASSERT( offsetof(struct get_inproc_sync_fd_reply, type) == 8 );
  C_ASSERT( offsetof(struct get_inproc_sync_fd_reply, access) == 12 );
@@ -2581,10 +2670,9 @@ index 22df234..0aa8b84 100644
  C_ASSERT( offsetof(struct get_inproc_alert_fd_reply, handle) == 8 );
  C_ASSERT( sizeof(struct get_inproc_alert_fd_reply) == 16 );
 diff --git a/server/request_trace.h b/server/request_trace.h
-index fa5634c..8512ff0 100644
 --- a/server/request_trace.h
 +++ b/server/request_trace.h
-@@ -3401,6 +3401,7 @@ static void dump_get_inproc_sync_fd_reply( const struct get_inproc_sync_fd_reply
+@@ -3401,6 +3401,7 @@ static void dump_get_inproc_sync_fd_reply( const struc
  {
      fprintf( stderr, " type=%d", req->type );
      fprintf( stderr, ", access=%08x", req->access );
@@ -2593,7 +2681,6 @@ index fa5634c..8512ff0 100644
  
  static void dump_get_inproc_alert_fd_request( const struct get_inproc_alert_fd_request *req )
 diff --git a/server/thread.c b/server/thread.c
-index 986cf5d..88dfa70 100644
 --- a/server/thread.c
 +++ b/server/thread.c
 @@ -59,6 +59,7 @@

@@ -1,0 +1,411 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Patch old CEF and Qt WebEngine builds that read the stack base from %gs:0x8
+Category: cpu
+Kind: workaround
+Origin: crossover (ported here)
+  Version: 25.1.1
+  CW-Hacks: 16900, 18582, 19114, 21548, 22584
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Files: dlls/ntdll/loader.c
+  Changes: only the %gs entries of CX's apply_binary_patches, in a function
+    of their own; the command-line and cohtml entries are
+    ntdll-cef-command-line-args and ntdll-cohtml-branch. The bounds check
+    counts the patch's size, and the protection change covers the patched
+    bytes rather than one page. CW HACK 22434's pe_module_loaded call, in
+    the same place, is ntdll-d3dmetal-code-regions
+  Note: Sikarugir 10.0_8 ships it: ntdll.dll (x86_64) has
+    apply_binary_patches and every 'CEF %gs 85.3.11-0/1, 85.3.9.0,
+    72.0.3626.121-0..2, 72.0.3626.96-0..2', 'CEF/Qt5WebEngineCore %gs
+    5.15.2.0-0/1'
+Upstream: differently (3a16aabb, Wine 10.5: WineHQ points GSBASE at the TEB
+ while PE code runs on macOS)
+Needed until: 10.5 (WineHQ 3a16aabb, Brendan Shanks)
+Why: On macOS before Wine 10.5, %gs in PE code is macOS's thread data, not
+ the TEB, so code that reads TEB->StackBase as %gs:0x8 gets garbage. Old
+ CEF and Qt WebEngine builds do, and crash. When libcef.dll or
+ Qt5WebEngineCore.dll loads and the bytes at a known offset match, those
+ reads are rewritten to go through TEB->Self at %gs:0x30. Measured on
+ 10.0 build0: %gs:0x8 isn't the stack base there; on 11.22 it is, so this
+ patch has no 11.x copy.
+Programs: Rockstar Games Launcher/Social Club (CEF 85.3.9, 85.3.11),
+ BeamNG.drive (CEF 72.0.3626.121), Wizard101 (CEF 72.0.3626.96), EA
+ app/Origin (Qt WebEngine 5.15.2): crash at start
+Matches: dll libcef.dll, Qt5WebEngineCore.dll (x86_64, exact case); bytes
+ at fixed offsets: 0x28c5190, 0x28c521a (CEF 85.3.11), 0x28c4b30 (CEF
+ 85.3.9), 0x23bb2ad, 0x23bb329, 0x23bb369 (CEF 72.0.3626.121), 0x23bb82d,
+ 0x23bb8a9, 0x23bb8e9 (CEF 72.0.3626.96), 0x2810f10, 0x2810f8d (Qt
+ WebEngine 5.15.2)
+Seen on: macOS 26.7.2 (M1 Max): on wine-macfixes-10.0-build0, %gs:0x8
+ isn't TEB->StackBase (probe program)
+Fine on: macOS 26.7.2 (M1 Max): on wine-macfixes-11.22-build0, %gs:0x8 is
+ TEB->StackBase (probe program)
+Messages: "Found matching %s, applying patch '%s'", "%s doesn't match patch
+ '%s'", "%s too small to match patch '%s'" (TRACE, channel module; only
+ with +module)
+Risk: always on: rewrites code in third-party DLLs, but only on an exact
+ byte match at a fixed offset, so only in the builds CX tested
+Uncertain: not run with any of the programs.
+Expects before it: ntdll-d3dmetal-code-regions (context)
+Related: ntdll-cef-command-line-args; the other libcef.dll patch at load
+No test: needs specific CEF and Qt WebEngine builds
+Status: 10.0: 2026-11-26: split out of ntdll-cef-binary-patches (review
+ decision 8), with the bounds and protection fixes
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -2091,6 +2091,338 @@ static void set_security_cookie( ULONG_PTR *cookie )
+ }
+ 
+ 
++#ifdef __x86_64__
++/* CW HACKs 16900, 18582, 19114, 21548, 22584: before Wine 10.5, %gs in PE code on macOS
++ * is macOS's thread data, not the TEB, so these libcef.dll and Qt5WebEngineCore.dll
++ * builds, which read TEB->StackBase as %gs:0x8, get garbage. Where the bytes at the
++ * offset match, read it through TEB->Self (%gs:0x30) instead. */
++static void apply_cef_gs_patches( WINE_MODREF *wm )
++{
++    static const char before_85_3_9_0[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0xc3,                                                 /* ret */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0x48, 0x83, 0xec, 0x28,                               /* sub rsp, 0x28 */
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0x48, 0x83, 0xc0, 0xf8                                /* add rax, 0xfffffffffffffff8 */
++    };
++    static const char after_85_3_9_0[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x30, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x30] */
++        0x48, 0x8b, 0x40, 0x08,                               /* mov rax, qword [rax+8] */
++        0xc3,                                                 /* ret */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0x48, 0x83, 0xec, 0x28,                               /* sub rsp, 0x28 */
++        0xe8, 0xe7, 0xff, 0xff, 0xff,                         /* call 0xfffffffffffffffe */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x48, 0x83, 0xc0, 0xf8                                /* add rax,0xfffffffffffffff8 */
++    };
++    C_ASSERT( sizeof(before_85_3_9_0) == sizeof(after_85_3_9_0) );
++
++
++    /* The first patch needed for 85.3.11 is the same as 85_3_9_0, just at a different offset. */
++
++    static const char before_85_3_11_1[] =
++    {
++        0x48, 0x8b, 0x44, 0x24, 0x28,  /* mov rax, qword ptr [rsp + 0x28] */
++        0x65, 0x48, 0x8b, 0x34, 0x25, 0x08, 0x00, 0x00, 0x00,  /* mov rsi, qword ptr gs:[0x8] */
++        0x48, 0x85, 0xf6,              /* test rsi, rsi */
++        0x74, 0x2e                     /* jz 0x028c525b */
++
++    };
++    static const char after_85_3_11_1[] =
++    {
++        /* Taking a cue from after_72_0_3626_121_2 - overwriting the test and jump to make room. */
++        0x48, 0x8b, 0x44, 0x24, 0x28,  /* mov rax, qword ptr [rsp + 0x28] */
++        0x65, 0x48, 0x8b, 0x34, 0x25, 0x30, 0x00, 0x00, 0x00,  /* mov rsi, qword ptr gs:[0x30] */
++        0x48, 0x8b, 0x76, 0x08,        /* mov rsi, qword ptr [rsi+8] */
++        0x90,                          /* nop */
++    };
++    C_ASSERT( sizeof(before_85_3_11_1) == sizeof(after_85_3_11_1) );
++
++
++    static const char before_72_0_3626_121_1[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0xc3,                                                 /* ret */
++        0x48, 0x83, 0xec, 0x28,                               /* sub rsp, 0x28 */
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0x48, 0x83, 0xc0, 0xf8,                               /* add rax, 0xfffffffffffffff8 */
++    };
++    static const char after_72_0_3626_121_1[] =
++    {
++        0xe8, 0xb7, 0x00, 0x00, 0x00, /* call 0xbc */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0xc3,                         /* ret */
++        0x48, 0x83, 0xec, 0x28,       /* sub rsp, 0x28 */
++        0xe8, 0xa9, 0x00, 0x00, 0x00, /* call 0xae */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0x90,                         /* nop */
++        0x48, 0x83, 0xc0, 0xf8,       /* add rax, 0xfffffffffffffff8 */
++    };
++    C_ASSERT( sizeof(before_72_0_3626_121_1) == sizeof(after_72_0_3626_121_1) );
++
++    static const char before_72_0_3626_121_2[] =
++    {
++        0x48, 0x8b, 0x46, 0x08,                                 /* mov rax, qword [rsi+8] */
++        0x65, 0x48, 0x8b, 0x34, 0x25, 0x08, 0x00, 0x00, 0x00,   /* mov rsi, qword [gs:0x8] */
++        0x48, 0x85, 0xf6,                                       /* test rsi, rsi */
++        0x74, 0x2e,                                             /* je 0x30 */
++    };
++    static const char after_72_0_3626_121_2[] =
++    {
++        0x48, 0x8b, 0x46, 0x08,                                 /* mov rax, qword [rsi+8] */
++        0x65, 0x48, 0x8b, 0x34, 0x25, 0x30, 0x00, 0x00, 0x00,   /* mov rsi, qword [gs:0x30] */
++        0x48, 0x8b, 0x76, 0x08,                                 /* mov rsi, qword [rsi+8] */
++        0x90,                                                   /* nop */
++    };
++    C_ASSERT( sizeof(before_72_0_3626_121_2) == sizeof(after_72_0_3626_121_2) );
++
++    static const char before_72_0_3626_121_3[] =
++    {
++        0xcc,       /* int3 */
++        0x0f, 0x0b, /* ud2 */
++        0x6a, 0x1c, /* push 0x1c */
++        0x0f, 0x0b, /* ud2 */
++        0xcc,       /* int3 */
++        0x0f, 0x0b, /* ud2 */
++        0x6a, 0x1d, /* push 0x1d */
++        0x0f, 0x0b  /* ud2 */
++    };
++    static const char after_72_0_3626_121_3[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x30, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x30] */
++        0x48, 0x8b, 0x40, 0x08,                               /* mov rax, qword [rax+8] */
++        0xc3,                                                 /* ret */
++    };
++    C_ASSERT( sizeof(before_72_0_3626_121_3) == sizeof(after_72_0_3626_121_3) );
++
++    static const char before_qt_5_15_2_0_1[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0xc3,                                                 /* ret */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0x48, 0x83, 0xec, 0x28,                               /* sub rsp, 0x28 */
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0x48, 0x83, 0xe8, 0x08                                /* sub rax, 0x8 */
++    };
++    static const char after_qt_5_15_2_0_1[] =
++    {
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x30, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x30] */
++        0x48, 0x8b, 0x40, 0x08,                               /* mov rax, qword [rax+8] */
++        0xc3,                                                 /* ret */
++        0xcc,                                                 /* int3 */
++        0xcc,                                                 /* int3 */
++        0x48, 0x83, 0xec, 0x28,                               /* sub rsp, 0x28 */
++        0xe8, 0xe7, 0xff, 0xff, 0xff,                         /* call 0xfffffffffffffffe */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x90,                                                 /* nop */
++        0x48, 0x83, 0xe8, 0x08                                /* sub rax,0x8 */
++    };
++    C_ASSERT( sizeof(before_qt_5_15_2_0_1) == sizeof(after_qt_5_15_2_0_1) );
++
++    static const char before_qt_5_15_2_0_2[] = {
++        0xff, 0x15, 0xd5, 0xb4, 0x6e, 0x02,                   /* call [KERNEL32.DLL::VirtualQuery] */
++        0x65, 0x48, 0x8b, 0x04, 0x25, 0x08, 0x00, 0x00, 0x00, /* mov rax, qword [gs:0x8] */
++        0x48, 0x8b, 0x4c, 0x24, 0x28                          /* mov rcx, qword [rsp+0x28] */
++    };
++    static const char after_qt_5_15_2_0_2[] = {
++        0xff, 0x15, 0xd5, 0xb4, 0x6e, 0x02, /* call [KERNEL32.DLL::VirtualQuery] */
++        0xe8, 0x78, 0xff, 0xff, 0xff,       /* call 0xfffffffffffffffe */
++        0x90,                               /* nop */
++        0x90,                               /* nop */
++        0x90,                               /* nop */
++        0x90,                               /* nop */
++        0x48, 0x8b, 0x4c, 0x24, 0x28        /* mov rcx, qword [rsp+0x28] */
++    };
++    C_ASSERT( sizeof(before_qt_5_15_2_0_2) == sizeof(after_qt_5_15_2_0_2) );
++
++
++    struct
++    {
++        const WCHAR *libname;
++        const char *name;
++        const void *before, *after;
++        size_t size;
++        ULONG_PTR offset;
++        BOOL stop_patching_after_success;
++    } static const patches[] =
++    {
++        /* CW HACK 22584L
++         * libcef.dll 85.3.11, for an updated Rockstar Games Social Club/Launcher.
++         */
++        {
++            L"libcef.dll",
++            "CEF %gs 85.3.11-0",
++            /* This patch is identical to the one for 85.3.9, just at a different offset. */
++            before_85_3_9_0, after_85_3_9_0,
++            sizeof(before_85_3_9_0),
++            0x28c5190,
++            FALSE
++        },
++        {
++            L"libcef.dll",
++            "CEF %gs 85.3.11-1",
++            before_85_3_11_1, after_85_3_11_1,
++            sizeof(before_85_3_11_1),
++            0x28c521a,
++            TRUE
++        },
++
++        /* CW HACK 18582:
++         * libcef.dll 85.3.9.0 used by the Rockstar Games Social Club/Launcher
++         * (and downloadable from
++         * https://cef-builds.spotifycdn.com/index.html#windows64).
++         */
++        {
++            L"libcef.dll",
++            "CEF %gs 85.3.9.0",
++            before_85_3_9_0, after_85_3_9_0,
++            sizeof(before_85_3_9_0),
++            0x28c4b30,
++            TRUE
++        },
++
++        /* CW HACK 19114:
++         * libcef.dll 72.0.3626.121 used by the game beamNG.drive.
++         * Patch also works for version downloadable from CEF builds.
++         */
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.121-0",
++            before_72_0_3626_121_1, after_72_0_3626_121_1,
++            sizeof(before_72_0_3626_121_1),
++            0x23bb2ad,
++            FALSE
++        },
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.121-1",
++            before_72_0_3626_121_2, after_72_0_3626_121_2,
++            sizeof(before_72_0_3626_121_2),
++            0x23bb329,
++            FALSE
++        },
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.121-2",
++            before_72_0_3626_121_3, after_72_0_3626_121_3,
++            sizeof(before_72_0_3626_121_3),
++            0x23bb369,
++            TRUE
++        },
++
++        /* CW HACK 16900:
++         * libcef.dll 72.0.3626.96 used by the game Wizard101.
++         * Patch also works for version 3.3626.1886.g162fdec downloadable from CEF builds.
++         */
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.96-0",
++            /* This patch is identical to the one for 72.0.3626.121, just at a different offset. */
++            before_72_0_3626_121_1, after_72_0_3626_121_1,
++            sizeof(before_72_0_3626_121_1),
++            0x23bb82d,
++            FALSE
++        },
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.96-1",
++            before_72_0_3626_121_2, after_72_0_3626_121_2,
++            sizeof(before_72_0_3626_121_2),
++            0x23bb8a9,
++            FALSE
++        },
++        {
++            L"libcef.dll",
++            "CEF %gs 72.0.3626.96-2",
++            before_72_0_3626_121_3, after_72_0_3626_121_3,
++            sizeof(before_72_0_3626_121_3),
++            0x23bb8e9,
++            TRUE
++        },
++
++        /* CW HACK 21548:
++         * Qt5WebEngineCore.dll 5.15.2.0 used by the EA Launcher.
++         * Based on CEF 83.0.4103.122, but has different offsets.
++         */
++        {
++            L"Qt5WebEngineCore.dll",
++            "CEF/Qt5WebEngineCore %gs 5.15.2.0-0",
++            before_qt_5_15_2_0_1, after_qt_5_15_2_0_1,
++            sizeof(before_qt_5_15_2_0_1),
++            0x2810f10,
++            FALSE
++        },
++        {
++            L"Qt5WebEngineCore.dll",
++            "CEF/Qt5WebEngineCore %gs 5.15.2.0-1",
++            before_qt_5_15_2_0_2, after_qt_5_15_2_0_2,
++            sizeof(before_qt_5_15_2_0_2),
++            0x2810f8d,
++            TRUE
++        },
++    };
++
++    unsigned int i;
++    WCHAR *libname = wm->ldr.BaseDllName.Buffer;
++
++    for (i = 0; i < ARRAY_SIZE(patches); i++)
++    {
++        DWORD old_prot;
++        void *dllbase = wm->ldr.DllBase;
++        void *target = (void *)((ULONG_PTR)dllbase + patches[i].offset);
++        void *addr = target;
++        SIZE_T size = patches[i].size;
++
++        if (wcscmp( libname, patches[i].libname ))
++            continue;
++
++        if (wm->ldr.SizeOfImage < patches[i].offset + patches[i].size)
++        {
++            TRACE( "%s too small to match patch '%s'\n", debugstr_w(libname), patches[i].name );
++            continue;
++        }
++        if (memcmp( target, patches[i].before, patches[i].size ))
++        {
++            TRACE( "%s doesn't match patch '%s'\n", debugstr_w(libname), patches[i].name );
++            continue;
++        }
++
++        TRACE( "Found matching %s, applying patch '%s'\n", debugstr_w(libname), patches[i].name );
++        NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, PAGE_EXECUTE_READWRITE, &old_prot );
++        memcpy( target, patches[i].after, patches[i].size );
++        NtProtectVirtualMemory( NtCurrentProcess(), &addr, &size, old_prot, &old_prot );
++
++        if (patches[i].stop_patching_after_success)
++            break;
++    }
++}
++#endif
++
++
+ /***********************************************************************
+  *           update_load_config
+  */
+@@ -2538,6 +2870,13 @@ static NTSTATUS build_module( LPCWSTR load_path, const UNICODE_STRING *nt_name,
+     }
+ #endif
+ 
++#ifdef __x86_64__
++    /* CW HACKs 16900, 18582, 19114, 21548, 22584 */
++    if (!wcscmp( wm->ldr.BaseDllName.Buffer, L"libcef.dll" ) ||
++        !wcscmp( wm->ldr.BaseDllName.Buffer, L"Qt5WebEngineCore.dll" ))
++        apply_cef_gs_patches( wm );
++#endif
++
+     wm->ldr.LoadCount = 1;
+     *pwm = wm;
+     *module = NULL;

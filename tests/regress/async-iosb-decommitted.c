@@ -4,6 +4,7 @@
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Guards: ntdll-async-iosb-unwritable
+ * Fails without on: wine-macfixes-11.22-build12, macOS 26.7.2, M1 Max, 2026-11-19; wine-macfixes-11.21-build8, macOS 26.7.2, M1 Max, 2026-11-19; wine-macfixes-10.0-build7, macOS 26.7.2, M1 Max, 2026-11-19
  *
  * When an asynchronous read or write finishes, Wine stores its result in
  * the caller's IO_STATUS_BLOCK (the OVERLAPPED) from a system APC. A thread

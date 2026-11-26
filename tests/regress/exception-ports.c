@@ -4,9 +4,10 @@
  * Timeout: 30
  * Wrapper: unserviced-exception-port
  * Guards: ntdll-clear-inherited-exception-ports
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * Mach task exception ports are inherited across fork and exec. A launcher
- * with a task-level crash reporter (Sentry, Crashpad) passes its ports on
+ * with a task-level crash reporter (Sentry, KSCrash) passes its ports on
  * to Wine, so a fault in Wine goes to the crash reporter instead of
  * becoming the signal Wine's exception handling is built on. The crash
  * reporter doesn't answer for a process it doesn't know, and the Windows
@@ -14,10 +15,14 @@
  * sets up signal handling (except under a Mac debugger).
  *
  * The runner starts wine under helpers/unserviced-exception-port, which
- * points the ports at one that nobody answers. The program then takes ten
- * access violations and handles each with a vectored handler.
+ * points the ports at one that nobody answers, for the exceptions Sentry
+ * takes. The program then takes ten access violations and ten breakpoints
+ * (int3, as DebugBreak and many anti-debugging checks do) and handles each
+ * with a vectored handler.
  *
- * Passes when all ten are handled; without the fix it hangs at the first.
+ * Passes when all twenty are handled. Without the fix it hangs at the first
+ * access violation; with a fix that clears only the fault ports (bad
+ * access, bad instruction, arithmetic) it hangs at the first int3.
  */
 
 #include <windows.h>
@@ -25,6 +30,16 @@
 
 static LONG CALLBACK handler(EXCEPTION_POINTERS *ep)
 {
+    if (ep->ExceptionRecord->ExceptionCode == EXCEPTION_BREAKPOINT)
+    {
+        /* resume after the int3 */
+#ifdef _WIN64
+        ep->ContextRecord->Rip = (ULONG_PTR)ep->ExceptionRecord->ExceptionAddress + 1;
+#else
+        ep->ContextRecord->Eip = (ULONG_PTR)ep->ExceptionRecord->ExceptionAddress + 1;
+#endif
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
     if (ep->ExceptionRecord->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
         return EXCEPTION_CONTINUE_SEARCH;
 #ifdef _WIN64
@@ -48,6 +63,12 @@ int main(void)
         __asm__ volatile(".byte 0xa1, 0x10, 0, 0, 0" ::: "eax", "memory");             /* mov eax, [0x10] */
 #endif
         printf("exception-ports: access violation %d handled\n", i);
+        fflush(stdout);
+    }
+    for (i = 1; i <= 10; i++)
+    {
+        __asm__ volatile("int3" ::: "memory");
+        printf("exception-ports: breakpoint %d handled\n", i);
         fflush(stdout);
     }
     printf("exception-ports: ok\n");

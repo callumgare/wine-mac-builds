@@ -3,15 +3,18 @@ Summary: Don't overrun the stack opening a database by a path without a backslas
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/msi/database.c (MSI_OpenDatabaseW); written for wine-mac-builds.
-Upstream: no
+Upstream: candidate (draft in .local/bug-reports/); WineHQ master still has
+ the MAX_PATH buffer (checked 2026-11-25)
 Why: MSI_OpenDatabaseW takes a path with no backslash as relative to the
  current directory and built "<current directory>\<path>" with lstrcatW in
  a MAX_PATH buffer on the stack, with no length check. A Unix path, which
  Wine accepts anywhere a file name goes, has no backslash, so a long one
  opened from a deep current directory ran past the buffer and overwrote
  the caller's locals or return address with path text. db->path is now
- allocated at the length it needs; what it holds is unchanged.
+ allocated at the length it needs; what it holds is unchanged. On a copy
+ of Second Chance's prefix and build (11.22), msiexec with a 203-character
+ Unix path crashed from a 117-character current directory, and with this
+ change ran the install to the end from the same directory.
 Programs: Second Chance (an app that embeds Wine) ran msiexec /i with the
  package's Mac path (203 characters, /var/folders/.../Setup.msi): Waverly
  Academy's disc install crashed within half a second, 3 of 3 times, under
@@ -19,41 +22,22 @@ Programs: Second Chance (an app that embeds Wine) ran msiexec /i with the
  in a shorter directory). The fault varied with the stack layout: CopyFileW
  handed path text as its source, or a jump to path text. Second Chance
  now passes the package's Windows path instead.
+Seen on: macOS 26.7.2 (M1 Max): an APFS clone of Second Chance's build and
+ prefix, msiexec run from a 117-character current directory
+Known issues: the second GetCurrentDirectoryW isn't checked: if another
+ thread changes the current directory to a longer one between the two
+ calls, lstrcatW runs on uninitialised memory (from reading; very
+ unlikely)
 Uncertain: The path held for a Unix name stays "<current directory>\<Unix
  path>", as before; nothing found uses it to open the file again.
-Evidence: On an APFS clone of Second Chance's build and prefix (host14
- tree, macOS 26.7.2), with Setup.msi also 203 characters away: from a
- 117-character current directory msiexec crashed on host14 (1 run), and
- from / it opened the package (1 run). With this change, from the same
- 117-character directory, the install ran to InstallFinalize and exited 0
- (1 run).
-Status: 11.22: 2026-11-22 (later): in host15 (host14 + this patch), Second
- Chance's disc set on meeka passed 36 of 36, MSI installs included. That
- run used Second Chance's own fix (Windows paths to msiexec), so it shows
- this patch breaks no disc install, not that it fixes the crash alone;
- the regression test shows that. Other sources weren't rerun (only
- msi.dll changed; host14 passed them all).
- 2026-11-22: not yet in a build. Tested by swapping msi.dll (i386
- and x86_64) built with it into the host14 tree on meeka: the regression
- test msi-unix-path passes for i686 and x86_64; on host14 both fail
- (execute access to path text). The full suite on that tree: 56
- passed, 0 failed, 2 skipped (the screen-taking tests).
- 11.21: 2026-11-22 (evening): in a local test build (macfixes-11.21-build0,
- not published): msi-unix-path passes (i686 and x86_64, 1 run each).
- The build's full suite (screen-taking tests skipped): 51 passed,
- 0 failed, 3 skipped.
- 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
- msi-unix-path crashes on macfixes-11.21-build9 (i686 and
- x86_64, exit code 5; 1 run each), as on 11.22 before this patch.
- 10.0: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
- published): msi-unix-path
- passes (i686 and x86_64, 1 run each).
- The build's full suite: 51 passed, 0 failed, 0 skipped.
- 2026-11-22 (evening): in a local test build (macfixes-10.0-build0,
- not published): msi-unix-path passes (i686 and x86_64, 1 run each).
- 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
- msi-unix-path crashes on macfixes-10.0-build7 (i686 and x86_64,
- exit code 5; 1 run each), as on 11.22 before this patch.
+Status: 11.22: 2026-11-22: in host15 (host14 + this patch): Second Chance's
+ disc set on meeka passed 36 of 36; msi-unix-path passes (i686, x86_64)
+ and fails on host14 without it
+ 11.21: 2026-11-22: in a local test build (macfixes-11.21-build0, not
+ published): msi-unix-path passes (i686, x86_64); suite 51 passed, 0 failed
+ 10.0: 2026-11-22: in a local test build (macfixes-10.0-build0 of a243d7e,
+ not published): msi-unix-path passes (i686, x86_64); suite 51 passed,
+ 0 failed
 
 diff --git a/dlls/msi/database.c b/dlls/msi/database.c
 --- a/dlls/msi/database.c

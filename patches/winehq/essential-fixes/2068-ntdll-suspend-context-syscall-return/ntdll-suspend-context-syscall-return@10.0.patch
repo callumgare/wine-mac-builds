@@ -3,9 +3,11 @@ Summary: Report the user's registers for a thread suspended on its way out of a 
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: dlls/ntdll/unix/signal_x86_64.c (usr1_handler); written for
-    wine-mac-builds.
-Upstream: no
+  Version: 11.22
+  Changes: rewritten for 10.0's usr1_handler: it takes the ucontext, reads
+    the frame through amd64_thread_data(), and doesn't call leave_handler
+    (10.0's dispatcher keeps gs on the TEB on macOS)
+Upstream: candidate (draft in .local/bug-reports/)
 Why: SuspendThread reaches the thread as SIGUSR1, and usr1_handler saves
  the context that GetThreadContext later returns. If the thread is in a
  syscall it saves the user's registers from the syscall frame; otherwise it
@@ -15,43 +17,28 @@ Why: SuspendThread reaches the thread as SIGUSR1, and usr1_handler saves
  (frame+0x70, to load the user's rsp or for iretq). A suspend landing
  there saved the dispatcher's own registers as the thread's context: rsp
  on Wine's kernel stack, just below the thread's stack, and rip in the
- dispatcher. Now a thread whose sp
- is in the frame is treated as in the syscall too: its context is built
- below the frame, not over it. (On 11.x the dispatcher also restores the
- user's gs base from there, and the 11.22 patch runs leave_handler
- afterwards; 10.0's dispatcher keeps gs on the TEB on macOS.) Other users
- of is_inside_syscall are unchanged.
+ dispatcher. Now a thread whose sp is in the frame is treated as in the
+ syscall too: its context is built below the frame, not over it. (On 11.x
+ the dispatcher also restores the user's gs base from there, and the 11.x
+ copy runs leave_handler afterwards; 10.0's dispatcher keeps gs on the TEB
+ on macOS.) Other users of is_inside_syscall are unchanged. On 10.0 the
+ window is only a few instructions: tests/regress/suspend-context-syscall-return
+ saw 838 of 159544 contexts with rsp outside the stack on
+ macfixes-10.0-build7.
 Programs: Steam's client (64-bit, its Chromium/CEF), since the client update
  of 2026-11-21: Chromium's stack sampling profiler suspends a thread,
  copies its stack from the reported rsp up to the stack base, and faulted
  at the thread stack's guard page (libcef.dll+0x922cc1a); the game
  started from Steam quit with it
+Seen on: macOS 26.7.2 (M1 Max, tests/regress/suspend-context-syscall-return
+ on macfixes-10.0-build7)
 Uncertain: Linux has the same window (frame+0x70 before iretq) without the
- extra system call, so there it should be rare; not tested there.
-Evidence: Two minidumps (both 11.22-build0): the faulting loop is
- Chromium's CopyStackContentsAndRewritePointers, copying from 0x410 below a
- thread's stack reservation (the dispatcher's kernel rsp) to its stack
- base, and it faults on reaching the reservation's first page. A probe that
- suspends a thread making syscalls and reads its context saw rsp at that
- same place, with rip at __wine_syscall_dispatcher+432 (the gs-base
- syscall), in 86135 of 287461 contexts on plain wine 11.22 and in 81608 of
- 253963 on 11.22-build0. 32-bit (WoW64) threads aren't affected: 0 of
- 234757.
-Status: 2026-11-22 (night): in a local test build (second local test build, macfixes-10.0-build0 of a243d7e, not
- published):
- suspend-context-syscall-return passes (1 run).
- The build's full suite: 51 passed, 0 failed, 0 skipped.
- 2026-11-22 (evening): in a local test build (macfixes-10.0-build0,
- not published): suspend-context-syscall-return passes 5 of 6 (25817 to
- 43160 contexts, all within the stack); the other run crashed in the test
- itself (it read the thread's TEB before the thread had started, on a
- heavily loaded Mac; the test now waits for it).
- 2026-11-22: ported from 11.22, rewritten for 10.0, whose syscall
- dispatcher doesn't switch the gs base on macOS (no leave_handler call);
- not yet in a build.
- suspend-context-syscall-return fails on macfixes-10.0-build7 (3
- runs: 838 of 159544 contexts with rsp outside the stack once, and a page
- fault in the test program twice).
+ extra system call, so there it should be rare; not tested there. The
+ window is small enough on 10.0 that a run of the test could see no
+ context in it.
+Status: 10.0: 2026-11-22: in the second local test build (macfixes-10.0-build0
+ of a243d7e, not published): suspend-context-syscall-return passes (1 run);
+ the full suite 51 passed, 0 failed. It fails on macfixes-10.0-build7.
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

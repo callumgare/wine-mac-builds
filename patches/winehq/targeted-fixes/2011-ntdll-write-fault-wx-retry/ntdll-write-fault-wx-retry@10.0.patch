@@ -1,0 +1,107 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Retry write faults on pages mapped both writable and executable
+Category: cpu
+Kind: workaround
+Origin: crossover (ported here)
+  Version: 25.1.1
+  CW-Hacks: 24945
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Files: dlls/ntdll/unix/virtual.c
+  Note: Sikarugir 10.0_8 ships it: ntdll.so: "HACK: write fault on a w|x
+    page, addr %p"
+  Changes: retries only if the page's Mach protection includes write after
+    the toggle; otherwise the fault goes on to Wine's normal handling (CX
+    retries regardless, and loops for ever if the mprotect didn't take)
+Upstream: no
+Why: Under Rosetta 2 a write fault can hit a page that is mapped both
+ writable and executable (presumably Rosetta write-protecting a page whose
+ code it has translated), and Wine, which doesn't expect a write fault on
+ a writable page, raises an access violation. On macOS, drop and re-add
+ exec on the page and retry the write instead. The retry happens only if
+ the page is writable at the Mach level afterwards, so a page whose
+ protection Wine can't change doesn't fault the same write for ever.
+Programs: none known
+Fine on: macOS 26.7.2 (M1 Max): the hack never fires in smc-rwx or in a
+ version with a second thread calling the code (10.0 build0, 11.22 quick
+ build, WINEDEBUG=fixme+virtual)
+Messages: "HACK: write fault on a w|x page, addr %p" (fixme:virtual; shown
+ by default); "page %p still isn't writable, not retrying" (warn:virtual;
+ shown only with WINEDEBUG=warn+virtual)
+Uncertain: when Rosetta lets such a fault through. Whether smc-rwx guards
+ this patch: on macOS 26.7.2 it passes without the hack firing, and its
+ failure on plain Wine on macOS 15 may be the wow64 mode-switch crash
+ that wow64cpu-rosetta-lretq works around (WineHQ bugs 60034, 60494). The
+ guard catches a toggle that doesn't make the page writable; if Rosetta
+ went on faulting a page that is writable, the write would still be
+ retried for ever. A plain retry-once (same address twice from one
+ thread) can't be used: a program that rewrites and runs the same code in
+ a loop (tests/regress/smc-rwx) faults at the same address and
+ instruction every round, legitimately.
+Status: 10.0: 2026-11-26: retries only if the page is writable after the
+ toggle
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -4021,6 +4021,24 @@ static NTSTATUS grow_thread_stack( char *page, struct 
+ }
+ 
+ 
++#ifdef __APPLE__
++/* whether the host page is writable at the Mach level (CW Hack 24945's retry) */
++static BOOL wx_page_writable( void *page )
++{
++    mach_vm_address_t address = (mach_vm_address_t)page;
++    mach_vm_size_t size = 0;
++    vm_region_basic_info_data_64_t info;
++    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
++    mach_port_t object_name;
++
++    if (mach_vm_region( mach_task_self(), &address, &size, VM_REGION_BASIC_INFO_64,
++                        (vm_region_info_t)&info, &count, &object_name ))
++        return TRUE;  /* can't tell: retry, as before */
++    if (address > (mach_vm_address_t)page) return TRUE;
++    return (info.protection & VM_PROT_WRITE) != 0;
++}
++#endif
++
+ /***********************************************************************
+  *           virtual_handle_fault
+  */
+@@ -4042,6 +4060,25 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, 
+         WARN( "treating read fault in a readable page as a write fault, addr %p\n", addr );
+         err = EXCEPTION_WRITE_FAULT;
+     }
++
++    /* CW Hack 24945 */
++    if (err == EXCEPTION_WRITE_FAULT &&
++        ((get_unix_prot( vprot ) & (PROT_WRITE | PROT_EXEC)) == (PROT_WRITE | PROT_EXEC)))
++    {
++        FIXME( "HACK: write fault on a w|x page, addr %p\n", addr );
++        mprotect_range( page, page_size, 0, VPROT_EXEC );
++        mprotect_range( page, page_size, VPROT_EXEC, 0 );
++        /* wine-mac-builds: retry only if the page really is writable now.
++         * If the mprotect didn't take (the mapping's maximum protection has
++         * no write, say), the retried write would fault the same way for
++         * ever; let the fault take its normal course instead. */
++        if (wx_page_writable( page ))
++        {
++            ret = STATUS_SUCCESS;
++            goto done;
++        }
++        WARN( "page %p still isn't writable, not retrying\n", page );
++    }
+ #endif
+ 
+     if (!is_inside_signal_stack( stack ) && (vprot & VPROT_GUARD))
+@@ -4078,6 +4115,8 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, 
+                 ret = STATUS_SUCCESS;
+         }
+     }
++
++done:
+     mutex_unlock( &virtual_mutex );
+     rec->ExceptionCode = ret;
+     return ret;

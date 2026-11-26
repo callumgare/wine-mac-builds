@@ -2,28 +2,45 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Map executable file sections without PROT_EXEC, then add it (old 32-bit installers)
 Category: cpu
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 25.1.1
   CW-Hacks: 22011
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (wine_mmap in dlls/ntdll/unix/virtual.c, with CrossOver Hack #22011's utsname include)
-    Source: (sources/wine/dlls/ntdll/unix/virtual.c)
-Upstream: no (Wine 11 maps files without PROT_EXEC anyway)
-Why: macOS refuses an mmap of a file with PROT_EXEC on a shared mapping, so
- in 10.0 every executable or force-exec (DEP off, as for old 32-bit
- installers) section view failed: "failed to set PROT_EXEC on file map,
- noexec filesystem?" then "virtual_map_section mapping ... failed", and
- InstallShield setups exited. Map without PROT_EXEC, then mprotect. Found by
- Second Chance's tests (Nancy Drew installers); the inventory had missed it
- because it adds no string of its own except a WARN.
+  Files: dlls/ntdll/unix/virtual.c
+  Changes: when the mprotect fails, wine_mmap retries the original mmap
+    (MAP_FIXED over the first mapping), so the failure reaches the caller's
+    fallbacks; CrossOver returned the mapping without PROT_EXEC
+  Note: wine_mmap, with CrossOver Hack #22011's utsname include (only the
+    include is marked with the hack number). Sikarugir 10.0_8 ships it:
+    ntdll.so has "failed to mprotect region: %d" and never logs the
+    PROT_EXEC error in Second Chance's launches.
+Upstream: partly (WineHQ 11.x maps file views without PROT_EXEC and sets the
+ protection with mprotect afterwards, so only 10.0 needs this)
+Why: In 10.0, a file view that asks for PROT_EXEC (any readable view when
+ DEP is off, as for old 32-bit installers, and PE headers) is mapped with
+ PROT_EXEC in the mmap call itself, and macOS can refuse that: every such
+ section view failed ("failed to set PROT_EXEC on file map, noexec
+ filesystem?" then "virtual_map_section mapping ... failed"), and
+ InstallShield setups exited. Map without PROT_EXEC, then mprotect, as
+ CrossOver did and Wine 11 does. Found by Second Chance's tests (Nancy
+ Drew installers).
 Programs: Nancy Drew installers (InstallShield): exit after "failed to set
  PROT_EXEC on file map"; Big Fish games (White Wolf): stop at the same error
  on plain 10.0
-Evidence: Sikarugir 10.0_8: ntdll.so has "failed to mprotect region: %d" and never
- logs the PROT_EXEC error in Second Chance's launches.
+Messages: "failed to mprotect region: %d" (WARN, shown only with
+ WINEDEBUG=warn+virtual)
+Uncertain: which files macOS refuses PROT_EXEC for. Measured on macOS
+ 26.7.2 under Rosetta (native x86_64 probe): ordinary files map with
+ PROT_EXEC directly, shared or private; for a quarantined file the first
+ exec mmap waited on a Gatekeeper prompt. Why the paging-file and
+ SEC_IMAGE views in tests/regress/map-exec-file-view fail on plain 10.0
+ isn't established, nor whether mapping first avoids the Gatekeeper
+ prompt.
+Status: 10.0: 2026-11-26: falls back to the original mmap if the mprotect fails
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
-index ffe1762..4044c62 100644
 --- a/dlls/ntdll/unix/virtual.c
 +++ b/dlls/ntdll/unix/virtual.c
 @@ -62,6 +62,7 @@
@@ -34,10 +51,12 @@ index ffe1762..4044c62 100644
  #endif
  
  #include "ntstatus.h"
-@@ -1750,6 +1751,40 @@ static void mprotect_range( void *base, size_t size, BYTE set, BYTE clear )
+@@ -1748,6 +1749,45 @@ static void mprotect_range( void *base, size_t size, B
+         count = 0;
+     }
      if (count) mprotect_exec( addr, count << page_shift, prot );
- }
- 
++}
++
 +#ifdef __APPLE__
 +static BOOL is_catalina_or_later(void)
 +{
@@ -65,17 +84,20 @@ index ffe1762..4044c62 100644
 +        void *ret = mmap(addr, len, prot & ~PROT_EXEC, flags, fd, offset);
 +
 +        if (ret != MAP_FAILED && mprotect(ret, len, prot))
++        {
++            /* wine-mac-builds: fall back to the original call, so that a
++             * failure reaches the caller instead of a view without exec. */
 +            WARN("failed to mprotect region: %d\n", errno);
++            return mmap(ret, len, prot, flags | MAP_FIXED, fd, offset);
++        }
 +        return ret;
 +    }
 +#endif
 +    return mmap(addr, len, prot, flags, fd, offset);
-+}
-+
+ }
  
- /***********************************************************************
-  *           set_vprot
-@@ -2120,7 +2155,7 @@ static NTSTATUS map_file_into_view( struct file_view *view, int fd, size_t start
+ 
+@@ -2120,7 +2160,7 @@ static NTSTATUS map_file_into_view( struct file_view *
      /* only try mmap if media is not removable (or if we require write access) */
      if (!removable || (flags & MAP_SHARED))
      {
@@ -84,7 +106,7 @@ index ffe1762..4044c62 100644
              goto done;
  
          switch (errno)
-@@ -2448,7 +2483,7 @@ static NTSTATUS map_pe_header( void *ptr, size_t size, int fd, BOOL *removable )
+@@ -2448,7 +2488,7 @@ static NTSTATUS map_pe_header( void *ptr, size_t size,
  
      if (!*removable)
      {
@@ -93,7 +115,7 @@ index ffe1762..4044c62 100644
              return STATUS_SUCCESS;
  
          switch (errno)
-@@ -3952,7 +3987,7 @@ void virtual_map_user_shared_data(void)
+@@ -3952,7 +3992,7 @@ void virtual_map_user_shared_data(void)
          exit(1);
      }
      if ((res = server_get_unix_fd( section, 0, &fd, &needs_close, NULL, NULL )) ||

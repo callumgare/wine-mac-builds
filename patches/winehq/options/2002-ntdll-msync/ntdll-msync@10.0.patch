@@ -1,15 +1,99 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: msync (and esync on 11.22): waits without wineserver round trips, off unless enabled
+Summary: msync (and esync where CrossOver had it): waits without wineserver round trips, off unless enabled
 Category: sync
-Kind: performance
+Kind: feature, performance
 Origin: crossover
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (crossover-sources-25.1.1.tar.gz, sources/wine/{server,dlls/ntdll/unix}/{esync,msync}.[ch], README.esync, and the esync/msync hunks of configure.ac, dlls/ntdll/{Makefile.in,unix/{loader,server,sync,virtual}.c,unix/unix_private.h}, server/{Makefile.in,change,console,device,event,fd,main,named_pipe,process,queue,thread,timer}.c, server/{file,object,process,thread}.h, server/protocol.def); no CodeWeavers hack number. CX's own CW Hack 23015 (GPT_IMPORT/msthunk wrappers in sync.c) and hacks_init() in loader.c are left out. configure, include/config.h.in (autoreconf, Autoconf 2.72) and include/wine/server_protocol.h, server/request_{handlers,trace}.h (tools/make_requests) regenerated.
+  Authors: Zebediah Figura (esync)
+  Files: server/esync.c, server/esync.h, server/msync.c, server/msync.h,
+    dlls/ntdll/unix/esync.c, dlls/ntdll/unix/esync.h,
+    dlls/ntdll/unix/msync.c, dlls/ntdll/unix/msync.h, README.esync,
+    configure.ac, dlls/ntdll/Makefile.in, dlls/ntdll/unix/loader.c,
+    dlls/ntdll/unix/server.c, dlls/ntdll/unix/sync.c,
+    dlls/ntdll/unix/virtual.c, dlls/ntdll/unix/unix_private.h,
+    server/Makefile.in, server/change.c, server/console.c, server/device.c,
+    server/event.c, server/fd.c, server/main.c, server/named_pipe.c,
+    server/process.c, server/queue.c, server/thread.c, server/timer.c,
+    server/file.h, server/object.h, server/process.h, server/thread.h,
+    server/protocol.def
+  Changes: the esync and msync files whole, and the esync/msync hunks of
+    the others. CX's own CW Hack 23015 (GPT_IMPORT/msthunk wrappers in
+    sync.c) and hacks_init() in loader.c are left out. configure,
+    include/config.h.in (autoreconf, Autoconf 2.72) and
+    include/wine/server_protocol.h, server/request_{handlers,trace}.h
+    (tools/make_requests) regenerated. NtReleaseMutant's previous count is
+    1 minus the recursion count, as Windows and the server path give (both
+    backends returned the recursion count). A process whose
+    WINEMSYNC/WINEESYNC setting doesn't match its wineserver's says so with
+    MESSAGE before exiting (ERR printed nothing under WINEDEBUG=-all).
+    A mutex whose last handle is closed while a thread owns it is kept
+    on an orphan list (server/msync.c keeps its shm, server/esync.c its
+    fds) until it has been unowned for a second, so its owner's exit
+    still abandons it; both backends destroyed it at once, and a thread
+    waiting on it hung. ntdll's msync waits on copies of the handle cache
+    entries, so closing a handle doesn't turn a wait in progress into
+    STATUS_INVALID_HANDLE.
+  Note: no CodeWeavers hack number. Sikarugir 10.0_8 ships it: wineserver
+    has "WINEESYNC", "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-esync",
+    "/wine-%lx-msync", "too many msync objects", "msync: bootstrapped mach
+    port on %s.", "msync: warning: using mach_msg_overwrite instead of
+    mach_msg2", "esync: up and running.", "wineserver: using server-side
+    synchronization.", request names
+    create_esync/open_esync/get_esync_read_fd/get_esync_write_fd/esync_msgwait/get_esync_apc_fd/create_msync/open_msync/get_msync_idx/msync_msgwait/get_msync_apc_idx;
+    ntdll.so has "Can't wait on msync and server objects at the same
+    time!", "Server is running with WINEMSYNC but this process is not,
+    ...", "Using mach_msg_overwrite instead of mach_msg2", esync_*/msync_*
+    trace names. Every string literal in CX's four esync/msync source files
+    is in 10.0_8 (except one under #ifdef HAVE_SYS_EVENTFD_H, absent on
+    macOS), and the sync-related strings of our built wineserver and
+    ntdll.so match 10.0_8's exactly. marzent/dblark msync's "Semaphore
+    pool exhausted" is absent.
 Upstream: no
-Why: Faster in-process synchronisation: esync (WINEESYNC=1, eventfd/pipe-based, from wine-staging) and msync (WINEMSYNC=1, Mach semaphores plus shared memory, CodeWeavers' macOS-native variant). Both off unless their variable is set.
-Programs: none known
-Evidence: Sikarugir 10.0_8: wineserver has "WINEESYNC", "WINEMSYNC", "WINEMSYNC_QLIMIT", "/wine-%lx-esync", "/wine-%lx-msync", "too many msync objects", "msync: bootstrapped mach port on %s.", "msync: warning: using mach_msg_overwrite instead of mach_msg2", "esync: up and running.", "wineserver: using server-side synchronization.", request names create_esync/open_esync/get_esync_read_fd/get_esync_write_fd/esync_msgwait/get_esync_apc_fd/create_msync/open_msync/get_msync_idx/msync_msgwait/get_msync_apc_idx; ntdll.so has "Can't wait on msync and server objects at the same time!", "Server is running with WINEMSYNC but this process is not, ...", "Using mach_msg_overwrite instead of mach_msg2", esync_*/msync_* trace names. Every string literal in CX's four esync/msync source files is in 10.0_8 (except one under #ifdef HAVE_SYS_EVENTFD_H, absent on macOS), and the sync-related strings of our built wineserver and ntdll.so match 10.0_8's exactly. marzent/dblark msync's "Semaphore pool exhausted" is absent.
+Why: Faster in-process synchronisation: esync (WINEESYNC=1, eventfd- or
+ pipe-based, from wine-staging) and msync (WINEMSYNC=1, Mach semaphores
+ plus shared memory, CodeWeavers' macOS-native variant). Both are off
+ unless their variable is set for wineserver and every Wine process of the
+ prefix; a process whose setting differs from its wineserver's exits. With
+ both set, msync is used. esync is here only on 10.0, and only because
+ CrossOver 25.1.1 and Sikarugir 10.0_8 ship it, so a prefix set up with
+ WINEESYNC=1 for them keeps working. macOS has no eventfd, so esync uses
+ its pipe fallback there: an fd pair per object, slower and fd-hungry.
+ CrossOver 26.3.0 dropped it, and the 11.x copies don't have it.
+Programs: none known; a general performance option for programs that
+ synchronise many threads (games)
+Enable: env WINEMSYNC=1 (wineserver and every process)
+ env WINEESYNC=1 (wineserver and every process; WINEMSYNC wins if both are set)
+ env WINEMSYNC_QLIMIT=<n> (wineserver; the Mach message queue limit)
+Messages: "wine: server is running with WINEMSYNC but this process is not,
+ please enable WINEMSYNC or restart wineserver.", "wine: failed
+ bootstrap_look_up for %s", and the same "server is running with
+ WINEESYNC ..." for esync (MESSAGE, shown whatever WINEDEBUG says);
+ "msync: up and running." and "esync: up and running." (wineserver, on
+ stderr, when on)
+Known issues: with WINEMSYNC=1, kernel32's sync tests show: WaitForSingleObject on
+ a mutex handle opened without SYNCHRONIZE succeeds, ReleaseMutex then
+ doesn't fail with ERROR_NOT_OWNER, SignalObjectAndWait on a file handle
+ doesn't fail with ERROR_INVALID_HANDLE (esync too), and NtPulseEvent's
+ access check differs (2 of 2 runs, 2026-11-25). A program that starts a
+ child with its own environment block, without the variable, gets a child
+ that exits at once (each process reads the variable itself).
+Uncertain: performance against plain wineserver waits isn't measured; not
+ run on macOS 10.15 (the __ulock_wait fallback). The abandoned-mutex fix
+ (2026-11-26) is syntax-checked, not yet run; its one-second grace assumes
+ a woken waiter takes the abandoned mutex within a second (if not, an msync
+ waiter hangs as before, an esync one may read a reused shm slot).
+Related: kernel32-tests-sync; its kernel32 sync tests exercise msync
+Status: 10.0: 2026-11-26: abandoned mutex after its last handle is closed
+ (msync and esync)
+ 10.0: 2026-11-26: NtReleaseMutant previous count (msync and esync), mismatch
+ exits printed with MESSAGE: quick builds 20261126T013940 and T024442
+ (macOS 26.7.2, M1 Max): smoke and the regression suite passed
+ 10.0: 2026-11-26: quick 20261126T044550 (macOS 26.7.2, M1 Max): the
+ regression suite passed (GL and window tests in a GUI session); smoke
+ stopped at its audio step, which failed for every build and for afplay
+ while meeka's audio output was wedged; msync-abandoned-mutex,
+ esync-abandoned-mutex and msync pass (i686, x86_64)
 
 diff --git a/README.esync b/README.esync
 new file mode 100644
@@ -1183,7 +1267,7 @@ index 0000000..730d8a4
 +     * or from our tid is ours. */
 +    if (mutex->tid != GetCurrentThreadId()) return STATUS_MUTANT_NOT_OWNED;
 +
-+    if (prev) *prev = mutex->count;
++    if (prev) *prev = 1 - mutex->count;  /* as Windows and the server path do */
 +
 +    mutex->count--;
 +
@@ -1824,7 +1908,7 @@ index 0000000..730d8a4
 +        ret = create_esync( 0, &handle, 0, NULL, 0, 0 );
 +        if (ret != STATUS_NOT_IMPLEMENTED)
 +        {
-+            ERR("Server is running with WINEESYNC but this process is not, please enable WINEESYNC or restart wineserver.\n");
++            MESSAGE("wine: server is running with WINEESYNC but this process is not, please enable WINEESYNC or restart wineserver.\n");
 +            exit(1);
 +        }
 +
@@ -1843,9 +1927,9 @@ index 0000000..730d8a4
 +    {
 +        /* probably the server isn't running with WINEESYNC, tell the user and bail */
 +        if (errno == ENOENT)
-+            ERR("Failed to open esync shared memory file; make sure no stale wineserver instances are running without WINEESYNC.\n");
++            MESSAGE("wine: failed to open esync shared memory file; make sure no stale wineserver instances are running without WINEESYNC.\n");
 +        else
-+            ERR("Failed to initialize shared memory: %s\n", strerror( errno ));
++            MESSAGE("wine: failed to initialize shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -1945,10 +2029,10 @@ index 68cd4f5..0ac5de0 100644
      init_files();
 diff --git a/dlls/ntdll/unix/msync.c b/dlls/ntdll/unix/msync.c
 new file mode 100644
-index 0000000..bee01b9
+index 0000000..74ab86e
 --- /dev/null
 +++ b/dlls/ntdll/unix/msync.c
-@@ -0,0 +1,1658 @@
+@@ -0,0 +1,1671 @@
 +/*
 + * mach semaphore-based synchronization objects
 + *
@@ -2663,7 +2747,7 @@ index 0000000..bee01b9
 +        ret = create_msync( 0, &handle, 0, NULL, 0, 0 );
 +        if (ret != STATUS_NOT_IMPLEMENTED)
 +        {
-+            ERR("Server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
++            MESSAGE("wine: server is running with WINEMSYNC but this process is not, please enable WINEMSYNC or restart wineserver.\n");
 +            exit(1);
 +        }
 +
@@ -2685,15 +2769,15 @@ index 0000000..bee01b9
 +    {
 +        /* probably the server isn't running with WINEMSYNC, tell the user and bail */
 +        if (errno == ENOENT)
-+            ERR("Failed to open msync shared memory file; make sure no stale wineserver instances are running without WINEMSYNC.\n");
++            MESSAGE("wine: failed to open msync shared memory file; make sure no stale wineserver instances are running without WINEMSYNC.\n");
 +        else
-+            ERR("Failed to initialize shared memory: %s\n", strerror( errno ));
++            MESSAGE("wine: failed to initialize shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
 +    if ((shm_tid_fd = shm_open( shm_tid_name, O_RDWR, 0644 )) == -1)
 +    {
-+        ERR("Failed to initialize tid shared memory %s: %s\n", shm_tid_name, strerror( errno ));
++        MESSAGE("wine: failed to initialize tid shared memory %s: %s\n", shm_tid_name, strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -2701,7 +2785,7 @@ index 0000000..bee01b9
 +
 +    if (shm_tid_map == MAP_FAILED)
 +    {
-+        ERR("Failed to map tid shared memory: %s\n", strerror( errno ));
++        MESSAGE("wine: failed to map tid shared memory: %s\n", strerror( errno ));
 +        exit(1);
 +    }
 +
@@ -2719,13 +2803,13 @@ index 0000000..bee01b9
 +
 +    if (task_get_special_port(mach_task_self(), TASK_BOOTSTRAP_PORT, &bootstrap_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed task_get_special_port\n");
++        MESSAGE("wine: failed task_get_special_port\n");
 +        exit(1);
 +    }
 +
 +    if (bootstrap_look_up(bootstrap_port, shm_name + 1, &server_port) != KERN_SUCCESS)
 +    {
-+        ERR("Failed bootstrap_look_up for %s\n", shm_name + 1);
++        MESSAGE("wine: failed bootstrap_look_up for %s\n", shm_name + 1);
 +        exit(1);
 +    }
 +#endif
@@ -3011,7 +3095,7 @@ index 0000000..bee01b9
 +
 +    if (mutex->tid != GetCurrentThreadId()) return STATUS_MUTANT_NOT_OWNED;
 +
-+    if (prev) *prev = mutex->count;
++    if (prev) *prev = 1 - mutex->count;  /* as Windows and the server path do */
 +
 +    if (!--mutex->count)
 +    {
@@ -3091,6 +3175,7 @@ index 0000000..bee01b9
 +
 +    __thread static int current_tid = 0;
 +    __thread static struct msync *objs[MAXIMUM_WAIT_OBJECTS + 1];
++    __thread static struct msync obj_copies[MAXIMUM_WAIT_OBJECTS];
 +    struct msync apc_obj;
 +    int has_msync = 0, has_server = 0;
 +    BOOL msgwait = FALSE;
@@ -3136,7 +3221,19 @@ index 0000000..bee01b9
 +    {
 +        ret = get_object( handles[i], &objs[i] );
 +        if (ret == STATUS_SUCCESS)
++        {
 +            has_msync = 1;
++            /* wine-mac-builds: wait on a copy of the cache entry. Closing the
++             * handle (msync_close) clears the entry's type, and a new handle
++             * with the same value reuses it; Windows keeps waiting on the
++             * object, and a mutex abandoned after its last handle was closed
++             * must still be taken (WAIT_ABANDONED), not fail as closed. */
++            if (objs[i])
++            {
++                obj_copies[i] = *objs[i];
++                objs[i] = &obj_copies[i];
++            }
++        }
 +        else if (ret == STATUS_NOT_IMPLEMENTED)
 +            has_server = 1;
 +        else
@@ -4563,10 +4660,10 @@ index cab0970..4ebad41 100644
          }
 diff --git a/server/esync.c b/server/esync.c
 new file mode 100644
-index 0000000..b69f778
+index 0000000..7d06f86
 --- /dev/null
 +++ b/server/esync.c
-@@ -0,0 +1,697 @@
+@@ -0,0 +1,784 @@
 +/*
 + * eventfd-based synchronization objects
 + *
@@ -4752,11 +4849,16 @@ index 0000000..b69f778
 +    return access & ~(GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
 +}
 +
++static int orphan_mutex( struct esync *esync );
++
 +static void esync_destroy( struct object *obj )
 +{
 +    struct esync *esync = (struct esync *)obj;
 +    if (esync->type == ESYNC_MUTEX)
++    {
 +        list_remove( &esync->mutex_entry );
++        if (orphan_mutex( esync )) return;  /* keeps the fds */
++    }
 +#ifdef HAVE_SYS_EVENTFD_H
 +    close( esync->fd.fd );
 +#else
@@ -4828,6 +4930,72 @@ index 0000000..b69f778
 +    int locked;
 +};
 +C_ASSERT(sizeof(struct event) == 8);
++
++/* wine-mac-builds: a mutex whose last handle is closed while a thread owns it.
++ * Windows keeps a mutex while a wait refers to it and abandons it when its
++ * owner exits, so a thread waiting on it gets WAIT_ABANDONED. Destroying the
++ * object used to close its fds at once, and since it was no longer on
++ * mutex_list, esync_abandon_mutexes() never abandoned it and the waiter (which
++ * holds its own copies of the fds) hung. The fds are kept here instead, which
++ * also keeps the shm index (fds[0] + 1) from being reused, until the mutex has
++ * been unowned for ORPHAN_GRACE: no thread can then be blocked on it, and a
++ * waiter that was woken has had time to take it. Nothing can wait on it
++ * afresh, since no handle to it is left. */
++struct esync_orphan
++{
++    struct list     entry;
++    struct esync_fd fd;
++    unsigned int    shm_idx;
++    timeout_t       unowned_since;  /* monotonic time it was first seen unowned, 0 while owned */
++};
++
++#define ORPHAN_GRACE TICKS_PER_SEC
++
++static struct list orphan_mutex_list = LIST_INIT(orphan_mutex_list);
++
++static int mutex_owned( const struct mutex *mutex )
++{
++    return mutex->tid != 0 && mutex->tid != ~0;
++}
++
++static void reap_orphan_mutexes(void)
++{
++    struct esync_orphan *orphan, *next;
++
++    LIST_FOR_EACH_ENTRY_SAFE( orphan, next, &orphan_mutex_list, struct esync_orphan, entry )
++    {
++        if (mutex_owned( get_shm( orphan->shm_idx ) ))
++            orphan->unowned_since = 0;
++        else if (!orphan->unowned_since)
++            orphan->unowned_since = monotonic_time;
++        else if (monotonic_time - orphan->unowned_since >= ORPHAN_GRACE)
++        {
++            list_remove( &orphan->entry );
++#ifdef HAVE_SYS_EVENTFD_H
++            close( orphan->fd.fd );
++#else
++            close( orphan->fd.fds[0] );
++            close( orphan->fd.fds[1] );
++#endif
++            free( orphan );
++        }
++    }
++}
++
++/* Keep a destroyed mutex's fds if a thread owns it; returns 1 if kept. */
++static int orphan_mutex( struct esync *esync )
++{
++    struct esync_orphan *orphan;
++
++    reap_orphan_mutexes();
++    if (!mutex_owned( get_shm( esync->shm_idx ) )) return 0;
++    if (!(orphan = malloc( sizeof(*orphan) ))) return 0;
++    orphan->fd = esync->fd;
++    orphan->shm_idx = esync->shm_idx;
++    orphan->unowned_since = 0;
++    list_add_tail( &orphan_mutex_list, &orphan->entry );
++    return 1;
++}
 +
 +static int esync_init_fd( struct esync_fd *fd, int initval, int semaphore )
 +{
@@ -5089,6 +5257,22 @@ index 0000000..b69f778
 +void esync_abandon_mutexes( struct thread *thread )
 +{
 +    struct esync *esync;
++    struct esync_orphan *orphan;
++
++    LIST_FOR_EACH_ENTRY( orphan, &orphan_mutex_list, struct esync_orphan, entry )
++    {
++        struct mutex *mutex = get_shm( orphan->shm_idx );
++
++        if (mutex->tid == thread->id)
++        {
++            if (debug_level)
++                fprintf( stderr, "esync_abandon_mutexes() orphaned idx=%u\n", orphan->shm_idx );
++            mutex->tid = ~0;
++            mutex->count = 0;
++            esync_wake_fd( &orphan->fd );
++        }
++    }
++    reap_orphan_mutexes();
 +
 +    LIST_FOR_EACH_ENTRY( esync, &mutex_list, struct esync, mutex_entry )
 +    {
@@ -5630,10 +5814,10 @@ index 1248b92..5572cca 100644
      init_signals();
 diff --git a/server/msync.c b/server/msync.c
 new file mode 100644
-index 0000000..9a5b3a8
+index 0000000..8e29548
 --- /dev/null
 +++ b/server/msync.c
-@@ -0,0 +1,1042 @@
+@@ -0,0 +1,1123 @@
 +/*
 + * mach semaphore-based synchronization objects
 + *
@@ -5690,6 +5874,7 @@ index 0000000..9a5b3a8
 +
 +#include "handle.h"
 +#include "request.h"
++#include "file.h"
 +#include "msync.h"
 +
 +/*
@@ -6306,12 +6491,17 @@ index 0000000..9a5b3a8
 +    return access & ~(GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
 +}
 +
++#ifdef __APPLE__
++static int orphan_mutex( unsigned int shm_idx );
++#endif
++
 +static void msync_destroy( struct object *obj )
 +{
 +    struct msync *msync = (struct msync *)obj;
 +    if (msync->type == MSYNC_MUTEX)
 +        list_remove( &msync->mutex_entry );
 +#ifdef __APPLE__
++    if (msync->type == MSYNC_MUTEX && orphan_mutex( msync->shm_idx )) return;
 +    msync_destroy_semaphore( msync->shm_idx );
 +#endif
 +}
@@ -6553,12 +6743,87 @@ index 0000000..9a5b3a8
 +    int count;  /* recursion count */
 +};
 +
++/* wine-mac-builds: a mutex whose last handle is closed while a thread owns it.
++ * Windows keeps a mutex while a wait refers to it and abandons it when its
++ * owner exits, so a thread waiting on it gets WAIT_ABANDONED. Destroying the
++ * object used to free its shm at once, and since it was no longer on
++ * mutex_list, msync_abandon_mutexes() never abandoned it and the waiter hung.
++ * The shm is kept here instead (still marked allocated, so the index isn't
++ * reused) until the mutex has been unowned for ORPHAN_GRACE: no thread can
++ * then be blocked on it, and a waiter that was woken has had time to take it.
++ * Nothing can wait on it afresh, since no handle to it is left. */
++struct msync_orphan
++{
++    struct list  entry;
++    unsigned int shm_idx;
++    timeout_t    unowned_since;  /* monotonic time it was first seen unowned, 0 while owned */
++};
++
++#define ORPHAN_GRACE TICKS_PER_SEC
++
++static struct list orphan_mutex_list = LIST_INIT(orphan_mutex_list);
++
++static int mutex_owned( const struct mutex *mutex )
++{
++    int tid = __atomic_load_n( &mutex->tid, __ATOMIC_SEQ_CST );
++    return tid != 0 && tid != ~0;
++}
++
++static void reap_orphan_mutexes(void)
++{
++    struct msync_orphan *orphan, *next;
++
++    LIST_FOR_EACH_ENTRY_SAFE( orphan, next, &orphan_mutex_list, struct msync_orphan, entry )
++    {
++        if (mutex_owned( get_shm( orphan->shm_idx ) ))
++            orphan->unowned_since = 0;
++        else if (!orphan->unowned_since)
++            orphan->unowned_since = monotonic_time;
++        else if (monotonic_time - orphan->unowned_since >= ORPHAN_GRACE)
++        {
++            list_remove( &orphan->entry );
++            msync_destroy_semaphore( orphan->shm_idx );
++            free( orphan );
++        }
++    }
++}
++
++/* Keep a destroyed mutex's shm if a thread owns it; returns 1 if kept. */
++static int orphan_mutex( unsigned int shm_idx )
++{
++    struct msync_orphan *orphan;
++
++    reap_orphan_mutexes();
++    if (!shm_idx || !mutex_owned( get_shm( shm_idx ) )) return 0;
++    if (!(orphan = malloc( sizeof(*orphan) ))) return 0;
++    orphan->shm_idx = shm_idx;
++    orphan->unowned_since = 0;
++    list_add_tail( &orphan_mutex_list, &orphan->entry );
++    return 1;
++}
++
 +#endif
 +
 +void msync_abandon_mutexes( struct thread *thread )
 +{
 +#ifdef __APPLE__
 +    struct msync *msync;
++    struct msync_orphan *orphan;
++
++    LIST_FOR_EACH_ENTRY( orphan, &orphan_mutex_list, struct msync_orphan, entry )
++    {
++        struct mutex *mutex = get_shm( orphan->shm_idx );
++
++        if (mutex->tid == thread->id)
++        {
++            if (debug_level)
++                fprintf( stderr, "msync_abandon_mutexes() orphaned idx=%d\n", orphan->shm_idx );
++            mutex->tid = ~0;
++            mutex->count = 0;
++            signal_all ( orphan->shm_idx, (int *)mutex );
++        }
++    }
++    reap_orphan_mutexes();
 +
 +    LIST_FOR_EACH_ENTRY( msync, &mutex_list, struct msync, mutex_entry )
 +    {

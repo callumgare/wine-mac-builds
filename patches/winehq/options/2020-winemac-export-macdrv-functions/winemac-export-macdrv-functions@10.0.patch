@@ -2,23 +2,50 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: D3DMetal and DXMT: export winemac's function table for Metal views
 Category: graphics
 Kind: feature
+Feature: d3dmetal
 Origin: crossover
   Version: 25.1.1
   CW-Hacks: 22435
-  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz, https://github.com/dblark/macos-wine-build)
-  Note: CrossOver 25.1.1 CW HACK 22435 (dlls/winemac.drv/d3dmetal.c and the registry
-    callbacks in dllmain.c, macdrv.h, macdrv_main.c, unixlib.h, Makefile.in)
-    Source: (same code: dblark 0003-d3dmetal-hacks.patch
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Files: dlls/winemac.drv/d3dmetal.c, dlls/winemac.drv/dllmain.c,
+    dlls/winemac.drv/macdrv.h, dlls/winemac.drv/macdrv_main.c,
+    dlls/winemac.drv/unixlib.h, dlls/winemac.drv/Makefile.in
+  Changes: verbatim
+  Note: the ntdll part of CW HACK 22435 is ntdll-export-wine-unix-call, the
+    wine.inf part wine-inf-d3dmetal-placeholder-dlls. Sikarugir 10.0_8 ships
+    it: winemac.so exports _macdrv_functions; trace strings
+    my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
+    my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;
+    winemac.drv contains macdrv_regqueryvalueexa and delay-imports
+    advapi32.dll
+Origin: other
+  Name: dblark/macos-wine-build
+  URL: https://github.com/dblark/macos-wine-build
+  Note: the same code, in 0003-d3dmetal-hacks.patch
 Upstream: no
-Why: D3DMetal and DXMT look up the exported macdrv_functions table in winemac.so to get
- at the window's Cocoa view and create Metal views/layers, and call a few user32/advapi32
- functions through it from Unix code (registry calls go back to the PE side through
- KeUserDispatchCallback).
+Why: D3DMetal and DXMT look up the table winemac.so exports as
+ macdrv_functions (with dlsym) to get at a window's Cocoa view and create
+ Metal views and layers in it, and call a few user32 and advapi32 functions
+ through it from Unix code (registry calls go back to the PE side through
+ KeUserDispatchCallback). The registry and user32 entries and the 120-byte
+ window data layout are for D3DMetal; DXMT v0.74 uses get_win_data,
+ release_win_data and the three metal_view functions.
+ Until a renderer looks the table up, nothing runs: this copy adds an
+ export, three PE callbacks and an unused event type.
 Programs: none known
-Evidence: Sikarugir 10.0_8: winemac.so exports _macdrv_functions; trace strings
- my_macdrv_view_create_metal_view, "macdrv_view_create_metal_view %p %p",
- my_RegQueryValueExA … my_SetWindowLongPtrW, debug channel macdrv_d3dmtl;
- winemac.drv contains macdrv_regqueryvalueexa and delay-imports advapi32.dll
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_D3DMETAL)
+ see ntdll-renderer-dll-paths (WINEDLLPATH_DXMT)
+Messages: TRACE lines on the macdrv_d3dmtl channel, such as "get_win_data %p"
+ and "macdrv_view_create_metal_view %p %p" (hidden unless WINEDEBUG has
+ +macdrv_d3dmtl)
+Risk: exposes winemac internals to any dylib in the process, by design; the
+ registry calls run PE advapi32 from whichever thread the renderer calls them
+ on
+Status: 10.0: 2026-11-26: a failed calloc in my_get_win_data returns NULL
+ instead of crashing (as the 11.x copies). Earlier
+ form in build0
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 index a9ce724..6e613e6 100644
@@ -46,7 +73,7 @@ new file mode 100644
 index 0000000..84085ac
 --- /dev/null
 +++ b/dlls/winemac.drv/d3dmetal.c
-@@ -0,0 +1,404 @@
+@@ -0,0 +1,408 @@
 +/*
 + * Mac graphics driver hooks used by D3DMetal (part of the Apple Game Porting Toolkit)
 + *
@@ -156,7 +183,11 @@ index 0000000..84085ac
 +    if (!data)
 +        return NULL;
 +
-+    d3dm_data = calloc(1, sizeof(*d3dm_data));
++    if (!(d3dm_data = calloc(1, sizeof(*d3dm_data))))
++    {
++        release_win_data(data);
++        return NULL;
++    }
 +
 +    d3dm_data->hwnd = data->hwnd;
 +    d3dm_data->cocoa_window = data->cocoa_window;

@@ -3,25 +3,27 @@ Summary: Fix a zoomed or cropped OpenGL picture after a program changes the disp
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-  Note: ours (wine-mac-builds), 2026-11-15
-Upstream: no (WineHQ master still uses virtual_rect here, checked 2026-11-15)
-Why: when a program changes the display mode under EmulateModeset, win32u
- creates the window's GL client surface "raw" and renders into a
- framebuffer surface (an FBO of the emulated, virtual size) that it blits
- to the client surface at the raw monitor size (monitor_rect). winemac
- ignores client.raw and sets the CGL surface backing size to virtual_rect,
- so the blit lands in a backing of the wrong size and the picture is
- zoomed or cropped. winex11 already uses
- "raw ? monitor_rect : virtual_rect" for the same thing; do the same.
- Only surfaces created raw change; everything else keeps virtual_rect.
+Upstream: candidate (draft in .local/bug-reports/). WineHQ master still
+ uses virtual_rect here (checked 2026-11-25).
+Why: With EmulateModeset on, win32u creates each window's GL client surface
+ "raw" and renders into a framebuffer surface (an FBO of the emulated,
+ virtual size) that it blits to the client surface at the monitor's real
+ size (monitor_rect). winemac ignored client.raw and set the CGL surface
+ backing size to virtual_rect, so after a mode change the blit landed in a
+ backing of the wrong size and the picture was zoomed or cropped. winex11
+ already uses "raw ? monitor_rect : virtual_rect" for the same thing; do the
+ same. Surfaces that aren't raw keep virtual_rect, and while the emulated mode
+ matches the screen the two rects have the same size.
  Seen in White Wolf (Gcenx 11.21, our macfixes 11.21 build1): the log
  shows "Using experimental framebuffer OpenGL surface" and the picture
  overflows the window. Wine 10.0 has no framebuffer surface, so this is
  11.x only.
 Programs: White Wolf: its OpenGL picture is zoomed and cropped after it
  changes the display mode (Wine 11, EmulateModeset)
-Status: built in macfixes-11.21-build2. Confirmed 2026-11-16: White Wolf's
- picture is no longer zoomed (Second Chance integration run).
+Related: winemac-centre-fullscreen-gdi; the GL and GDI halves of a
+ fullscreen picture under EmulateModeset
+Status: 11.21: 2026-11-16: built in macfixes-11.21-build2; confirmed: White
+ Wolf's picture is no longer zoomed (Second Chance integration run).
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 index a67010a..e5e50dc 100644

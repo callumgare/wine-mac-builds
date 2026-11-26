@@ -1,31 +1,42 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Add the flavour's name to the version string: "wine-11.21 (macfixes)"
+Summary: Add the flavour's name to the version string, as in "wine-<version> (macfixes)"
 Category: system
 Kind: feature
 Origin: wine-staging (ported here)
-  URL: https://gitlab.winehq.org/wine/wine-staging/-/tree/master/patches/Staging
-  Note: wine-staging patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
-    (Sebastian Lackner), current wine-staging master (11.x), with the label
-    taken from the make variable WINE_VERSION_LABEL instead of " (Staging)".
-    Staging's other patch there, 0001 (a once-per-session "testing version"
-    warning), was carried until 2026-11-25 and dropped: a released build isn't
-    a testing version, and the label already says the build is patched.
-    Source: (checkout of 2026-11-12
-    Source: upstream-commit 7384c8babcaa)
+  Version: 24ed50534756
+  Patchset: Staging
+  Files: patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+  Authors: Sebastian Lackner
+  URL: https://gitlab.winehq.org/wine/wine-staging/-/blob/24ed50534756/patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+  Note: Sikarugir 10.0_8 ships it: the same mechanism, branded
+    "wine-10.0 (Sikarugir)"
+  Changes: the label comes from the make variable WINE_VERSION_LABEL
+    instead of " (Staging)", and configure is patched too (staging
+    regenerates it; we don't run autoreconf). Staging's other patch
+    in that patchset (a once-per-session "testing version" warning) isn't
+    taken. This copy is the 11.x form of the same rule.
 Upstream: no
 Why: Marks the build as patched, so a log or bug report shows which
- flavour it came from: `wine --version` and the version Wine reports read
- "wine-11.21 (macfixes)". build/compile.sh sets WINE_VERSION_LABEL to
+ flavour it came from: `wine --version` and wine_get_build_id() read
+ "wine-11.21 (macfixes)"; wine_get_version() still returns WineHQ's
+ "11.21". build/compile.sh sets WINE_VERSION_LABEL to
  " (<flavour>)" for flavours that take the version-label set; the rule in
  configure.ac and configure (both patched, so no autoreconf is needed)
  appends it when dlls/ntdll/unix/version.c is generated. Unset, the
- version string is WineHQ's.
+ version string is WineHQ's. The label goes into a sed replacement and a C
+ string, so compile.sh refuses flavour names other than lower-case
+ letters, digits and hyphens.
 Programs: none known
-Evidence: Sikarugir 10.0_8: the same mechanism, branded "wine-10.0 (Sikarugir)"
-Port: the 11.x form of the same rule.
-Status: 2026-11-25: label made a build variable and the warning dropped;
- checked by generating dlls/ntdll/unix/version.c from the patched
+Known issues: make reads the variable from the environment each time
+ ntdll is built, so rebuilding ntdll by hand in a configured tree without
+ WINE_VERSION_LABEL set drops the label.
+Build-env: WINE_VERSION_LABEL
+No test: not behaviour; the smoke test checks the version string
+Status: 11.21: 2026-11-25: label made a build variable and the warning
+ dropped; checked by generating dlls/ntdll/unix/version.c from the patched
  configure's rule with and without WINE_VERSION_LABEL; not yet in a build.
+ 11.22: 2026-11-25: as 11.21; the quick build quick20261125T052251 (not
+ for release) prints "wine-11.22 (macfixes)" for wine --version.
 
 diff --git a/configure b/configure
 index e5f72d7..dee0e8d 100755

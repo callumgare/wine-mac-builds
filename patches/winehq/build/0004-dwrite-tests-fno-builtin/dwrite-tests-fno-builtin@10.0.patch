@@ -1,0 +1,35 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Build the dwrite tests with -fno-builtin so they link with LLVM 23
+Category: build
+Kind: fix
+Origin: wine-mac-builds
+Upstream: differently (9195d892, Wine 10.12: configure builds every PE file
+ with -ffp-exception-behavior=maytrap, which stops the rewrite)
+Needed until: 10.12 (WineHQ 9195d892)
+Why: LLVM 23 (our llvm-mingw, clang 23.1.4) turns floor() of a value it
+ knows is not negative into trunc() when floating-point exceptions may be
+ ignored. The dwrite tests import msvcrt, whose import library has no trunc
+ or truncf (Windows' msvcrt.dll doesn't export them), so dwrite_test.exe
+ failed to link on Wine 10.0: "undefined symbol: trunc". -fno-builtin stops
+ the compiler treating floor() as something it can rewrite, as Wine already
+ does for its own CRT (MSVCRTFLAGS). Only for layout.c, where floor() is used:
+ EXTRADEFS also goes to wrc, which rejects the option. Wine 10.12 and later
+ build every PE file with -ffp-exception-behavior=maytrap, which keeps the
+ call as floor() (measured with this compiler on layout.c of 10.0, 11.21
+ and 11.22), so they don't need it.
+ It changes only dwrite_test.exe (in the -tests release file).
+Programs: none (build)
+No test: build only; without it the 10.0 build fails to link dwrite_test.exe
+Status: 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/dwrite/tests/Makefile.in b/dlls/dwrite/tests/Makefile.in
+--- a/dlls/dwrite/tests/Makefile.in
++++ b/dlls/dwrite/tests/Makefile.in
+@@ -1,5 +1,6 @@
+ TESTDLL = dwrite.dll
+ IMPORTS = dwrite gdi32 user32
++layout_EXTRADEFS = -fno-builtin
+ 
+ SOURCES = \
+ 	analyzer.c \

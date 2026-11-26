@@ -3,19 +3,37 @@ Summary: Rewrite binds to 127.x.x.x addresses macOS refuses, for GOG Galaxy
 Category: system
 Kind: workaround
 Origin: crossover
+  Version: 26.3.0
   CW-Hacks: 24472
-  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: 11.22: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
-    11.21: CrossOver 26.3.0 (same code as 25.1.1) CW HACK 24472
-    10.0: CrossOver 25.1.1 CW HACK 24472
-    Source: (sources/wine/server/sock.c)
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
+  Files: server/sock.c
+  Changes: verbatim (CX 25.1.1 has the same code)
+  Note: Sikarugir 10.0_8 ships it: wineserver: 'HACK: rewriting bind
+    loopback address to 127.0.0.1'
 Upstream: no
-Why: macOS only lets sockets bind to 127.0.0.1 among the 127/8 addresses; rewrite other 127.x.x.x binds so GOG Galaxy can start.
+Why: On Windows (and Linux) every 127.x.x.x address is local; macOS only
+ lets a socket bind to 127.0.0.1, so a bind to another loopback address
+ fails with WSAEADDRNOTAVAIL. wineserver now binds such sockets to
+ 127.0.0.1, so GOG Galaxy can start. getsockname still reports the address
+ asked for.
 Programs: GOG Galaxy: doesn't start, as macOS refuses binds to 127.x.x.x
  addresses other than 127.0.0.1
-Evidence: Sikarugir 10.0_8: wineserver: 'HACK: rewriting bind loopback address to 127.0.0.1'.
-Port: unchanged from 10.0 (applies with offsets); CX 26.3.0's server/sock.c has the
- identical hunk.
+Seen on: macOS 26.7.2 (M1 Max): native binds to 127.0.0.2 and 127.1.2.3
+ fail with EADDRNOTAVAIL; lo0 has only 127.0.0.1
+Messages: "HACK: rewriting bind loopback address to 127.0.0.1" (wineserver's
+ stderr, for each such bind; WINEDEBUG doesn't hide it)
+Risk: always on: every program's binds to 127.x.x.x go to 127.0.0.1 instead;
+ still loopback only, nothing is exposed off the machine
+Known issues: CodeWeavers call it an incomplete and incorrect rewrite. Two
+ sockets bound to different 127.x addresses on one port now collide
+ (WSAEADDRINUSE; measured in Wine 11.22: 127.0.0.2, then 127.0.0.3 and
+ 127.0.0.1 on the same port). A connect to 127.x.x.x other than 127.0.0.1
+ still fails (it times out on macOS), so a program that connects to the
+ address it bound to waits for a TCP timeout.
+Uncertain: which GOG Galaxy version needed it, and whether current ones
+ still do.
+Status: 11.22: 2026-11-25: binds to 127.0.0.2 succeed in
+ macfixes-11.22-quick20261125T052251 (getsockname reports 127.0.0.2)
 
 diff --git a/server/sock.c b/server/sock.c
 index 93505d5..360fe02 100644

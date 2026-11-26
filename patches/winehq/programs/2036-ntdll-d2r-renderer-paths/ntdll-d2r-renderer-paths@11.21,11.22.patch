@@ -1,0 +1,80 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Diablo II: Resurrected: leave out the DXVK and DXMT DLL paths
+Category: graphics
+Kind: workaround
+Origin: reconstructed
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 ntdll.so
+  Functions: set_dll_path (inlined into init_paths, 0x1e4b3-0x1e760)
+  Changes: none: the same rules as 10.0_8
+  Note: Sikarugir-only: no CrossOver 26, wine-staging or WineHQ equivalent
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: without the WINEDLLPATH_D3DMETAL row and SIKARUGIR_D2R_FORCE_VKD3D:
+    a skip_for_d2r flag replaces the three-way rule
+Upstream: no
+Why: Diablo II: Resurrected (D2R.exe, matched by substring on argv[1]) never
+ gets the WINEDLLPATH_DXVK or WINEDLLPATH_DXMT folders (unconditionally, as
+ in 10.0_8), so it runs on Wine's own d3d12 (vkd3d) and dxgi instead.
+ Sikarugir (and the 10.0 copy) also skips WINEDLLPATH_D3DMETAL for it when
+ SIKARUGIR_D2R_FORCE_VKD3D is set; this copy doesn't search that path at all,
+ so the variable has no effect here.
+Programs: Diablo II: Resurrected (D2R.exe): presumably because it uses
+ Direct3D 12, which DXVK and DXMT don't provide, while their dxgi.dll would
+ replace the one Wine's d3d12 needs
+Matches: exe D2R.exe
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_DXVK or WINEDLLPATH_DXMT set)
+Uncertain: why Sikarugir does this: 10.0_8 doesn't record a reason (Programs
+ gives the likely one).
+Expects before it: ntdll-renderer-dll-paths, ntdll-launcher-metal-hud (context)
+No test: none written yet; a D2R.exe copy of renderer-dll-paths' program under
+ WINEDLLPATH_DXVK, which must get Wine's d3d11, would cover it
+Status: 11.21, 11.22: 2026-11-26: WINEDLLPATH_D3DMETAL and
+ SIKARUGIR_D2R_FORCE_VKD3D removed
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -329,6 +329,12 @@ static BOOL is_launcher_process(void)
+     return FALSE;
+ }
+ 
++/* Sikarugir: Diablo II: Resurrected runs on vkd3d rather than DXVK or DXMT */
++static BOOL is_d2r_process(void)
++{
++    return main_argc >= 2 && strstr( main_argv[1], "D2R.exe" );
++}
++
+ /* Sikarugir: per-renderer DLL directories, searched before the builtin ones. Sikarugir
+  * also has WINEDLLPATH_D3DMETAL, first: D3DMetal 3.0 needs Wine 10.4's GSBASE model,
+  * so it is left out here. */
+@@ -336,12 +342,13 @@ static const struct
+ {
+     const char *var;
+     BOOL skip_for_launchers;
++    BOOL skip_for_d2r;
+ } renderer_dll_paths[] =
+ {
+-    { "WINEDLLPATH_CNCD",     FALSE },
+-    { "WINEDLLPATH_D9VK",     TRUE },
+-    { "WINEDLLPATH_DXVK",     TRUE },
+-    { "WINEDLLPATH_DXMT",     FALSE },
++    { "WINEDLLPATH_CNCD",     FALSE, FALSE },
++    { "WINEDLLPATH_D9VK",     TRUE,  FALSE },
++    { "WINEDLLPATH_DXVK",     TRUE,  TRUE },
++    { "WINEDLLPATH_DXMT",     FALSE, TRUE },
+ };
+ 
+ static BOOL use_renderer_dll_path( unsigned int idx )
+@@ -359,6 +366,7 @@ static BOOL use_renderer_dll_path( unsigned int idx )
+         }
+         return FALSE;
+     }
++    if (renderer_dll_paths[idx].skip_for_d2r && is_d2r_process()) return FALSE;
+     return TRUE;
+ }
+ 

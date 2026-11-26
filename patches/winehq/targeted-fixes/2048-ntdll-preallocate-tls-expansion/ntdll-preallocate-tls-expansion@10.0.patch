@@ -6,30 +6,41 @@ Origin: crossover
   Version: 25.1.1
   CW-Hacks: 18756
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 CW HACK 18756 (dlls/ntdll/loader.c)
-    Source: (sources/wine/dlls/ntdll/loader.c)
-Upstream: no
-Why: On x86_64 macOS, allocate the thread's TLS expansion slots
- (TEB->TlsExpansionSlots) up front in loader_init and also store the
- pointer at %gs:0x1780 (that field's offset). Otherwise kernelbase
- allocates them on demand in TlsAlloc/TlsSetValue and never writes that
- %gs-relative copy. On the first call it also marks every free slot in the
- 64-entry TLS bitmap as used, so every TlsAlloc hands out an expansion
- slot. Not for WoW64 threads. is_macos() checks wine_get_host_version
- for "Darwin".
-Programs: none known
-Evidence: Sikarugir 10.0_8: its x86_64 ntdll.dll has the "Darwin" string and a
- movq %rax, %gs:0x1780; ours had neither.
-Port: to 10.0: placed after 0001's testing-version warning, just before
- FlsSlots is set up (in CX it sits right after the else block above
- that warning).
-Status: not yet built (2026-11-15).
+  Files: dlls/ntdll/loader.c
+  Changes: same code; placed just before FlsSlots is set up
+  Note: Sikarugir 10.0_8 ships it: its x86_64 ntdll.dll has the "Darwin"
+    string and a movq %rax, %gs:0x1780; a plain build's has neither
+Upstream: differently (3a16aabb, Wine 10.5: GSBASE points at the TEB while
+ PE code runs, so %gs:0x1780 is TEB->TlsExpansionSlots there)
+Needed until: 10.5 (WineHQ 3a16aabb)
+Why: Code that inlines TlsGetValue reads the TLS arrays through %gs:
+ indexes 0-63 at %gs:0x1480 and the expansion array through the pointer at
+ %gs:0x1780 (TEB->TlsExpansionSlots). In Wine 10.0 on macOS %gs is the
+ pthread TSD, not the TEB, so both read libc's data. For 64-bit threads
+ (not WoW64 ones), allocate the expansion array in loader_init and also
+ store its pointer at %gs:0x1780; otherwise kernelbase allocates it on
+ demand in TlsAlloc/TlsSetValue and never writes that %gs-relative copy.
+ The first time, mark every free slot in the 64-entry TLS bitmap as used,
+ so that every TlsAlloc afterwards hands out an expansion slot, which that
+ pointer serves. Indexes 0-63 at %gs:0x1480 are still not mirrored.
+ is_macos() checks wine_get_host_version for "Darwin".
+Programs: none known; any 64-bit program or DLL that inlines TlsGetValue
+Uncertain: which program CrossOver added it for (CW HACK 18756 isn't
+ public). Programs that assume a TLS index below 64 (TLS_MINIMUM_AVAILABLE)
+ get one of 64 or more.
+Related: ntdll-peb-at-gs-0x60; the same cause (10.0's %gs is the pthread
+ TSD), another TEB field
+Status: 10.0: 2026-11-26: diff refreshed against the current stack, so it
+ applies at fuzz 0 and needs no other patch as context; code unchanged.
+ 2026-11-25: on macfixes-10.0-build0 (local), TlsAlloc gave 65, 66, 67 and
+ %gs:0x1780 was TEB->TlsExpansionSlots in two threads (patch review)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
 
 diff --git a/dlls/ntdll/loader.c b/dlls/ntdll/loader.c
-index f10caaa..7839c4f 100644
 --- a/dlls/ntdll/loader.c
 +++ b/dlls/ntdll/loader.c
-@@ -4913,6 +4913,18 @@ static void release_address_space(void)
+@@ -4930,6 +4930,18 @@
  #endif
  }
  
@@ -48,10 +59,11 @@ index f10caaa..7839c4f 100644
  /******************************************************************
   *		loader_init
   *
-@@ -5026,6 +5038,24 @@ void loader_init( CONTEXT *context, void **entry )
-     else
-         WARN_(winediag)(WINE_BUILD_NAME " %s is a testing version containing experimental patches.\n", wine_get_version());
- 
+@@ -5028,6 +5040,24 @@
+ #endif
+         wm = get_modref( NtCurrentTeb()->Peb->ImageBaseAddress );
+     }
++
 +#if defined(__x86_64__) && !defined(__arm64ec__)
 +        if (is_macos() && !NtCurrentTeb()->WowTebOffset)
 +        {
@@ -69,7 +81,6 @@ index f10caaa..7839c4f 100644
 +                while (RtlFindClearBitsAndSet(NtCurrentTeb()->Peb->TlsBitmap, 1, 1) != ~0U);
 +        }
 +#endif
-+
+ 
      NtCurrentTeb()->FlsSlots = fls_alloc_data();
  
-     if (!attach_done)  /* first time around */

@@ -4,7 +4,14 @@ Range: 0001-0999
 <!-- SPDX-License-Identifier: LGPL-2.1-or-later -->
 # build
 
-Every flavour built from WineHQ's source takes this set.
+Every flavour built from WineHQ's source takes this set: patches needed to build with this project's toolchain, or to build reproducibly. None changes what Wine does at run time.
+
+Plain `wine` takes this set, so it stays as small as possible: each patch
+is needed, and only for the versions that need it. Check each new Wine
+version: WineHQ often fixes the cause itself. From 10.12 WineHQ's
+configure passes `-ffp-exception-behavior=maytrap`, which made
+`dwrite-tests-fno-builtin` unnecessary after 10.0, for example. Send
+these upstream where they'd help others (`.local/bug-reports/`).
 
 The set's patches apply in order number, together with the other sets
 a flavour takes. Layout and header format: [patches/README.md](../../README.md).

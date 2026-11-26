@@ -55,6 +55,11 @@ projects.
 1. Reproduce it with a released build before changing anything. Unpack the
    tarball into a temporary folder and use a throwaway `WINEPREFIX` there.
    For a quiet run, set `WINEDLLOVERRIDES="winedbg.exe=d;mscoree=;mshtml="`.
+   Then check WineHQ's master for a fix before writing one: if it's there,
+   backport that commit. [patches/README.md](patches/README.md), "Writing a
+   patch", lists what a patch needs to be worth keeping: what to check
+   before writing it, the set it belongs in, and what its header and test
+   must show.
 2. Write the patch for the version where the bug was seen, and only that one.
    A new patch: `tools/patch new <set> <name> <version>` makes its folder,
    with the next free number in the set's range, and a header to fill in.
@@ -121,11 +126,18 @@ projects.
    default to different Windows versions. A test that passes either way
    guards nothing.
 5. Update the patch header's `Status:` after each build that includes it and
-   after each confirmation. Say plainly what was and wasn't shown.
+   after each confirmation. Say plainly what was and wasn't shown. Keep it
+   to one dated line per version and event; the investigation's story goes
+   in the commit message.
 
 ## Testing
 
 - `./wmb regress --tree <unpacked release>` runs the suite on any build.
+  It compiles the tests with the MinGW compilers on PATH; without them every
+  test reports "didn't compile". The toolchain's are in
+  `/opt/wmb/toolchains/<id>/libexec/llvm-mingw/bin`. Tests that open
+  windows need the user's GUI session: from a shell without one, run them
+  through `build/hostgl.sh` with `WMB_REGRESS_ONLY=<name>`.
   Tests with `Screenshot:` take over the screen for a few seconds each.
   `WMB_REGRESS_NO_SCREEN=1` skips them on a Mac someone is using.
 - Build VMs have no accelerated OpenGL, so GL tests skip there: the
@@ -197,6 +209,17 @@ projects.
   (`wine_dbg_printf`) hang; 11.x copes. Use `write(2, ...)` there. Found
   with `sample <pid>` on a process that should have exited: the thread
   sat in `wine_dbg_printf` (`ntdll-exit-with-server`'s 10.0 copy).
+- Rosetta's behaviour can often be measured without Wine: a native
+  x86_64 program (`clang -arch x86_64`) that forks a child, gets its task
+  port (set a receive port as the bootstrap special port before `fork`;
+  the child sends `mach_task_self()` to it), and acts on it as wineserver
+  does. Seconds per case, against minutes in Wine. Found this way (macOS
+  26.7.2): after a `mach_vm_write` into a page the child has run, Rosetta
+  keeps the old translation until the child itself changes the page's
+  protection; an `mprotect` to the protection it already has does nothing.
+  To turn off a Rosetta workaround keyed on `is_apple_silicon()` in a
+  build, interpose `sysctlbyname("sysctl.proc_translated")` to fail in
+  Wine processes but not in wineserver (`DYLD_INSERT_LIBRARIES`).
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS

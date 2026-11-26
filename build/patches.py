@@ -206,6 +206,44 @@ def flavours():
     return sorted(p.stem for p in (ROOT / "flavours").glob("*.sh"))
 
 
+FEATURES = PATCHES / "features.md"
+FEATURE_RE = re.compile(r"^## ([a-z0-9][a-z0-9-]*)$")
+FEATURE_STATUS_RE = re.compile(r"^- ([0-9][0-9.rc-]*(?:, [0-9][0-9.rc-]*)*): (.+)$")
+
+
+def features():
+    """patches/features.md: {name: {"summary", "status": {version: text},
+    "line", "problems": [(line, message)]}}. A feature is a capability that
+    several patches make up (a header's Feature names it); the file says,
+    per Wine version, whether it works."""
+    out = {}
+    if not FEATURES.is_file():
+        return out
+    cur = None
+    for i, line in enumerate(FEATURES.read_text().splitlines(), 1):
+        m = FEATURE_RE.match(line)
+        if m:
+            cur = {"summary": None, "status": {}, "line": i, "problems": []}
+            if m.group(1) in out:
+                cur["problems"].append((i, f"feature {m.group(1)} is listed twice"))
+            out[m.group(1)] = cur
+            continue
+        if cur is None:
+            continue
+        if line.startswith("Summary: "):
+            cur["summary"] = line[len("Summary: "):]
+            continue
+        m = FEATURE_STATUS_RE.match(line)
+        if m:
+            for v in m.group(1).split(", "):
+                if v in cur["status"]:
+                    cur["problems"].append((i, f"{v} is listed twice"))
+                cur["status"][v] = m.group(2)
+        elif line.startswith("- "):
+            cur["problems"].append((i, "a status line is '- <version>[, <version>...]: <status>'"))
+    return out
+
+
 def main(argv):
     if len(argv) >= 3 and argv[0] == "files":
         for c in resolve(argv[1], argv[3:], argv[2]):

@@ -2,17 +2,16 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: winemac: HostWindows option; a native host application shows the windows
 Category: graphics
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv (new cocoa_host.m; hooks in cocoa_window.m,
-    cocoa_app.m, macdrv_main.c, surface.c, window.c, opengl.c); the OpenGL
-    part grew out of the IOSurface probe of 2026-11-17. Written for
-    wine-mac-builds.
+  Note: the OpenGL part grew out of the IOSurface probe of 2026-11-17
 Upstream: no
 Why: An app that embeds Wine wants a program's windows inside its own
  windows, scaled or letterboxed as it likes, and the input back, without
  the program putting windows of its own on screen. The protocol is
  docs/app-embedded-protocol.md, its wire format
- docs/app-embedded-protocol.h (copied here as wmh_protocol.h). With
+ docs/app-embedded-protocol.h (copied here as wmh_protocol.h, which is
+ offered under LGPL-2.1-or-later OR MIT, as hosts compile it in). With
  HostWindows ("y"; HKCU\Software\Wine\Mac Driver, or per program under
  AppDefaults\<exe>\Mac Driver) and WINEMAC_HOST_SERVICE naming a host's
  Mach service, the driver does the handshake before Cocoa starts. If it
@@ -40,134 +39,67 @@ Why: An app that embeds Wine wants a program's windows inside its own
  a resize is starting; the driver posts those as queries without waiting
  and answers with window_min_max. Repeated identical messages aren't
  resent.
+ If the host's connection fails (it goes away, or a receive fails), the
+ program is asked to quit.
  Covered: the handshake, windows, GDI surfaces, OpenGL views, cursor,
- size limits, keys, mouse, focus, close and quit. Not yet: animated
- cursors, window shape and alpha, Metal and Vulkan, displays_get, the
- resize-size query, and
- window_get_frame as a call (the driver keeps the frame it last set or the
- host last reported).
+ size limits, keys, mouse, focus, close and quit; displays_get is
+ winemac-host-displays.
 Programs: Second Chance (an app that embeds Wine): shows a program inside
  its own window
-Uncertain: each present waits for glFinish. Windows of other processes as
- owners aren't supported (v1).
-Status: 2026-11-22 (focus activation): window_focus carries
- WMH_FOCUS_ACTIVATE when the plain driver would activate the app (within
- 2 s of a global hotkey or a tray icon click), so a host needn't activate
- on every focus. Test host, Notepad (1 run): focus came without the flag,
- as expected; the flagged case not exercised.
- 2026-11-22 (padding under emulated modes): a fullscreen window
- under EmulateModeset has a surface padded beyond its window rect (to a
- multiple of 128 px); the plain driver hides the padding with its black
- mask (macdrv_set_window_mask), which host mode skips. The surface flush
- now paints the padding black in host mode. Test host on meeka, 1 run
- each: fullscreen-gdi-centred (2160x1440 window, 2176x1536 surface) had
- grey padding on host8 and black with this; White Wolf's padding (columns
- 1920-2175, x 2240-2496 on screen: the white strip Second Chance saw) is
- black with it.
- 2026-11-22 (integration, host8): Second Chance's integration tests of
- every bundle (disc, download, Her download, Big Fish trial and owned,
- Steam) passed with games' windows hosted; the fixes needed were all in
- its host. Japanese conversion is open, and not a host-mode bug: with
- Kotoeri's prediction popup or candidate list showing, Space doesn't
- convert (the kana stay marked) and Return commits nothing (no callback
- from the input method). Plain mode does the same (traced in a Screen
- Slots slot, 2 runs; passing key-ups to the input context too didn't
- change it).
- 2026-11-21 (integration): Second Chance's integration test of
- SkiFree passed on host6 with the game's window shown by its app bundle's
- host (captured, clicked and quit through it; 1 run). HostWindows set per
- game exe (AppDefaults), so explorer, Steam and the Game Manager stay on
- the plain driver.
- 2026-11-21 (input methods): the driver calls the host (ime_key) for
- each key Wine gives an open IME, and replays the marked and committed
- text the host's input context produced through macdrv_ime_set_text;
- ime_rect and ime_clear stand in for the composition rect and
- clear_ime_text. The host's KEYBOARD_CHANGED now makes the driver reread
- the input source (it was dropped). Shown with tools/wmh-testhost
- (WMH_TESTHOST_IME, scripted answers) and Notepad in a Screen Slots slot
- with Japanese Romaji selected (macOS 26.7), 1 run: "a" gave the marked
- text and Return committed it, ImeToAsciiEx traced both, Notepad's caret
- moved one wide character with no new line. Without an input method the
- keys reached Notepad directly, with no ime_key calls (1 run). Not yet
- with a real input method in a host.
- 2026-11-21 (drag and drop): files dragged onto a window: the host's
- drag messages become the plain driver's drag-drop queries, answered with
- drag_done; the driver opens the drag pasteboard by name. Shown with
- tools/wmh-testhost (WMH_TESTHOST_DROP, a file URL on a named pasteboard)
- and Notepad on meeka, 1 run: enter, update (ops copy) and drop were
- accepted and Notepad opened the file. Not yet through Second Chance's
- host or a real Finder drag.
- 2026-11-21 (minimize, maximize, real host): Second Chance's host on host6,
- Notepad: Zoom, Cmd-M and the Dock, and fullscreen in a Space work. After
- a Dock restore Notepad came back about 4 pt narrower and 24 pt shorter
- than its window: Wine works out the restored rect from the frame using
- the minimized window's rects (no non-client area). The plain driver
- corrects it with the frame change that follows every deminiaturize; the
- host didn't send one. With the test host sending it, the rects came back
- right (1 run). The protocol now says to send it.
- 2026-11-21 (minimize, maximize): the host's WINDOW_MINIMIZE_REQUESTED and
- WINDOW_MAXIMIZE_REQUESTED, run on the main thread as the plain driver
- does (the receive thread can't call win32u: the first try hung it in
- NtUserGetWindowLongW). Shown with tools/wmh-testhost and Notepad on
- meeka (WMH_TESTHOST_STATES=1, 1 run): minimize gave window_state
- MINIMIZED|MINIMIZED_VALID, DID_UNMINIMIZE gave state 0 and focus,
- maximize gave MAXIMIZED and a 2560x1295 frame. Not yet through Second
- Chance's host. White Wolf (D3D, EmulateModeset) through Second Chance's
- host (host4): works; its pointer offset was the host's (AppKit
- constrained the window and the host reported that frame), not the
- driver's: the test host put the game's cursor on the pointer. Its GDI
- surface shows a white strip at x 2240-2496 in host mode where the plain
- driver shows black; not yet explained. Old Clock (cnc-ddraw, windowed):
- works through Second Chance's host, no driver change.
- 2026-11-21 (size limits, real host): through Second Chance's host,
- Notepad's limits (asked for after window_create) were applied as the
- window's content min/max; a live resize (QUERY_RESIZE_START, then
- FRAME_CHANGED and RESIZE_ENDED) stopped at 111 wide, Notepad redrew at
- that size from a new surface, and quit cleanly.
- 2026-11-21 (size limits): with the test host, Notepad answered the
- min/max query with min 111x0, max 5120x2880 (no limit, clamped to the
- desktop as the plain driver does).
- 2026-11-21 (cursor, real host): through Second Chance's host in a
- Screen Slots login: cursortest's hourglass became the host's NSCursor
- (32x32, hot 15,15); Notepad got the I-beam over its edit area and the
- arrow over its menu. Warp not exercised by any program yet.
- 2026-11-21 (cursor): with the test host, on the same swapped
- tree: Notepad's I-beam came as the system cursor "IBeamCursor" once the
- pointer was over its edit area, and a window using IDC_WAIT got the
- hourglass as a 32x32 image with its hot spot at 15,15. Warp and clip
- messages arrive; neither was exercised by a program that needs them.
- Views confirmed by Second Chance's host in a Screen Slots login: the GL
- and D3D9 tests showed right (flipped as the flag says) and closed;
- d3d9test took 18.3 s for 279 frames in host mode against 19.9 s on the
- plain driver from the same tree, on the same loaded Mac.
- 2026-11-21 (views): with winemac.so built with the views swapped
- into the same tree, and the test host: an OpenGL test window (scissored
- clears) and a Direct3D 9 one (wined3d, windowed) each showed as a view,
- their pictures right after flipping, and closed on request. A first
- version left the GL context not current after each swap (wined3d's calls
- then did nothing: "FBO 0 is incomplete", glClientWaitSync returning 0);
- fixed, and the D3D9 test then ran with none of those errors. Its rate
- matched plain build0 in a Screen Slots login on the same loaded Mac
- (7.9 against 8.4 frames a second). No game tried yet.
- 2026-11-21 (later): with Second Chance's host (a prototype), in a
- Screen Slots login on meeka, the same swapped tree: SkiFree's window
- showed and animated; clicks and steering by the pointer worked, so mouse
- positions come back right; F2 restarted it; the host's quit request
- (APP_QUIT_REQUESTED) ended ski32.exe and explorer.exe and the launcher
- exited 0. Moving windows not yet tested. One "no free surface" warning in
- a run, from that host releasing surfaces late.
- 2026-11-21: not yet in a build. With winemac.so built with it
- swapped into 11.22-build0 (plus 0068's ntdll.so), on meeka (macOS
- 26.7.2), run in a LaunchAgent with a headless test host: explorer.exe and
- notepad.exe each connected; Notepad's window, title, frames and focus
- came through, its picture in the surface was right, and on
- WINDOW_CLOSE_REQUESTED it closed and exited 0. Keys and mouse not yet
- tested; nothing tested with a real host yet.
+Enable: reg HKCU\Software\Wine\Mac Driver\HostWindows = y (REG_SZ) (or per program: AppDefaults\<exe>\Mac Driver)
+ env WINEMAC_HOST_SERVICE=<the host's Mach service name> (needed as well; inherited by child processes)
+Messages: "HostWindows is on but WINEMAC_HOST_SERVICE isn't set; using
+ the plain driver", "host: no host named \"%s\" (%s); using the plain
+ driver" and the other "host: ...; using the plain driver" lines, "host:
+ the host has gone away; asking the program to quit", "host: receive
+ failed: %s (%x)" (err:macdrv; WINEDEBUG=err-macdrv or -all hides them)
+Risk: opens a Mach connection to the bootstrap service WINEMAC_HOST_SERVICE
+ names, sends it the program's window pictures and cursor, and takes the
+ program's input, focus, close and quit from it. A process of the same
+ user that holds that name gets them (it already runs as the user). It's
+ on when the prefix has HostWindows (which any program in the prefix can
+ write) and the environment Wine starts in names the service.
+Known issues: Metal and Vulkan aren't covered: no Metal view is attached,
+ so programs drawing through DXVK, vkd3d, D3DMetal or Vulkan show nothing
+ in the host. Not done yet: animated cursors (the first frame is sent),
+ window shape and alpha, the resize-size query, and window_get_frame as a
+ call (the driver keeps the frame it last set or the host last reported).
+ Windows of other processes as owners aren't supported (protocol v1). The
+ GL remap covers glBindFramebuffer(EXT), glDrawBuffer(s), glReadBuffer and
+ glGetIntegerv; a program that asks about framebuffer 0 another way
+ (glGetBooleanv, glGetFloatv, glGetInteger64v, glGetIntegeri_v) sees the
+ FBO. A destroyed window's FBO is deleted only in the context current when
+ it's destroyed; other contexts' stay until those contexts go, and a
+ drawable used by more than 8 contexts forgets the oldest one's (logged).
+Uncertain: what waiting for glFinish at each present costs a demanding
+ program; d3d9test drew 279 frames in 18.3 s hosted, 19.9 s on the plain
+ driver.
+Docs: docs/app-embedded-protocol.md
+Expects before it: winemac-centre-fullscreen-gdi,
+ winemac-export-macdrv-functions (context), winemac-plugins (context),
+ winemac-activation-policy (context); centre-fullscreen-gdi for the surface
+ offset it extends
+Related: winemac-clip-follows-window, winemac-cocoa-start-wait; cursor
+ clips go through macdrv_clip_cursor, which host mode hooks, and host mode
+ still waits for Cocoa to start
+Status: 11.22: 2026-11-26: review fixes (the GL FBO table keyed by a
+ per-context id, a receive error ends host mode, and others); not yet in
+ a build.
+ 11.22: 2026-11-22: in host8, Second Chance's integration tests of every
+ bundle passed with games' windows hosted. Open: Japanese conversion with
+ Kotoeri's prediction list showing, which plain mode shares.
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: a GL program recreating its context 9 times under
+ tools/wmh-testhost (quick T025644): every frame right, no GL errors; the
+ pre-fix build (20261125T052251) also drew right (7 recreations), so the
+ stale-FBO case wasn't reproduced
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
+index 5b633c2..26fccf9 100644
 --- a/dlls/winemac.drv/Makefile.in
 +++ b/dlls/winemac.drv/Makefile.in
-@@ -24,6 +24,7 @@
+@@ -24,6 +24,7 @@ SOURCES = \
  	cocoa_cursorclipping.m \
  	cocoa_display.m \
  	cocoa_event.m \
@@ -176,6 +108,7 @@ diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
  	cocoa_opengl.m \
  	cocoa_status_item.m \
 diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
+index c961e52..f912a61 100644
 --- a/dlls/winemac.drv/cocoa_app.m
 +++ b/dlls/winemac.drv/cocoa_app.m
 @@ -22,6 +22,7 @@
@@ -186,7 +119,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
  #import "cocoa_cursorclipping.h"
  #import "cocoa_event.h"
  #import "cocoa_window.h"
-@@ -115,6 +116,23 @@
+@@ -115,6 +116,23 @@ static NSString* WineLocalizedString(unsigned int stringID)
  
  @implementation WineApplicationController
  
@@ -210,7 +143,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      @synthesize keyboardType, lastFlagsChanged;
      @synthesize applicationIcon;
      @synthesize cursorFrames, cursorTimer, cursor;
-@@ -2405,6 +2423,11 @@
+@@ -2405,6 +2423,11 @@ void OnMainThreadAsync(dispatch_block_t block)
   */
  void macdrv_window_rejected_focus(const macdrv_event *event)
  {
@@ -222,20 +155,20 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      OnMainThread(^{
          [[WineApplicationController sharedController] windowRejectedFocusEvent:event];
      });
-@@ -2486,6 +2509,12 @@
- void macdrv_set_cursor(CFStringRef name, CFArrayRef frames)
+@@ -2487,6 +2510,12 @@ void macdrv_set_cursor(CFStringRef name, CFArrayRef frames)
  {
      SEL sel;
-+
+ 
 +    if (host_mode)
 +    {
 +        host_set_cursor(name, frames);
 +        return;
 +    }
- 
++
      sel = NSSelectorFromString((NSString*)name);
      if (sel)
-@@ -2525,6 +2554,7 @@
+     {
+@@ -2525,6 +2554,7 @@ void macdrv_set_cursor(CFStringRef name, CFArrayRef frames)
   */
  int macdrv_get_cursor_position(CGPoint *pos)
  {
@@ -243,7 +176,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      OnMainThread(^{
          NSPoint location = [NSEvent mouseLocation];
          location = [[WineApplicationController sharedController] flippedMouseLocation:location];
-@@ -2542,6 +2572,7 @@
+@@ -2542,6 +2572,7 @@ int macdrv_get_cursor_position(CGPoint *pos)
   */
  int macdrv_set_cursor_position(CGPoint pos)
  {
@@ -251,7 +184,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      __block int ret;
  
      OnMainThread(^{
-@@ -2560,6 +2591,7 @@
+@@ -2560,6 +2591,7 @@ int macdrv_set_cursor_position(CGPoint pos)
   */
  int macdrv_clip_cursor(CGRect r)
  {
@@ -259,7 +192,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
      __block int ret;
  
      OnMainThread(^{
-@@ -2644,6 +2676,7 @@
+@@ -2644,6 +2676,7 @@ bool macdrv_using_input_method(void)
   */
  void macdrv_set_mouse_capture_window(WineWindow *window)
  {
@@ -268,6 +201,7 @@ diff --git a/dlls/winemac.drv/cocoa_app.m b/dlls/winemac.drv/cocoa_app.m
  
      OnMainThread(^{
 diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
+index 581449a..2074578 100644
 --- a/dlls/winemac.drv/cocoa_event.m
 +++ b/dlls/winemac.drv/cocoa_event.m
 @@ -28,6 +28,7 @@
@@ -278,7 +212,7 @@ diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
  
  #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
  
-@@ -736,6 +737,13 @@
+@@ -736,6 +737,13 @@ void macdrv_release_query(macdrv_query *query)
   */
  void macdrv_set_query_done(macdrv_query *query)
  {
@@ -294,13 +228,16 @@ diff --git a/dlls/winemac.drv/cocoa_event.m b/dlls/winemac.drv/cocoa_event.m
      OnMainThreadAsync(^{
 diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
 new file mode 100644
+index 0000000..ca766e0
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,55 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
 + * SPDX-License-Identifier: LGPL-2.1-or-later
++ *
++ * Copyright 2026 Callum Gare
 + */
 +
 +#import <AppKit/AppKit.h>
@@ -352,9 +289,10 @@ new file mode 100644
 +extern int host_clip_cursor(CGRect rect);
 diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
 new file mode 100644
+index 0000000..2e4a653
 --- /dev/null
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -0,0 +1,1377 @@
+@@ -0,0 +1,1396 @@
 +/*
 + * MACDRV host mode: windows shown by another, native application
 + *
@@ -365,6 +303,8 @@ new file mode 100644
 + * wine-mac-builds; the wire format is wmh_protocol.h.
 + *
 + * SPDX-License-Identifier: LGPL-2.1-or-later
++ *
++ * Copyright 2026 Callum Gare
 + */
 +
 +#import "config.h"
@@ -665,6 +605,14 @@ new file mode 100644
 +    return [window autorelease];
 +}
 +
++/* Written by the receive thread, read by others: under host_lock. */
++static void set_pointer(CGPoint pos)
++{
++    pthread_mutex_lock(&host_lock);
++    pointer = pos;
++    pthread_mutex_unlock(&host_lock);
++}
++
 +static unsigned long event_time_ms(double seconds)
 +{
 +    if (seconds > 0) return (unsigned long)(seconds * 1000.0);
@@ -762,7 +710,7 @@ new file mode 100644
 +        event->key.time_ms = time_ms;
 +        break;
 +    case MOUSE_BUTTON:
-+        pointer = CGPointMake(ev->x, ev->y);
++        set_pointer(CGPointMake(ev->x, ev->y));
 +        event->mouse_button.button = ev->button;
 +        event->mouse_button.pressed = ev->pressed != 0;
 +        event->mouse_button.x = floor(ev->x);
@@ -771,7 +719,7 @@ new file mode 100644
 +        break;
 +    case MOUSE_MOVED_ABSOLUTE:
 +    case MOUSE_MOVED_RELATIVE:
-+        if (type == MOUSE_MOVED_ABSOLUTE) pointer = CGPointMake(ev->x, ev->y);
++        if (type == MOUSE_MOVED_ABSOLUTE) set_pointer(CGPointMake(ev->x, ev->y));
 +        event->mouse_moved.x = floor(ev->x);
 +        event->mouse_moved.y = floor(ev->y);
 +        event->mouse_moved.drag = ev->pressed != 0;
@@ -972,6 +920,12 @@ new file mode 100644
 +{
 +    struct received_message *msg = malloc(sizeof(*msg) + MAX_TRAILER_SIZE);
 +
++    if (!msg)
++    {
++        ERR("host: out of memory for the receive buffer\n");
++        host_lost();
++        return NULL;
++    }
 +    for (;;)
 +    {
 +        @autoreleasepool
@@ -991,6 +945,7 @@ new file mode 100644
 +            if (kr != KERN_SUCCESS)
 +            {
 +                ERR("host: receive failed: %s (%x)\n", mach_error_string(kr), kr);
++                host_lost();
 +                break;
 +            }
 +
@@ -1702,7 +1657,9 @@ new file mode 100644
 +
 +int host_get_cursor_position(CGPoint *pos)
 +{
++    pthread_mutex_lock(&host_lock);
 +    *pos = pointer;
++    pthread_mutex_unlock(&host_lock);
 +    return 1;
 +}
 +
@@ -1710,7 +1667,7 @@ new file mode 100644
 +{
 +    struct wmh_cursor_warp msg = { pos.x, pos.y };
 +
-+    pointer = pos;
++    set_pointer(pos);
 +    return host_send(WMH_KIND_CURSOR_WARP, &msg, sizeof(msg));
 +}
 +
@@ -1733,6 +1690,7 @@ new file mode 100644
 +    return host_send(WMH_KIND_CURSOR_CLIP, &msg, sizeof(msg));
 +}
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
+index 5d6c184..215f5da 100644
 --- a/dlls/winemac.drv/cocoa_window.m
 +++ b/dlls/winemac.drv/cocoa_window.m
 @@ -30,6 +30,7 @@
@@ -1743,16 +1701,16 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  #import "cocoa_event.h"
  #import "cocoa_opengl.h"
  #import "d3dmetal_objc.h" /* CW HACK 22435 */
-@@ -3117,6 +3118,8 @@
-         CGRect frame, void* hwnd, WineEventQueue *queue)
+@@ -3118,6 +3119,8 @@ WineWindow *macdrv_create_cocoa_window(const struct macdrv_window_features* wf,
  {
      __block WineWindow* window;
-+
-+    if (host_mode) return host_create_window(wf, frame, hwnd, queue);
  
++    if (host_mode) return host_create_window(wf, frame, hwnd, queue);
++
      OnMainThread(^{
          window = [[WineWindow createWindowWithFeatures:wf
-@@ -3135,6 +3138,7 @@
+                                            windowFrame:NSRectFromCGRect(cgrect_mac_from_win(frame))
+@@ -3135,6 +3138,7 @@ WineWindow *macdrv_create_cocoa_window(const struct macdrv_window_features* wf,
   */
  void macdrv_destroy_cocoa_window(WineWindow *window)
  {
@@ -1760,7 +1718,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3154,6 +3158,7 @@
+@@ -3154,6 +3158,7 @@ void macdrv_destroy_cocoa_window(WineWindow *window)
   */
  void* macdrv_get_window_hwnd(WineWindow *window)
  {
@@ -1768,7 +1726,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      return window.hwnd;
  }
  
-@@ -3165,6 +3170,7 @@
+@@ -3165,6 +3170,7 @@ void* macdrv_get_window_hwnd(WineWindow *window)
  void macdrv_set_cocoa_window_features(WineWindow *window,
          const struct macdrv_window_features* wf)
  {
@@ -1776,7 +1734,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window setWindowFeatures:wf];
      });
-@@ -3178,6 +3184,7 @@
+@@ -3178,6 +3184,7 @@ void macdrv_set_cocoa_window_features(WineWindow *window,
  void macdrv_set_cocoa_window_state(WineWindow *window,
          const struct macdrv_window_state* state)
  {
@@ -1784,7 +1742,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window setMacDrvState:state];
      });
-@@ -3191,6 +3198,7 @@
+@@ -3191,6 +3198,7 @@ void macdrv_set_cocoa_window_state(WineWindow *window,
  void macdrv_set_cocoa_window_title(WineWindow *window, const unsigned short* title,
          size_t length)
  {
@@ -1792,7 +1750,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      NSString* titleString;
-@@ -3218,6 +3226,7 @@
+@@ -3218,6 +3226,7 @@ void macdrv_set_cocoa_window_title(WineWindow *window, const unsigned short* tit
  void macdrv_order_cocoa_window(WineWindow *window, WineWindow *prev,
          WineWindow *next, bool activate)
  {
@@ -1800,7 +1758,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThreadAsync(^{
          [window orderBelow:prev
                     orAbove:next
-@@ -3236,6 +3245,7 @@
+@@ -3236,6 +3245,7 @@ void macdrv_order_cocoa_window(WineWindow *window, WineWindow *prev,
   */
  void macdrv_hide_cocoa_window(WineWindow *window)
  {
@@ -1808,7 +1766,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window doOrderOut];
      });
-@@ -3248,6 +3258,7 @@
+@@ -3248,6 +3258,7 @@ void macdrv_hide_cocoa_window(WineWindow *window)
   */
  void macdrv_set_cocoa_window_frame(WineWindow *window, const CGRect* new_frame)
  {
@@ -1816,7 +1774,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window setFrameFromWine:NSRectFromCGRect(cgrect_mac_from_win(*new_frame))];
      });
-@@ -3260,6 +3271,7 @@
+@@ -3260,6 +3271,7 @@ void macdrv_set_cocoa_window_frame(WineWindow *window, const CGRect* new_frame)
   */
  void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame)
  {
@@ -1824,7 +1782,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          NSRect frame;
  
-@@ -3277,6 +3289,7 @@
+@@ -3277,6 +3289,7 @@ void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame)
   */
  void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent)
  {
@@ -1832,7 +1790,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window setMacDrvParentWindow:parent];
      });
-@@ -3291,6 +3304,7 @@
+@@ -3291,6 +3304,7 @@ void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent)
   */
  void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rect, CGRect dirty)
  {
@@ -1840,7 +1798,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      IOSurface* surface = (IOSurface*)s;
-@@ -3315,6 +3329,7 @@
+@@ -3315,6 +3329,7 @@ void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rec
   */
  void macdrv_window_shape_changed(WineWindow *window, bool has_shape)
  {
@@ -1848,7 +1806,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThreadAsync(^{
-@@ -3335,6 +3350,7 @@
+@@ -3335,6 +3350,7 @@ void macdrv_window_shape_changed(WineWindow *window, bool has_shape)
   */
  void macdrv_set_window_shape(WineWindow *window, const CGRect *rects, int count)
  {
@@ -1856,7 +1814,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3363,6 +3379,7 @@
+@@ -3363,6 +3379,7 @@ void macdrv_set_window_shape(WineWindow *window, const CGRect *rects, int count)
   */
  void macdrv_set_window_alpha(WineWindow *window, CGFloat alpha)
  {
@@ -1864,7 +1822,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3376,6 +3393,7 @@
+@@ -3376,6 +3393,7 @@ void macdrv_set_window_alpha(WineWindow *window, CGFloat alpha)
   */
  void macdrv_window_use_per_pixel_alpha(WineWindow *window, bool use_per_pixel_alpha)
  {
@@ -1872,7 +1830,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3390,6 +3408,7 @@
+@@ -3390,6 +3408,7 @@ void macdrv_window_use_per_pixel_alpha(WineWindow *window, bool use_per_pixel_al
   */
  void macdrv_set_window_mask(WineWindow *window, CGRect rect)
  {
@@ -1880,7 +1838,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3407,6 +3426,7 @@
+@@ -3407,6 +3426,7 @@ void macdrv_set_window_mask(WineWindow *window, CGRect rect)
   */
  void macdrv_give_cocoa_window_focus(WineWindow *window, bool activate)
  {
@@ -1888,7 +1846,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window makeFocused:activate];
      });
-@@ -3419,6 +3439,7 @@
+@@ -3419,6 +3439,7 @@ void macdrv_give_cocoa_window_focus(WineWindow *window, bool activate)
   */
  void macdrv_set_window_min_max_sizes(WineWindow *window, CGSize min_size, CGSize max_size)
  {
@@ -1896,7 +1854,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          [window setWineMinSize:NSSizeFromCGSize(cgsize_mac_from_win(min_size)) maxSize:NSSizeFromCGSize(cgsize_mac_from_win(max_size))];
      });
-@@ -3532,6 +3553,7 @@
+@@ -3532,6 +3553,7 @@ void macdrv_set_view_frame(WineContentView *view, CGRect rect)
   */
  void macdrv_set_view_superview(WineContentView *view, WineContentView *parent, WineWindow *window, WineContentView *prev, WineContentView *next)
  {
@@ -1904,7 +1862,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThreadAsync(^{
-@@ -3832,6 +3854,7 @@
+@@ -3832,6 +3854,7 @@ void macdrv_destroy_swapchain(id<WineMetalSwapChain> swapchain)
  
  void macdrv_window_create_ca_layer_host_view(WineWindow *window, unsigned int context_id)
  {
@@ -1912,7 +1870,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3845,6 +3868,7 @@
+@@ -3845,6 +3868,7 @@ void macdrv_window_create_ca_layer_host_view(WineWindow *window, unsigned int co
  
  void macdrv_window_release_ca_layer_host_view(WineWindow *window, unsigned int context_id)
  {
@@ -1920,7 +1878,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
  @autoreleasepool
  {
      OnMainThread(^{
-@@ -3938,6 +3962,8 @@
+@@ -3938,6 +3962,8 @@ bool macdrv_send_keydown_to_input_source(int keyc, unsigned int flags, int repea
  {
      __block bool ret;
  
@@ -1929,7 +1887,7 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
      OnMainThread(^{
          WineWindow* window = (WineWindow*)[NSApp keyWindow];
          if (![window isKindOfClass:[WineWindow class]])
-@@ -3978,6 +4004,7 @@
+@@ -3978,6 +4004,7 @@ bool macdrv_send_keydown_to_input_source(int keyc, unsigned int flags, int repea
  
  void macdrv_clear_ime_text(void)
  {
@@ -1938,9 +1896,10 @@ diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
          WineWindow* window = (WineWindow*)[NSApp keyWindow];
          if (![window isKindOfClass:[WineWindow class]])
 diff --git a/dlls/winemac.drv/ime.c b/dlls/winemac.drv/ime.c
+index e22f434..8701e56 100644
 --- a/dlls/winemac.drv/ime.c
 +++ b/dlls/winemac.drv/ime.c
-@@ -87,6 +87,7 @@
+@@ -87,6 +87,7 @@ BOOL macdrv_SetIMECompositionRect( HWND hwnd, RECT rect )
      pthread_mutex_lock( &ime_composition_rect_mutex );
      ime_composition_rect = cgrect_from_rect( rect );
      pthread_mutex_unlock( &ime_composition_rect_mutex );
@@ -1949,9 +1908,10 @@ diff --git a/dlls/winemac.drv/ime.c b/dlls/winemac.drv/ime.c
      return TRUE;
  }
 diff --git a/dlls/winemac.drv/macdrv.h b/dlls/winemac.drv/macdrv.h
+index 2732e52..2f1a404 100644
 --- a/dlls/winemac.drv/macdrv.h
 +++ b/dlls/winemac.drv/macdrv.h
-@@ -238,6 +238,7 @@
+@@ -237,6 +237,7 @@ struct macdrv_win_data
      HWND                hwnd;                   /* hwnd that this private data belongs to */
      WineWindow         *cocoa_window;
      WineContentView    *client_view;
@@ -1959,7 +1919,7 @@ diff --git a/dlls/winemac.drv/macdrv.h b/dlls/winemac.drv/macdrv.h
      struct window_rects rects;                  /* window rects in monitor DPI, relative to parent client area */
      HANDLE              drag_event;             /* event to signal that Cocoa-driven window dragging has ended */
      unsigned int        on_screen : 1;          /* is window ordered in? (minimized or not) */
-@@ -257,6 +258,7 @@
+@@ -256,6 +257,7 @@ struct macdrv_client_surface
      struct client_surface   client;
      WineContentView        *cocoa_view;
      WineMetalSwapChain_id   metal_swapchain;
@@ -1968,9 +1928,10 @@ diff --git a/dlls/winemac.drv/macdrv.h b/dlls/winemac.drv/macdrv.h
  
  extern struct macdrv_client_surface *impl_from_client_surface(struct client_surface *client);
 diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
+index 33ab140..7b516cb 100644
 --- a/dlls/winemac.drv/macdrv_cocoa.h
 +++ b/dlls/winemac.drv/macdrv_cocoa.h
-@@ -119,6 +119,7 @@
+@@ -119,6 +119,7 @@ extern bool retina_enabled;  /* Whether Retina mode is enabled via registry sett
  extern bool retina_on;       /* Whether Retina mode is currently active (enabled and display is in default mode). */
  extern bool enable_app_nap;
  extern bool accessory_activation_policy;
@@ -1978,7 +1939,7 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  extern int cocoa_start_timeout;
  
  static inline CGRect cgrect_mac_from_win(CGRect rect)
-@@ -405,6 +406,7 @@
+@@ -405,6 +406,7 @@ typedef struct macdrv_query {
      WineWindow         *window;
      bool                status;
      bool                done;
@@ -1986,7 +1947,7 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
      union {
          struct {
              int                 x;
-@@ -437,6 +439,7 @@
+@@ -437,6 +439,7 @@ extern int macdrv_get_event_queue_fd(WineEventQueue *queue);
  extern int macdrv_copy_event_from_queue(WineEventQueue *queue,
          macdrv_event_mask mask, macdrv_event **event);
  extern void macdrv_release_event(macdrv_event *event);
@@ -1994,7 +1955,7 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  
  extern macdrv_query* macdrv_create_query(void);
  extern macdrv_query* macdrv_retain_query(macdrv_query *query);
-@@ -489,6 +492,14 @@
+@@ -489,6 +492,14 @@ extern void macdrv_set_cocoa_window_frame(WineWindow *window, const CGRect* new_
  extern void macdrv_get_cocoa_window_frame(WineWindow *window, CGRect* out_frame);
  extern void macdrv_set_cocoa_parent_window(WineWindow *window, WineWindow *parent);
  extern void macdrv_window_set_io_surface(WineWindow *window, IOSurfaceRef s, CGRect rect, CGRect dirty);
@@ -2009,7 +1970,7 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  extern void macdrv_window_shape_changed(WineWindow *window, bool has_shape);
  extern void macdrv_set_window_shape(WineWindow *window, const CGRect *rects, int count);
  extern void macdrv_set_window_alpha(WineWindow *window, CGFloat alpha);
-@@ -524,6 +535,7 @@
+@@ -524,6 +535,7 @@ extern void macdrv_set_view_d3dmetal_client_surface(WineContentView *view, void
  extern uint32_t macdrv_window_background_color(void);
  extern bool macdrv_send_keydown_to_input_source(int keyc, unsigned int flags, int repeat, void *update);
  extern void macdrv_clear_ime_text(void);
@@ -2018,18 +1979,19 @@ diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
  
  /* keyboard */
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
+index 6ac464c..4133cc5 100644
 --- a/dlls/winemac.drv/macdrv_main.c
 +++ b/dlls/winemac.drv/macdrv_main.c
-@@ -55,6 +55,8 @@
+@@ -55,6 +55,8 @@ int gl_surface_mode = GL_SURFACE_IN_FRONT_OPAQUE;
  bool retina_enabled = false;
  bool enable_app_nap = false;
  bool accessory_activation_policy = false;
 +static bool host_windows = false;           /* HostWindows: give windows to a host app */
 +static char host_exe_name[256];
-  bool force_backing_store = FALSE;
  int cocoa_start_timeout = 60;
  
-@@ -290,6 +292,8 @@
+ pthread_key_t macdrv_thread_data_key = 0;
+@@ -287,6 +289,8 @@ static void setup_options(void)
      if ((p = wcsrchr(appname, '/'))) appname = p + 1;
      if ((p = wcsrchr(appname, '\\'))) appname = p + 1;
      len = lstrlenW(appname);
@@ -2038,19 +2000,19 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
  
      if (len && len < MAX_PATH)
      {
-@@ -392,6 +396,11 @@
-        normal level, so they don't go over the app that is active. */
+@@ -390,6 +394,11 @@ static void setup_options(void)
      if (accessory_activation_policy)
          topmost_float_inactive = TOPMOST_FLOAT_INACTIVE_NONE;
-+
+ 
 +    /* "y": show this program's windows in the host application named by
 +       WINEMAC_HOST_SERVICE (cocoa_host.m), if one answers. */
 +    if (!get_config_key(hkey, appkey, "HostWindows", buffer, sizeof(buffer)))
 +        host_windows = IS_OPTION_TRUE(buffer[0]);
- 
-     if (!get_config_key(hkey, appkey, "ForceOpenGLBackingStore", buffer, sizeof(buffer)))
-         force_backing_store = IS_OPTION_TRUE(buffer[0]);
-@@ -544,6 +553,15 @@
++
+     /* Seconds to wait for the main thread to start Cocoa.  Upstream waits 5,
+        which a Mac with every core busy, under Rosetta, can miss. */
+     if (!get_config_key(hkey, appkey, "CocoaStartTimeout", buffer, sizeof(buffer)))
+@@ -504,6 +513,15 @@ static NTSTATUS macdrv_init(void *arg)
      load_plugins();
      load_strings(params->strings);
  
@@ -2067,6 +2029,7 @@ diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
      {
          ERR("Failed to start Cocoa app main loop\n");
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
+index dce64b7..f731a8b 100644
 --- a/dlls/winemac.drv/opengl.c
 +++ b/dlls/winemac.drv/opengl.c
 @@ -27,6 +27,7 @@
@@ -2077,11 +2040,18 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
  
  WINE_DEFAULT_DEBUG_CHANNEL(wgl);
  
-@@ -57,6 +58,278 @@
- static const struct opengl_funcs *funcs;
+@@ -46,6 +47,7 @@ struct macdrv_context
+     struct opengl_context   base;
+     WineOpenGLContext      *context;
+     int                     swap_interval;
++    unsigned int            host_gl_id;     /* host mode: names the context in host_gl_fbo */
+ };
+ 
+ static struct macdrv_context *macdrv_context_from_opengl_context(struct opengl_context *base)
+@@ -58,6 +60,290 @@ static const struct opengl_funcs *funcs;
  static const struct opengl_driver_funcs macdrv_driver_funcs;
  static const struct opengl_drawable_funcs macdrv_surface_funcs;
-+
+ 
 +/**********************************************************************
 + * Host mode (cocoa_host.m): OpenGL into IOSurfaces the host is sent
 + *
@@ -2092,11 +2062,11 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 + * hands out, so win32u, opengl32 and wined3d are unchanged. Each present
 + * finishes, sends the surface to the host and moves to a free one.
 + */
-+#define PROBE_MAX_CONTEXTS 8
++#define HOST_GL_MAX_CONTEXTS 8
 +
-+struct probe_fbo
++struct host_gl_fbo
 +{
-+    CGLContextObj ctx;
++    unsigned int ctx_id;    /* the context's host_gl_id: a pointer can be reused */
 +    GLuint fbo, tex, depth;
 +    unsigned int gen;
 +    int width, height;      /* of the depth buffer */
@@ -2108,30 +2078,34 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +    IOSurfaceRef surface;
 +    int width, height;
 +    unsigned int gen;
-+    struct probe_fbo fbos[PROBE_MAX_CONTEXTS];
++    struct host_gl_fbo fbos[HOST_GL_MAX_CONTEXTS];
 +};
 +
 +static BOOL host_gl;
-+static __thread struct macdrv_drawable *probe_draw, *probe_read;
++static __thread struct macdrv_drawable *host_gl_draw, *host_gl_read;
++static __thread unsigned int host_gl_ctx;   /* host_gl_id of the context current here */
 +
-+static void (*probe_pglBindFramebuffer)(GLenum, GLuint);
-+static void (*probe_pglBindFramebufferEXT)(GLenum, GLuint);
-+static void (*probe_pglDrawBuffer)(GLenum);
-+static void (*probe_pglDrawBuffers)(GLsizei, const GLenum *);
-+static void (*probe_pglReadBuffer)(GLenum);
-+static void (*probe_pglGetIntegerv)(GLenum, GLint *);
-+static void (*probe_pglFinish)(void);
-+static void (*probe_pglGenFramebuffers)(GLsizei, GLuint *);
-+static void (*probe_pglGenTextures)(GLsizei, GLuint *);
-+static void (*probe_pglGenRenderbuffers)(GLsizei, GLuint *);
-+static void (*probe_pglBindTexture)(GLenum, GLuint);
-+static void (*probe_pglBindRenderbuffer)(GLenum, GLuint);
-+static void (*probe_pglRenderbufferStorage)(GLenum, GLenum, GLsizei, GLsizei);
-+static void (*probe_pglFramebufferTexture2D)(GLenum, GLenum, GLenum, GLuint, GLint);
-+static void (*probe_pglFramebufferRenderbuffer)(GLenum, GLenum, GLenum, GLuint);
-+static GLenum (*probe_pglCheckFramebufferStatus)(GLenum);
++static void (*host_pglBindFramebuffer)(GLenum, GLuint);
++static void (*host_pglBindFramebufferEXT)(GLenum, GLuint);
++static void (*host_pglDrawBuffer)(GLenum);
++static void (*host_pglDrawBuffers)(GLsizei, const GLenum *);
++static void (*host_pglReadBuffer)(GLenum);
++static void (*host_pglGetIntegerv)(GLenum, GLint *);
++static void (*host_pglFinish)(void);
++static void (*host_pglGenFramebuffers)(GLsizei, GLuint *);
++static void (*host_pglGenTextures)(GLsizei, GLuint *);
++static void (*host_pglGenRenderbuffers)(GLsizei, GLuint *);
++static void (*host_pglBindTexture)(GLenum, GLuint);
++static void (*host_pglBindRenderbuffer)(GLenum, GLuint);
++static void (*host_pglRenderbufferStorage)(GLenum, GLenum, GLsizei, GLsizei);
++static void (*host_pglFramebufferTexture2D)(GLenum, GLenum, GLenum, GLuint, GLint);
++static void (*host_pglFramebufferRenderbuffer)(GLenum, GLenum, GLenum, GLuint);
++static GLenum (*host_pglCheckFramebufferStatus)(GLenum);
++static void (*host_pglDeleteFramebuffers)(GLsizei, const GLuint *);
++static void (*host_pglDeleteTextures)(GLsizei, const GLuint *);
++static void (*host_pglDeleteRenderbuffers)(GLsizei, const GLuint *);
 +
-+static void probe_init(void)
++static void host_gl_init(void)
 +{
 +    static BOOL done;
 +
@@ -2139,24 +2113,25 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +    done = TRUE;
 +    if (!host_mode) return;
 +    host_gl = TRUE;
-+#define LOAD(f) probe_p##f = dlsym(opengl_handle, #f)
++#define LOAD(f) host_p##f = dlsym(opengl_handle, #f)
 +    LOAD(glBindFramebuffer); LOAD(glBindFramebufferEXT); LOAD(glDrawBuffer); LOAD(glDrawBuffers);
 +    LOAD(glReadBuffer); LOAD(glGetIntegerv); LOAD(glFinish); LOAD(glGenFramebuffers);
 +    LOAD(glGenTextures); LOAD(glGenRenderbuffers); LOAD(glBindTexture); LOAD(glBindRenderbuffer);
 +    LOAD(glRenderbufferStorage); LOAD(glFramebufferTexture2D); LOAD(glFramebufferRenderbuffer);
-+    LOAD(glCheckFramebufferStatus);
++    LOAD(glCheckFramebufferStatus); LOAD(glDeleteFramebuffers); LOAD(glDeleteTextures);
++    LOAD(glDeleteRenderbuffers);
 +#undef LOAD
 +    TRACE("host mode: OpenGL draws into IOSurfaces\n");
 +}
 +
-+static struct macdrv_drawable *probe_drawable(struct opengl_drawable *base)
++static struct macdrv_drawable *host_gl_drawable(struct opengl_drawable *base)
 +{
 +    if (!host_gl || !base || !base->client || base->funcs != &macdrv_surface_funcs) return NULL;
 +    return CONTAINING_RECORD(base, struct macdrv_drawable, base);
 +}
 +
 +/* A free IOSurface from the view's pool, sized to the drawable's client area. */
-+static void probe_update_surface(struct macdrv_drawable *d)
++static void host_gl_update_surface(struct macdrv_drawable *d)
 +{
 +    struct macdrv_client_surface *surface = impl_from_client_surface(d->base.client);
 +    RECT rect = surface->client.raw ? surface->client.monitor_rect : surface->client.virtual_rect;
@@ -2171,85 +2146,91 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +}
 +
 +/* The FBO standing in for framebuffer 0 of drawable d, in the current context. */
-+static GLuint probe_fbo_for(struct macdrv_drawable *d)
++static GLuint host_gl_fbo_for(struct macdrv_drawable *d)
 +{
 +    CGLContextObj ctx = CGLGetCurrentContext();
-+    struct probe_fbo *e = NULL;
++    struct host_gl_fbo *e = NULL;
 +    GLint prev_tex, prev_draw, prev_read, prev_rb;
 +    GLenum status;
 +    int i;
 +
-+    if (!ctx) return 0;
-+    probe_update_surface(d);
++    if (!ctx || !host_gl_ctx) return 0;
++    host_gl_update_surface(d);
 +    if (!d->surface) return 0;
-+    for (i = 0; i < PROBE_MAX_CONTEXTS; i++)
-+        if (d->fbos[i].ctx == ctx) { e = &d->fbos[i]; break; }
++    for (i = 0; i < HOST_GL_MAX_CONTEXTS; i++)
++        if (d->fbos[i].ctx_id == host_gl_ctx) { e = &d->fbos[i]; break; }
 +    if (!e)
 +    {
-+        for (i = 0; i < PROBE_MAX_CONTEXTS; i++)
-+            if (!d->fbos[i].ctx) { e = &d->fbos[i]; break; }
-+        if (!e) e = &d->fbos[0];
++        for (i = 0; i < HOST_GL_MAX_CONTEXTS; i++)
++            if (!d->fbos[i].ctx_id) { e = &d->fbos[i]; break; }
++        if (!e)
++        {
++            /* its GL objects belong to another context: left to that one */
++            WARN("drawable %p: more than %d contexts; forgetting context %u's FBO\n",
++                 d, HOST_GL_MAX_CONTEXTS, d->fbos[0].ctx_id);
++            e = &d->fbos[0];
++        }
 +        memset(e, 0, sizeof(*e));
-+        e->ctx = ctx;
++        e->ctx_id = host_gl_ctx;
 +    }
 +    if (e->fbo && e->gen == d->gen) return e->fbo;
 +
-+    probe_pglGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE_ARB, &prev_tex);
-+    probe_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_draw);
-+    probe_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prev_read);
-+    probe_pglGetIntegerv(GL_RENDERBUFFER_BINDING, &prev_rb);
++    host_pglGetIntegerv(GL_TEXTURE_BINDING_RECTANGLE_ARB, &prev_tex);
++    host_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_draw);
++    host_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prev_read);
++    host_pglGetIntegerv(GL_RENDERBUFFER_BINDING, &prev_rb);
 +
-+    if (!e->fbo) probe_pglGenFramebuffers(1, &e->fbo);
-+    if (!e->tex) probe_pglGenTextures(1, &e->tex);
-+    if (!e->depth) probe_pglGenRenderbuffers(1, &e->depth);
++    if (!e->fbo) host_pglGenFramebuffers(1, &e->fbo);
++    if (!e->tex) host_pglGenTextures(1, &e->tex);
++    if (!e->depth) host_pglGenRenderbuffers(1, &e->depth);
 +
-+    probe_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, e->tex);
++    host_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, e->tex);
 +    if (CGLTexImageIOSurface2D(ctx, GL_TEXTURE_RECTANGLE_ARB, GL_RGBA, d->width, d->height, GL_BGRA,
 +                               GL_UNSIGNED_INT_8_8_8_8_REV, d->surface, 0) != kCGLNoError)
 +        ERR("CGLTexImageIOSurface2D failed\n");
-+    probe_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, prev_tex);
++    host_pglBindTexture(GL_TEXTURE_RECTANGLE_ARB, prev_tex);
 +
 +    /* A new surface of the same size keeps the depth buffer. */
 +    if (e->width != d->width || e->height != d->height)
 +    {
-+        probe_pglBindRenderbuffer(GL_RENDERBUFFER, e->depth);
-+        probe_pglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, d->width, d->height);
-+        probe_pglBindRenderbuffer(GL_RENDERBUFFER, prev_rb);
++        host_pglBindRenderbuffer(GL_RENDERBUFFER, e->depth);
++        host_pglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, d->width, d->height);
++        host_pglBindRenderbuffer(GL_RENDERBUFFER, prev_rb);
 +        e->width = d->width;
 +        e->height = d->height;
 +    }
 +
-+    probe_pglBindFramebuffer(GL_FRAMEBUFFER, e->fbo);
-+    probe_pglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, e->tex, 0);
-+    probe_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, e->depth);
-+    probe_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e->depth);
-+    status = probe_pglCheckFramebufferStatus(GL_FRAMEBUFFER);
++    host_pglBindFramebuffer(GL_FRAMEBUFFER, e->fbo);
++    host_pglFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE_ARB, e->tex, 0);
++    host_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, e->depth);
++    host_pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, e->depth);
++    status = host_pglCheckFramebufferStatus(GL_FRAMEBUFFER);
 +    if (status != GL_FRAMEBUFFER_COMPLETE)
 +        ERR("context %p drawable %p: FBO %u incomplete, status %#x\n", ctx, d, e->fbo, status);
-+    probe_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_draw);
-+    probe_pglBindFramebuffer(GL_READ_FRAMEBUFFER, prev_read);
++    host_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, prev_draw);
++    host_pglBindFramebuffer(GL_READ_FRAMEBUFFER, prev_read);
 +
 +    e->gen = d->gen;
 +    return e->fbo;
 +}
 +
-+static GLuint probe_default_fbo(BOOL read)
++static GLuint host_gl_default_fbo(BOOL read)
 +{
-+    struct macdrv_drawable *d = read ? probe_read : probe_draw;
-+    return d ? probe_fbo_for(d) : 0;
++    struct macdrv_drawable *d = read ? host_gl_read : host_gl_draw;
++    return d ? host_gl_fbo_for(d) : 0;
 +}
 +
-+static BOOL probe_bound_is_default(BOOL read)
++static BOOL host_gl_bound_is_default(BOOL read)
 +{
 +    GLint bound;
 +    GLuint fbo;
 +
-+    if (!host_gl || !(fbo = probe_default_fbo(read))) return FALSE;
-+    probe_pglGetIntegerv(read ? GL_READ_FRAMEBUFFER_BINDING : GL_DRAW_FRAMEBUFFER_BINDING, &bound);
++    if (!host_gl || !(fbo = host_gl_default_fbo(read))) return FALSE;
++    host_pglGetIntegerv(read ? GL_READ_FRAMEBUFFER_BINDING : GL_DRAW_FRAMEBUFFER_BINDING, &bound);
 +    return bound == fbo;
 +}
 +
-+static GLenum probe_map_buffer(GLenum buffer)
++static GLenum host_gl_map_buffer(GLenum buffer)
 +{
 +    switch (buffer)
 +    {
@@ -2259,11 +2240,11 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +    return buffer;
 +}
 +
-+static void probe_bind(void (*bind)(GLenum, GLuint), GLenum target, GLuint fbo)
++static void host_gl_bind(void (*bind)(GLenum, GLuint), GLenum target, GLuint fbo)
 +{
-+    if (!fbo && host_gl && (probe_draw || probe_read))
++    if (!fbo && host_gl && (host_gl_draw || host_gl_read))
 +    {
-+        GLuint draw = probe_default_fbo(FALSE), read = probe_default_fbo(TRUE);
++        GLuint draw = host_gl_default_fbo(FALSE), read = host_gl_default_fbo(TRUE);
 +        if (target == GL_DRAW_FRAMEBUFFER) fbo = draw;
 +        else if (target == GL_READ_FRAMEBUFFER) fbo = read;
 +        else if (draw != read)
@@ -2277,107 +2258,123 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +    bind(target, fbo);
 +}
 +
-+static void probe_glBindFramebuffer(GLenum target, GLuint fbo)
++static void host_glBindFramebuffer(GLenum target, GLuint fbo)
 +{
-+    probe_bind(probe_pglBindFramebuffer, target, fbo);
++    host_gl_bind(host_pglBindFramebuffer, target, fbo);
 +}
 +
-+static void probe_glBindFramebufferEXT(GLenum target, GLuint fbo)
++static void host_glBindFramebufferEXT(GLenum target, GLuint fbo)
 +{
-+    probe_bind(probe_pglBindFramebufferEXT, target, fbo);
++    host_gl_bind(host_pglBindFramebufferEXT, target, fbo);
 +}
 +
-+static void probe_glDrawBuffer(GLenum buffer)
++static void host_glDrawBuffer(GLenum buffer)
 +{
-+    if (probe_bound_is_default(FALSE)) buffer = probe_map_buffer(buffer);
-+    probe_pglDrawBuffer(buffer);
++    if (host_gl_bound_is_default(FALSE)) buffer = host_gl_map_buffer(buffer);
++    host_pglDrawBuffer(buffer);
 +}
 +
-+static void probe_glDrawBuffers(GLsizei n, const GLenum *buffers)
++static void host_glDrawBuffers(GLsizei n, const GLenum *buffers)
 +{
 +    GLenum mapped;
 +
-+    if (n == 1 && probe_bound_is_default(FALSE))
++    if (n == 1 && host_gl_bound_is_default(FALSE))
 +    {
-+        mapped = probe_map_buffer(buffers[0]);
-+        probe_pglDrawBuffers(1, &mapped);
++        mapped = host_gl_map_buffer(buffers[0]);
++        host_pglDrawBuffers(1, &mapped);
 +        return;
 +    }
-+    probe_pglDrawBuffers(n, buffers);
++    host_pglDrawBuffers(n, buffers);
 +}
 +
-+static void probe_glReadBuffer(GLenum buffer)
++static void host_glReadBuffer(GLenum buffer)
 +{
-+    if (probe_bound_is_default(TRUE)) buffer = probe_map_buffer(buffer);
-+    probe_pglReadBuffer(buffer);
++    if (host_gl_bound_is_default(TRUE)) buffer = host_gl_map_buffer(buffer);
++    host_pglReadBuffer(buffer);
 +}
 +
-+static void probe_glGetIntegerv(GLenum pname, GLint *data)
++static void host_glGetIntegerv(GLenum pname, GLint *data)
 +{
-+    probe_pglGetIntegerv(pname, data);
++    host_pglGetIntegerv(pname, data);
 +    if (!host_gl) return;
-+    if (pname == GL_DRAW_FRAMEBUFFER_BINDING && *data && (GLuint)*data == probe_default_fbo(FALSE)) *data = 0;
-+    else if (pname == GL_READ_FRAMEBUFFER_BINDING && *data && (GLuint)*data == probe_default_fbo(TRUE)) *data = 0;
++    if (pname == GL_DRAW_FRAMEBUFFER_BINDING && *data && (GLuint)*data == host_gl_default_fbo(FALSE)) *data = 0;
++    else if (pname == GL_READ_FRAMEBUFFER_BINDING && *data && (GLuint)*data == host_gl_default_fbo(TRUE)) *data = 0;
 +}
 +
-+/* After a context is made current: the default framebuffer is the probe's. */
-+static void probe_activate(struct opengl_drawable *draw, struct opengl_drawable *read)
++/* After a context is made current: the default framebuffer is the host FBO. */
++static void host_gl_activate(unsigned int ctx_id, struct opengl_drawable *draw, struct opengl_drawable *read)
 +{
 +    GLint bound;
 +
 +    if (!host_gl) return;
-+    probe_draw = probe_drawable(draw);
-+    probe_read = probe_drawable(read);
-+    probe_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
-+    if (!bound && probe_draw) probe_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, probe_fbo_for(probe_draw));
-+    probe_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &bound);
-+    if (!bound && probe_read) probe_pglBindFramebuffer(GL_READ_FRAMEBUFFER, probe_fbo_for(probe_read));
++    host_gl_ctx = ctx_id;
++    host_gl_draw = host_gl_drawable(draw);
++    host_gl_read = host_gl_drawable(read);
++    host_pglGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
++    if (!bound && host_gl_draw) host_pglBindFramebuffer(GL_DRAW_FRAMEBUFFER, host_gl_fbo_for(host_gl_draw));
++    host_pglGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &bound);
++    if (!bound && host_gl_read) host_pglBindFramebuffer(GL_READ_FRAMEBUFFER, host_gl_fbo_for(host_gl_read));
 +}
 +
 +/* Send the finished picture to the host and draw the next one into a free
 +   surface: the FBO's texture is pointed at it, so the FBO stays bound. */
-+static void probe_present(struct opengl_drawable *base)
++static void host_gl_present(struct opengl_drawable *base)
 +{
-+    struct macdrv_drawable *d = probe_drawable(base);
++    struct macdrv_drawable *d = host_gl_drawable(base);
 +    struct macdrv_client_surface *surface;
 +    IOSurfaceRef next;
 +
 +    if (!d || !d->surface) return;
 +    surface = impl_from_client_surface(d->base.client);
-+    probe_pglFinish();
++    host_pglFinish();
 +    macdrv_host_view_frame_ready(surface->host_view, d->surface);
 +    if ((next = macdrv_host_view_acquire_surface(surface->host_view, d->width, d->height)) && next != d->surface)
 +    {
 +        d->surface = next;
 +        d->gen++;
-+        if ((probe_draw == d || probe_read == d) && CGLGetCurrentContext()) probe_fbo_for(d);
++        if ((host_gl_draw == d || host_gl_read == d) && CGLGetCurrentContext()) host_gl_fbo_for(d);
 +    }
 +}
- 
++
  static void (*pglCopyColorTable)(GLenum target, GLenum internalformat, GLint x, GLint y,
                                   GLsizei width);
-@@ -1138,12 +1411,16 @@
+ static void (*pglCopyPixels)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum type);
+@@ -1138,12 +1424,31 @@ static BOOL init_gl_info(void)
  static BOOL macdrv_surface_create(struct client_surface *client, int format, struct opengl_drawable **drawable)
  {
      TRACE("client %s, format %d, drawable %p\n", debugstr_client_surface(client), format, drawable);
-+    probe_init();
++    host_gl_init();
      return !!(*drawable = opengl_drawable_create(&macdrv_surface_funcs, format, client, NULL));
  }
  
  static void macdrv_surface_destroy(struct opengl_drawable *base)
  {
 +    struct macdrv_drawable *d = CONTAINING_RECORD(base, struct macdrv_drawable, base);
++    int i;
 +
      TRACE("drawable %s\n", debugstr_opengl_drawable(base));
 +    d->surface = NULL;
++
++    /* Host mode: delete the FBO the current context made for it. Other
++       contexts' go when those contexts are destroyed. */
++    if (!host_gl || !host_gl_ctx || !CGLGetCurrentContext()) return;
++    for (i = 0; i < HOST_GL_MAX_CONTEXTS; i++)
++    {
++        struct host_gl_fbo *e = &d->fbos[i];
++
++        if (e->ctx_id != host_gl_ctx) continue;
++        if (e->fbo) host_pglDeleteFramebuffers(1, &e->fbo);
++        if (e->tex) host_pglDeleteTextures(1, &e->tex);
++        if (e->depth) host_pglDeleteRenderbuffers(1, &e->depth);
++        memset(e, 0, sizeof(*e));
++    }
  }
  
  static void macdrv_context_select_drawable(struct macdrv_context *context, struct opengl_drawable *drawable)
-@@ -1151,6 +1428,15 @@
-     GLint enabled;
+@@ -1152,6 +1457,15 @@ static void macdrv_context_select_drawable(struct macdrv_context *context, struc
  
      TRACE("context %p, drawable %s\n", context, debugstr_opengl_drawable(drawable));
-+
+ 
 +    /* Host mode draws into FBOs and attaches no view; keep the context
 +       current (macdrv_make_context_current with no view would clear it). */
 +    if (host_gl)
@@ -2386,52 +2383,72 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 +            CGLSetCurrentContext(context->base.host_context);
 +        return;
 +    }
- 
++
      if (drawable && drawable->client)
      {
-@@ -1658,6 +1944,7 @@
+         struct macdrv_client_surface *surface = impl_from_client_surface(drawable->client);
+@@ -1658,6 +1972,7 @@ static void macdrv_surface_flush(struct opengl_drawable *base, UINT flags)
      if (flags & GL_FLUSH_PRESENT)
      {
          macdrv_flush_opengl_context(context->context);
-+        probe_present(base);
++        host_gl_present(base);
          client_surface_present(base->client);
      }
  }
-@@ -1859,6 +2146,7 @@
+@@ -1838,6 +2153,10 @@ static struct opengl_context *macdrv_context_create(const struct opengl_context_
+         return NULL;
+     }
+     context->swap_interval = INT_MIN;
++    {
++        static unsigned int next_host_gl_id;
++        context->host_gl_id = __atomic_add_fetch(&next_host_gl_id, 1, __ATOMIC_RELAXED);
++    }
+ 
+     TRACE("created context %p/%p/%p\n", context, context->context, context->base.host_context);
+     return &context->base;
+@@ -1859,6 +2178,7 @@ static BOOL macdrv_context_activate(struct opengl_context *base, struct opengl_d
  
      macdrv_context_select_drawable(context, draw);
      CGLSetCurrentContext(context->base.host_context);
-+    probe_activate(draw, read);
++    host_gl_activate(context->host_gl_id, draw, read);
      return TRUE;
  }
  
-@@ -2323,6 +2611,17 @@
+@@ -2323,6 +2643,17 @@ static void macdrv_glCompressedTexSubImage3D(GLenum target, GLint level, GLint x
  
  static void *macdrv_get_proc_address(const char *name)
  {
-+    probe_init();
++    host_gl_init();
 +    if (host_gl)
 +    {
-+        if (!strcmp(name, "glBindFramebuffer")) return probe_glBindFramebuffer;
-+        if (!strcmp(name, "glBindFramebufferEXT")) return probe_glBindFramebufferEXT;
-+        if (!strcmp(name, "glDrawBuffer")) return probe_glDrawBuffer;
-+        if (!strcmp(name, "glDrawBuffers")) return probe_glDrawBuffers;
-+        if (!strcmp(name, "glReadBuffer")) return probe_glReadBuffer;
-+        if (!strcmp(name, "glGetIntegerv")) return probe_glGetIntegerv;
++        if (!strcmp(name, "glBindFramebuffer")) return host_glBindFramebuffer;
++        if (!strcmp(name, "glBindFramebufferEXT")) return host_glBindFramebufferEXT;
++        if (!strcmp(name, "glDrawBuffer")) return host_glDrawBuffer;
++        if (!strcmp(name, "glDrawBuffers")) return host_glDrawBuffers;
++        if (!strcmp(name, "glReadBuffer")) return host_glReadBuffer;
++        if (!strcmp(name, "glGetIntegerv")) return host_glGetIntegerv;
 +    }
 +
      /* redirect some standard OpenGL functions */
      if (!strcmp(name, "glCopyPixels")) return macdrv_glCopyPixels;
      if (!strcmp(name, "glGetString")) return macdrv_glGetString;
-@@ -2347,6 +2646,7 @@
+@@ -2347,6 +2678,7 @@ static BOOL macdrv_surface_swap(struct opengl_drawable *base)
      {
          macdrv_context_select_drawable(context, base);
          macdrv_flush_opengl_context(context->context);
-+        probe_present(base);
++        host_gl_present(base);
      }
      client_surface_present(base->client);
      return TRUE;
-@@ -2379,7 +2679,7 @@
+@@ -2359,6 +2691,7 @@ static BOOL macdrv_cleanup_thread(void)
+     if (!(context = macdrv_context_from_opengl_context(NtCurrentTeb()->glReserved2))) return TRUE;
+     macdrv_context_select_drawable(context, NULL);
+     CGLSetCurrentContext(NULL);
++    host_gl_ctx = 0;
+     return TRUE;
+ }
+ 
+@@ -2379,7 +2712,7 @@ static const struct opengl_driver_funcs macdrv_driver_funcs =
  
  static const struct opengl_drawable_funcs macdrv_surface_funcs =
  {
@@ -2441,9 +2458,10 @@ diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
      .flush = macdrv_surface_flush,
      .swap = macdrv_surface_swap,
 diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
+index 4b9c5f8..7c4ae2c 100644
 --- a/dlls/winemac.drv/surface.c
 +++ b/dlls/winemac.drv/surface.c
-@@ -115,6 +115,19 @@
+@@ -115,6 +115,19 @@ static void update_shape(vImage_Buffer *shape_mask, const BITMAPINFO *shape_info
      }
  }
  
@@ -2463,7 +2481,7 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
  /***********************************************************************
   *              macdrv_surface_flush
   */
-@@ -123,10 +136,11 @@
+@@ -123,10 +136,11 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
                                   const BITMAPINFO *shape_info, const void *shape_bits)
  {
      struct macdrv_window_surface *surface = get_mac_surface(window_surface);
@@ -2477,7 +2495,7 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
      vImage_Buffer src = {
          .data = (void *)color_bits,
          .height = IOSurfaceGetHeight(io_surface),
-@@ -142,6 +156,29 @@
+@@ -142,6 +156,29 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
  
      if (shape_changed && shape_bits) update_shape(&surface->shape_mask, shape_info, shape_bits);
  
@@ -2507,18 +2525,32 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
      IOSurfaceLock(io_surface, 0, NULL);
      if (use_alpha)
      {
-@@ -165,28 +202,34 @@
-     {
+@@ -166,27 +203,33 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
          vImageSelectChannels_ARGB8888(&surface->shape_mask, &src, &dst, 0x1, kvImageNoFlags);
          vImageClipToAlpha_BGRA8888(&dst, &dst, kvImageNoFlags);
-+    }
+     }
+-    IOSurfaceUnlock(io_surface, 0, NULL);
+-
+-    surface->back_buffer = surface->front_buffer;
+-    surface->front_buffer = io_surface;
+-
+-    if ((data = get_win_data(window_surface->hwnd)))
 +    if (mask_padding)
-+    {
+     {
+-        /* When a program changes the display mode under EmulateModeset, win32u stretches a
+-         * fullscreen window's visible rect over the whole monitor and keeps its window rect
+-         * where the scaled picture belongs (centred, with the rest masked black). The window
+-         * surface is relative to the window rect then, so move it there. */
+-        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
 +        static const Pixel_8888 black = {0, 0, 0, 255};  /* BGRA */
 +        vImage_Buffer part = dst;
-+
+ 
+-        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
+-            window->right <= visible->right && window->bottom <= visible->bottom)
 +        if (masked.left >= 0 && masked.left < (LONG)dst.width)
-+        {
+         {
+-            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
+-            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
 +            part.data = (BYTE *)dst.data + masked.left * 4;
 +            part.width = dst.width - masked.left;
 +            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
@@ -2529,37 +2561,21 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
 +            part.data = (BYTE *)dst.data + masked.top * dst.rowBytes;
 +            part.height = dst.height - masked.top;
 +            vImageBufferFill_ARGB8888(&part, black, kvImageNoFlags);
-+        }
-     }
-     IOSurfaceUnlock(io_surface, 0, NULL);
- 
--    surface->back_buffer = surface->front_buffer;
--    surface->front_buffer = io_surface;
--
--    if ((data = get_win_data(window_surface->hwnd)))
-+    if (io_surface == surface->back_buffer)
-     {
--        /* When a program changes the display mode under EmulateModeset, win32u stretches a
--         * fullscreen window's visible rect over the whole monitor and keeps its window rect
--         * where the scaled picture belongs (centred, with the rest masked black). The window
--         * surface is relative to the window rect then, so move it there. */
--        const RECT *window = &data->rects.window, *visible = &data->rects.visible;
--
--        if (data->fullscreen && window->left >= visible->left && window->top >= visible->top &&
--            window->right <= visible->right && window->bottom <= visible->bottom)
--        {
--            OffsetRect(&surface_rect, window->left - visible->left, window->top - visible->top);
--            OffsetRect(&dirty_rect, window->left - visible->left, window->top - visible->top);
--        }
+         }
 -        release_win_data(data);
+     }
++    IOSurfaceUnlock(io_surface, 0, NULL);
++
++    if (io_surface == surface->back_buffer)
++    {
 +        surface->back_buffer = surface->front_buffer;
 +        surface->front_buffer = io_surface;
-     }
++    }
 +
      macdrv_window_set_io_surface(surface->window, io_surface, cgrect_from_rect(surface_rect),
                                   cgrect_from_rect(dirty_rect));
  
-@@ -202,6 +245,11 @@
+@@ -202,6 +245,11 @@ static BOOL macdrv_surface_flush(struct window_surface *window_surface, const RE
              macdrv_set_view_hidden(data->client_view, TRUE);
              data->client_view = NULL;
          }
@@ -2572,9 +2588,10 @@ diff --git a/dlls/winemac.drv/surface.c b/dlls/winemac.drv/surface.c
      }
  
 diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+index a61bd67..7162632 100644
 --- a/dlls/winemac.drv/window.c
 +++ b/dlls/winemac.drv/window.c
-@@ -1103,11 +1103,15 @@
+@@ -1103,11 +1103,15 @@ static void macdrv_client_surface_detach(struct client_surface *client)
          {
              if (data->client_view == surface->cocoa_view)
                  data->client_view = NULL;
@@ -2590,7 +2607,7 @@ diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
  }
  
  static void macdrv_client_surface_update(struct client_surface *client)
-@@ -1121,6 +1125,8 @@
+@@ -1121,6 +1125,8 @@ static void macdrv_client_surface_update(struct client_surface *client)
      if (!(data = get_win_data(toplevel))) return;
      macdrv_set_view_frame(surface->cocoa_view, cgrect_from_rect(client->monitor_rect));
      macdrv_set_view_superview(surface->cocoa_view, toplevel == hwnd ? NULL : data->client_view, data->cocoa_window, NULL, NULL);
@@ -2599,7 +2616,7 @@ diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
      release_win_data(data);
  }
  
-@@ -1138,6 +1144,12 @@
+@@ -1138,6 +1144,12 @@ static void macdrv_client_surface_present(struct client_surface *client, HDC hdc
          macdrv_set_view_hidden(surface->cocoa_view, FALSE);
          data->client_view = surface->cocoa_view;
      }
@@ -2612,7 +2629,7 @@ diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
      release_win_data(data);
  }
  
-@@ -1163,6 +1175,7 @@
+@@ -1163,6 +1175,7 @@ struct client_surface *macdrv_CreateClientSurface(HWND hwnd, int pixel_format, B
      surface = client_surface_create(&macdrv_client_surface_funcs, hwnd, pixel_format, raw);
      surface->cocoa_view = macdrv_create_view(cgrect_from_rect(surface->client.monitor_rect));
      macdrv_set_view_hidden(surface->cocoa_view, TRUE);
@@ -2622,10 +2639,34 @@ diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
      {
 diff --git a/dlls/winemac.drv/wmh_protocol.h b/dlls/winemac.drv/wmh_protocol.h
 new file mode 100644
+index 0000000..9a1c86c
 --- /dev/null
 +++ b/dlls/winemac.drv/wmh_protocol.h
-@@ -0,0 +1,523 @@
-+/* SPDX-License-Identifier: LGPL-2.1-or-later
+@@ -0,0 +1,546 @@
++/* SPDX-License-Identifier: LGPL-2.1-or-later OR MIT
++ *
++ * Copyright 2026 Callum Gare
++ *
++ * This header may be used under either licence. The MIT terms:
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the
++ * "Software"), to deal in the Software without restriction, including
++ * without limitation the rights to use, copy, modify, merge, publish,
++ * distribute, sublicense, and/or sell copies of the Software, and to permit
++ * persons to whom the Software is furnished to do so, subject to the
++ * following conditions: The above copyright notice and this permission
++ * notice shall be included in all copies or substantial portions of the
++ * Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
++ * NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
++ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
++ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
++ * USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *
++ * Host apps compile this header in, so it's offered under MIT as well as
++ * Wine's LGPL (patch review decision, 2026-11-25).
 + *
 + * App-embedded Mac driver: host protocol wire format, version 1 (draft).
 + * The design is docs/app-embedded-protocol.md; this file fixes the bytes,

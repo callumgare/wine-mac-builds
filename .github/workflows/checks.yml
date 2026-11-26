@@ -2,10 +2,13 @@
 #
 # Quick checks that need no Mac: every patch header follows
 # patches/README.md, and so do the patch sets' layout, the flavours' sets and
-# versions, and the regression tests' Guards (build/patch_header.py); and the
-# website generates from made-up releases and is well formed
-# (tests/site/check.py). Builds check their own patches again before
-# applying them (build/compile.sh).
+# versions, and the regression tests' Guards (build/patch_header.py). Then
+# every flavour's patches are applied to every version it lists at fuzz 0,
+# as builds apply them, and each dependency between patches that
+# tools/patch deps finds must be in the patch's Expects before it
+# (tools/patch check). And the website generates from made-up releases and
+# is well formed (tests/site/check.py). Builds check their own patches again
+# before applying them (build/compile.sh).
 
 name: checks
 
@@ -18,7 +21,9 @@ on:
       - tests/regress/**
       - build/patch_header.py
       - build/patches.py
+      - build/compile.sh
       - build/manifest.py
+      - tools/patch
       - tools/site.py
       - tools/sitegen/**
       - tests/site/**
@@ -33,7 +38,9 @@ on:
       - tests/regress/**
       - build/patch_header.py
       - build/patches.py
+      - build/compile.sh
       - build/manifest.py
+      - tools/patch
       - tools/site.py
       - tools/sitegen/**
       - tests/site/**
@@ -53,6 +60,41 @@ jobs:
           persist-credentials: false
       - name: Check patch headers
         run: python3 build/patch_header.py
+
+  patch-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # WineHQ's tarballs, in the layout tools/patch reads (.cache/<sha256>/),
+      # kept between runs: they change only when a version is pinned.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache
+          key: winehq-tarballs-${{ hashFiles('inputs/winehq/*.sh') }}
+          restore-keys: winehq-tarballs-
+      - name: Fetch WineHQ's tarballs
+        run: |
+          for f in inputs/winehq/*.sh; do
+            url="$(sed -n 's/^WINE_URL="\(.*\)"$/\1/p' "$f")"
+            sha="$(sed -n 's/^WINE_SHA256="\(.*\)"$/\1/p' "$f")"
+            out=".cache/$sha/${url##*/}"
+            [[ -f $out ]] && continue
+            mkdir -p ".cache/$sha"
+            curl -fsSL --retry 3 -o "$out.part" "$url"
+            echo "$sha  $out.part" | sha256sum -c --quiet -
+            mv "$out.part" "$out"
+          done
+      - name: Apply every flavour's patches at fuzz 0 and check their dependencies
+        run: |
+          fail=0
+          for fl in $(python3 -c 'import sys; sys.path.insert(0, "build"); import patches; print(*patches.flavours())'); do
+            for v in $(python3 -c 'import sys; sys.path.insert(0, "build"); import patches; print(*patches.flavour(sys.argv[1])["versions"])' "$fl"); do
+              tools/patch check "$fl" "$v" || fail=1
+            done
+          done
+          exit $fail
 
   site:
     runs-on: ubuntu-latest

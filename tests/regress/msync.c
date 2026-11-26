@@ -5,6 +5,7 @@
  * Env: WINEMSYNC=1
  * Log: ^msync: up and running
  * Guards: ntdll-msync
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26; wine-macfixes-10.0-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * msync (WINEMSYNC=1) moves waits on events, mutexes and semaphores out of
  * wineserver into shared memory and Mach messages, which makes games that
@@ -16,7 +17,10 @@
  * line) and, across threads: auto-reset events wake one waiter and reset,
  * manual-reset ones stay set; a mutex is owned recursively, can't be
  * released by another thread, and is reported abandoned when its owner
- * exits; semaphores count and refuse to go over their maximum;
+ * exits (msync-abandoned-mutex checks the case where its last handle was
+ * closed first); NtReleaseMutant gives the previous count as Windows does
+ * (1 minus the recursion count; CrossOver's msync gave the recursion count);
+ * semaphores count and refuse to go over their maximum;
  * WaitForMultipleObjects returns the first signalled object when waiting
  * for any and waits for all of them when waiting for all, taking each; and
  * an alertable wait runs a queued APC and returns WAIT_IO_COMPLETION.
@@ -131,6 +135,21 @@ static void test_mutex(void)
     r = WaitForSingleObject(mutex, 1000);
     CHECK(r == WAIT_ABANDONED, "a mutex whose owner exited gave %#lx, not WAIT_ABANDONED", r);
     if (r == WAIT_ABANDONED || r == WAIT_OBJECT_0) ReleaseMutex(mutex);
+
+    /* NtReleaseMutant's previous count: 1 minus the recursion count */
+    {
+        LONG (WINAPI *pNtReleaseMutant)(HANDLE, LONG *) =
+            (void *)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtReleaseMutant");
+        LONG prev = 42, prev2 = 42;
+        HANDLE m = CreateMutexA(NULL, TRUE, NULL);
+
+        WaitForSingleObject(m, 0);
+        pNtReleaseMutant(m, &prev);
+        pNtReleaseMutant(m, &prev2);
+        CHECK(prev == -1 && prev2 == 0, "NtReleaseMutant gave previous counts %ld and %ld, not -1 and 0", prev, prev2);
+        CloseHandle(m);
+    }
+
     printf("msync: mutexes checked\n");
 }
 

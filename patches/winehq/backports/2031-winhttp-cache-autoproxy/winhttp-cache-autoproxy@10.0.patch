@@ -1,0 +1,122 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Cache WinHTTP proxy auto-detection until the network changes
+Category: system
+Kind: performance, fix
+Origin: winehq
+  Version: 10.8
+  Commit: e6aa0be6d1e793c012ce0c6ba874e10480985a2e, 1991e6826a4d55fb03bce56345926515aa5158db
+  MR: 8032, 8049
+  Authors: Brendan Shanks
+  Changes: verbatim (same function as WineHQ 11.22)
+Origin: crossover
+  Version: 25.1.1
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
+  Files: dlls/winhttp/session.c
+  Note: taken from CX 25.1.1, which carries the WineHQ change. Sikarugir
+    10.0_8 ships it: winhttp.dll (both arches): 'network config changed,
+    invalidating cache'
+Upstream: yes (Wine 10.8)
+Needed until: 10.8 (WineHQ has it from 10.8)
+Why: WinHttpDetectAutoProxyConfigUrl does DHCP and DNS lookups on every
+ call, which can take long enough to break callers that time it. The
+ results are now cached and dropped when NotifyAddrChange reports a
+ network change (on macOS that needs nsiproxy-macos-change-notifications).
+ The DHCP result is also allocated with GlobalAlloc, as callers free it
+ with GlobalFree.
+Programs: Steam: calls WinHttpGetProxyForUrl before pinging its WebSocket
+ servers and includes it in the timing, so slow auto-detection made the
+ pings time out (WineHQ MR 8049)
+Messages: "network config changed, invalidating cache" (TRACE, channel
+ winhttp; only with +winhttp)
+Expects before it: nsiproxy-macos-change-notifications (run time); without
+ it the cache is never dropped on macOS
+No test: needs a network change
+Status: 10.0: 2026-11-25: three calls on wine-macfixes-10.0-build0 took
+ 419 ms, 0 ms, 0 ms (no WPAD on that network)
+ 10.0: 2026-11-26: quick builds 20261126T013940 and T024442 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/winhttp/session.c b/dlls/winhttp/session.c
+index e8e2861..e26fdd0 100644
+--- a/dlls/winhttp/session.c
++++ b/dlls/winhttp/session.c
+@@ -1546,7 +1546,7 @@ static WCHAR *detect_autoproxyconfig_url_dhcp(void)
+         if (err == ERROR_SUCCESS && param.nBytesData)
+         {
+             int len = MultiByteToWideChar( CP_ACP, 0, (const char *)param.Data, param.nBytesData, NULL, 0 );
+-            if ((ret = malloc( (len + 1) * sizeof(WCHAR) )))
++            if ((ret = GlobalAlloc( 0, (len + 1) * sizeof(WCHAR) )))
+             {
+                 MultiByteToWideChar( CP_ACP, 0,  (const char *)param.Data, param.nBytesData, ret, len );
+                 ret[len] = 0;
+@@ -1666,6 +1666,13 @@ static WCHAR *detect_autoproxyconfig_url_dns(void)
+  */
+ BOOL WINAPI WinHttpDetectAutoProxyConfigUrl( DWORD flags, WCHAR **url )
+ {
++    static SRWLOCK apc_cache_lock = SRWLOCK_INIT;
++    static BOOL dhcp_cache_valid, dns_cache_valid;
++    static WCHAR *dhcp_apc_url, *dns_apc_url;
++    static HANDLE notifyaddr_handle = INVALID_HANDLE_VALUE;
++    static OVERLAPPED notifyaddr_ol;
++    DWORD bytes;
++
+     TRACE( "%#lx, %p\n", flags, url );
+ 
+     if (!flags || !url)
+@@ -1674,14 +1681,53 @@ BOOL WINAPI WinHttpDetectAutoProxyConfigUrl( DWORD flags, WCHAR **url )
+         return FALSE;
+     }
+     *url = NULL;
++
++    AcquireSRWLockExclusive( &apc_cache_lock );
++    /* FIXME: use NotifyIpInterfaceChange once that's implemented */
++    if (notifyaddr_handle == INVALID_HANDLE_VALUE)
++        NotifyAddrChange( &notifyaddr_handle, &notifyaddr_ol );
++
++    if ((notifyaddr_handle != INVALID_HANDLE_VALUE) &&
++        GetOverlappedResult( notifyaddr_handle, &notifyaddr_ol, &bytes, FALSE ))
++    {
++        TRACE( "network config changed, invalidating cache\n" );
++        dhcp_cache_valid = dns_cache_valid = FALSE;
++        notifyaddr_handle = INVALID_HANDLE_VALUE;
++        NotifyAddrChange( &notifyaddr_handle, &notifyaddr_ol );
++    }
++
+     if (flags & WINHTTP_AUTO_DETECT_TYPE_DHCP)
+     {
+-        *url = detect_autoproxyconfig_url_dhcp();
++        if (!dhcp_cache_valid)
++        {
++            GlobalFree( dhcp_apc_url );
++            dhcp_apc_url = detect_autoproxyconfig_url_dhcp();
++            dhcp_cache_valid = TRUE;
++        }
++
++        if (dhcp_apc_url)
++        {
++            *url = GlobalAlloc( 0, (wcslen( dhcp_apc_url ) + 1) * sizeof(WCHAR) );
++            if (*url) wcscpy( *url, dhcp_apc_url );
++        }
+     }
+-    if (flags & WINHTTP_AUTO_DETECT_TYPE_DNS_A)
++    if ((flags & WINHTTP_AUTO_DETECT_TYPE_DNS_A) && !*url)
+     {
+-        if (!*url) *url = detect_autoproxyconfig_url_dns();
++        if (!dns_cache_valid)
++        {
++            GlobalFree( dns_apc_url );
++            dns_apc_url = detect_autoproxyconfig_url_dns();
++            dns_cache_valid = TRUE;
++        }
++
++        if (dns_apc_url)
++        {
++            *url = GlobalAlloc( 0, (wcslen( dns_apc_url ) + 1) * sizeof(WCHAR) );
++            if (*url) wcscpy( *url, dns_apc_url );
++        }
+     }
++    ReleaseSRWLockExclusive( &apc_cache_lock );
++
+     if (!*url)
+     {
+         SetLastError( ERROR_WINHTTP_AUTODETECTION_FAILED );

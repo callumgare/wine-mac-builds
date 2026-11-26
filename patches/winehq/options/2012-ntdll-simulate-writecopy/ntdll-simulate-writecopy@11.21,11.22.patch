@@ -6,15 +6,43 @@ Origin: crossover
   Version: 26.3.0
   CW-Hacks: 22996
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22996 (without CW HACK 24067's default-visibility export, which 10.0_8 does not have)
-    Source: (sources/wine/dlls/ntdll/unix/loader.c
-    Source: virtual.c
-    Source: unix_private.h)
+  Files: dlls/ntdll/unix/loader.c, dlls/ntdll/unix/unix_private.h, dlls/ntdll/unix/virtual.c
+  Changes: without CW HACK 24067's default-visibility export, which
+    Sikarugir 10.0_8 does not have. The code is CrossOver 25.1.1's, which
+    26.3.0 has unchanged; hacks_init() is called right after 11.21's
+    server_init_process( data ) in start_main_thread(), before
+    msync_init(), as CrossOver 26.3.0 orders them.
+  Note: Sikarugir 10.0_8 ships it: ntdll.so has "WINE_SIMULATE_WRITECOPY",
+    "Setting VPROT_COPIED."
+Origin: proton
+  Commit: 98bce52ddf46c0c8c6be57c27d4aa9c48303798b
+  CW-Bug-Id: 22034
+  Authors: Paul Gofman
+  URL: https://github.com/ValveSoftware/wine/commit/98bce52ddf46c0c8c6be57c27d4aa9c48303798b
+  Note: the original ("ntdll: HACK: Add WINE_SIMULATE_WRITECOPY option.",
+    2023-03-14); it relies on wine-staging's ntdll-WRITECOPY for
+    VPROT_COPIED, which CrossOver's version adds itself, and also turns on
+    for Steam app 1608730
 Upstream: no
-Why: With WINE_SIMULATE_WRITECOPY=1, pages changed away from PAGE_(EXECUTE_)WRITECOPY report the old protection as PAGE_(EXECUTE_)READWRITE, as on Windows after a copy-on-write.
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so: "WINE_SIMULATE_WRITECOPY", "Setting VPROT_COPIED."
-Port: to 11.21: code unchanged (CX 26.3.0's is the same as 25.1.1's); hacks_init() is called right after 11.21's server_init_process( data ) in start_main_thread(), before msync_init(), as CX 26.3.0 orders them.
+Why: Off unless WINE_SIMULATE_WRITECOPY is set to a non-zero number. On
+ Windows, a copy-on-write page that has been written to becomes
+ PAGE_READWRITE; Wine keeps reporting PAGE_WRITECOPY. With the option on,
+ when NtProtectVirtualMemory changes pages away from
+ PAGE_(EXECUTE_)WRITECOPY, they are marked copied (VPROT_COPIED): that call
+ reports the old protection as PAGE_(EXECUTE_)READWRITE, and so do later
+ queries (VirtualQuery, VirtualProtect). Wine doesn't track writes, so this
+ happens whether or not the page was written.
+Programs: Battle.net launcher: installation hung (WineHQ bug 55979, 2023);
+ the bug names this variable as the workaround
+Enable: env WINE_SIMULATE_WRITECOPY=1 (per process; any non-zero number, read with atoi)
+Messages: "Setting VPROT_COPIED." (TRACE, shown only with WINEDEBUG=+virtual)
+Known issues: on Windows a page that was never written stays
+ PAGE_WRITECOPY; here it is reported PAGE_READWRITE once its protection
+ has changed.
+Uncertain: whether the current Battle.net launcher still needs it; which
+ game Steam app 1608730 is.
+References: https://bugs.winehq.org/show_bug.cgi?id=55979 (the workaround)
+Expects before it: ntdll-msync (context)
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 7215322..3150a09 100644

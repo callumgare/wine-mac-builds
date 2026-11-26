@@ -6,20 +6,38 @@ Origin: crossover
   Version: 26.3.0
   CW-Hacks: 19488
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CXHACK 19488 (dlls/win32u/message.c, peek_message)
-    Source: (sources/wine/dlls/win32u/message.c)
+  Files: dlls/win32u/message.c
+  Changes: CrossOver 26.3.0's lines verbatim, at the same place in 10.0's
+    peek_message (only the context differs)
+  Note: Sikarugir 10.0_8 ships it: its win32u.so's peek_message tests that
+    flag combination, WM_PAINT and WS_EX_COMPOSITED, and calls
+    get_window_long and send_message_timeout (found by comparing functions,
+    2026-11-15; it adds no strings, so the strings inventory missed it)
 Upstream: no
 Why: When a program peeks with exactly PM_REMOVE | PM_QS_INPUT |
- PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE and gets WM_PAINT for
- a WS_EX_COMPOSITED window, send the paint to the window straight away and
- keep looking without PM_QS_PAINT, instead of returning it. Without it,
- such a loop can keep getting WM_PAINT and never see its other messages.
-Programs: none known
-Evidence: Sikarugir 10.0_8: win32u.so's peek_message tests that flag combination,
- WM_PAINT and WS_EX_COMPOSITED, and calls get_window_long and
- send_message_timeout (found by comparing functions, 2026-11-15; it adds no
- strings, so the inventory missed it).
-Status: not yet built (2026-11-15).
+ PM_QS_POSTMESSAGE | PM_QS_PAINT | PM_QS_SENDMESSAGE and the message is
+ WM_PAINT for a WS_EX_COMPOSITED window, send WM_PAINT to the window straight
+ away and keep looking without PM_QS_PAINT, instead of returning it. If the
+ window procedure leaves the window invalid, a loop such as
+ while (PeekMessage(...)) DispatchMessage(...) otherwise gets WM_PAINT on
+ every call and never ends; with this, PeekMessage returns FALSE once the
+ queue has nothing else. Posted and sent messages arrive either way.
+Programs: none known; a program whose PeekMessage loop uses exactly these
+ flags over a WS_EX_COMPOSITED window that leaves itself invalid
+ (CrossOver's hack names none)
+Known issues: WH_GETMESSAGE hooks and the program's own loop never see the
+ WM_PAINT it sends, so a loop that draws when it sees WM_PAINT would stop
+ drawing (no such program known).
+Uncertain: which program CrossOver wrote it for, and whether Windows behaves
+ this way. The flags must match exactly: PM_QS_INPUT as Windows 8+ headers
+ define it (with QS_TOUCH and QS_POINTER), so programs built with older
+ headers, or passing PM_REMOVE alone, are unaffected. None of the likely
+ candidates reaches the code path: Big Fish Game Manager, Iji, Icy
+ Tower's Inno 5.1.2 installer, and the Webmaster and Bioscopia Director
+ projectors made no PeekMessage call with those flags (or the pre-Windows
+ 8 value) and had no WS_EX_COMPOSITED window (relay probe, Sikarugir
+ 10.0_8, macOS 26.7.2, 2026-11-26); Steam's client wasn't tried.
+Status: 10.0: 2026-11-15: not yet built (no later record)
 
 diff --git a/dlls/win32u/message.c b/dlls/win32u/message.c
 index 2f1e14c..72a802e 100644

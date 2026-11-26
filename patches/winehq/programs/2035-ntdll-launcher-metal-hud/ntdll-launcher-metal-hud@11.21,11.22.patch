@@ -1,0 +1,102 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Hide the Metal performance HUD in launcher windows, but not in the games they start
+Category: graphics
+Kind: workaround
+Origin: reconstructed
+  Version: Sikarugir 10.0_8
+  Binary: WS12WineSikarugir10.0_8 ntdll.so
+  Functions: the launcher check at 0x21900
+  Changes: the value is kept in WINE_LAUNCHER_MTL_HUD_ENABLED and restored in
+    processes that aren't launchers (10.0_8 drops it for the launcher's
+    children too)
+  Note: Sikarugir-only: no CrossOver 26, wine-staging or WineHQ equivalent
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: the same code; only context differs (set_dll_path() and
+    init_paths() are unchanged in 11.21)
+Upstream: no
+Why: With MTL_HUD_ENABLED set, macOS draws the Metal performance HUD over every
+ Metal window, launchers' included. When a launcher or overlay process is kept
+ off a renderer DLL path (ntdll-renderer-dll-paths' list), ntdll removes
+ MTL_HUD_ENABLED from its environment at start, unless SIKARUGIR_KEEP_METAL_HUD
+ is set (to anything). This happens in init_paths, before the Windows
+ environment is built, so the launcher's children don't get the variable either;
+ it is kept as WINE_LAUNCHER_MTL_HUD_ENABLED, and a process that isn't a
+ launcher puts it back in its own environment at start, so the games a launcher
+ starts still get the HUD.
+ It happens only when WINEDLLPATH_D9VK or WINEDLLPATH_DXVK has an entry (10.0_8 and
+ the 10.0 copy also count WINEDLLPATH_D3DMETAL, which 11.x doesn't search).
+Programs: Battle.net, EA app, Epic, EOS overlay, GOG Galaxy, Rockstar
+ launcher/Social Club, Steam web helper and overlay, Ubisoft Connect: the
+ Metal performance HUD shows over their windows
+Matches: exe Battle.net.exe, battlenet.overlay.runtime.exe,
+ BlizzardBrowser.exe, BlizzardError.exe, EACefSubProcess.exe,
+ EADesktop.exe, Link2EA.exe, EpicGamesLauncher.exe, EpicWebHelper.exe,
+ EOSOverlayRenderer-Win32-Shipping.exe,
+ EOSOverlayRenderer-Win64-Shipping.exe, GalaxyClient.exe, GalaxyClient
+ Helper.exe, GOG Galaxy Notifications Renderer.exe, steamwebhelper.exe,
+ gameoverlayui.exe, gameoverlayui64.exe, UbisoftConnect.exe,
+ UplayWebCore.exe, UpcElevationService.exe; path Rockstar
+ Games\Launcher\Launcher.exe, Rockstar Games\Social
+ Club\SocialClubHelper.exe
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_D9VK or WINEDLLPATH_DXVK with an entry)
+ env SIKARUGIR_KEEP_METAL_HUD=<anything> (turns it off: launchers keep the HUD)
+Known issues: SIKARUGIR_KEEP_METAL_HUD is tested for presence only, so "0"
+ also keeps the HUD. The game gets MTL_HUD_ENABLED back in its Unix
+ environment, which Metal reads, but not in its Windows one
+ (GetEnvironmentVariable), which comes from the launcher's.
+Expects before it: ntdll-vulkan-bundled-driver (context), ntdll-simulate-writecopy (context), ntdll-renderer-dll-paths
+Status: 11.21, 11.22: 2026-11-26: the value is restored for processes a launcher
+ starts (ported with the 10.0 fix: same code)
+ 11.21: 2026-11-26: quick builds 20261126T005336 and T023339 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -346,10 +346,34 @@ static const struct
+ 
+ static BOOL use_renderer_dll_path( unsigned int idx )
+ {
+-    if (renderer_dll_paths[idx].skip_for_launchers && is_launcher_process()) return FALSE;
++    if (renderer_dll_paths[idx].skip_for_launchers && is_launcher_process())
++    {
++        const char *hud;
++
++        /* launchers run without the Metal performance HUD unless asked to keep it;
++         * the value is kept for the games they start (restore_launcher_metal_hud) */
++        if (!getenv( "SIKARUGIR_KEEP_METAL_HUD" ) && (hud = getenv( "MTL_HUD_ENABLED" )))
++        {
++            setenv( "WINE_LAUNCHER_MTL_HUD_ENABLED", hud, 0 );
++            unsetenv( "MTL_HUD_ENABLED" );
++        }
++        return FALSE;
++    }
+     return TRUE;
+ }
+ 
++/* A process a launcher started gets back the MTL_HUD_ENABLED the launcher dropped.
++ * Its Unix environment comes from the launcher's Windows one, which has the value
++ * only as WINE_LAUNCHER_MTL_HUD_ENABLED. */
++static void restore_launcher_metal_hud(void)
++{
++    const char *hud = getenv( "WINE_LAUNCHER_MTL_HUD_ENABLED" );
++
++    if (!hud || getenv( "MTL_HUD_ENABLED" ) || is_launcher_process()) return;
++    setenv( "MTL_HUD_ENABLED", hud, 1 );
++    unsetenv( "WINE_LAUNCHER_MTL_HUD_ENABLED" );
++}
++
+ static unsigned int count_path_list( const char *path )
+ {
+     unsigned int count = 1;
+@@ -499,6 +523,7 @@ static void init_paths(void)
+ #endif
+     }
+ 
++    restore_launcher_metal_hud();
+     set_dll_path();
+     set_system_dll_path();
+     set_home_dir();

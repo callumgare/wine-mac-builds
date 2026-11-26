@@ -5,19 +5,25 @@ Kind: fix
 Origin: winehq
   Commit: 98a370e5e1877e011880e582126958755bcfd455, c8b715068001cbae25f72372e71c70db1a06d381, 361b82c32e093e4cb9fe4a886289bdebb823a408, a32e9be3d5e6771a3ad76d7477307f79bcac8edf
   URL: https://gitlab.winehq.org/wine/wine/-/commit/98a370e5e1877e011880e582126958755bcfd455, https://gitlab.winehq.org/wine/wine/-/commit/c8b715068001cbae25f72372e71c70db1a06d381, https://gitlab.winehq.org/wine/wine/-/commit/361b82c32e093e4cb9fe4a886289bdebb823a408, https://gitlab.winehq.org/wine/wine/-/commit/a32e9be3d5e6771a3ad76d7477307f79bcac8edf
-  Note: upstream commits 98a370e5e1877e011880e582126958755bcfd455,
-    c8b715068001cbae25f72372e71c70db1a06d381 (ntdll),
-    361b82c32e093e4cb9fe4a886289bdebb823a408 and
-    a32e9be3d5e6771a3ad76d7477307f79bcac8edf (mountmgr), all by Tim Clem
-Upstream: yes, commits 98a370e5e1 and 361b82c32e (in Wine 11.2), c8b7150680 and a32e9be3d5 (in Wine 11.7)
-Why: Report free space "for important usage" (what Finder shows, including
- purgeable space) in FileFsFullSizeInformation, falling back to statfs when
- it is 0; and the same in mountmgr's volume size queries, so both paths
- agree.
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so and mountmgr.so import
- kCFURLVolumeAvailableCapacityForImportantUsageKey; the "space == 0 -> -1"
- fallback is in both disassemblies
+  Authors: Tim Clem
+  Changes: verbatim (the four commits squashed); applies to 10.0 with
+    offsets. Matches 11.22's code exactly (diffed).
+  Note: Sikarugir 10.0_8 ships it: ntdll.so and mountmgr.so import
+    kCFURLVolumeAvailableCapacityForImportantUsageKey; the "space == 0 ->
+    -1" fallback is in both disassemblies
+Upstream: yes (98a370e5e1 and 361b82c32e in Wine 11.2, c8b7150680 and
+ a32e9be3d5 in Wine 11.7)
+Needed until: 11.7 (WineHQ has all four commits from then)
+Why: Report free space "for important usage" (free plus purgeable space,
+ what Finder shows) in FileFsFullSizeInformation, falling back to statfs
+ when it is 0 (non-APFS volumes); and the same in mountmgr's volume size
+ queries, so both paths agree with Finder and with Wine 11.x. The number is
+ often much larger than statfs's (23.7 GB against 12.6 GB on one Mac,
+ macOS 26.7.2), and each query takes about 12 ms (measured on 11.22, which
+ has the same code), as macOS works out the purgeable space.
+Programs: none known; installers that refuse to install when statfs's
+ free space is short but Finder's isn't
+No test: Finder's free-space figure isn't visible to a program
 
 diff --git a/dlls/ntdll/unix/file.c b/dlls/ntdll/unix/file.c
 index 8bc6955..b4247c0 100644

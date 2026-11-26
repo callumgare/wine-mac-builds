@@ -1,38 +1,51 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: winemac: load plugin libraries named in WINEMAC_PLUGINS or the Plugins value before Cocoa starts
+Summary: winemac: load plugin libraries named in WINEMAC_PLUGINS before Cocoa starts
 Category: system
 Kind: feature
+Feature: embedding
 Origin: wine-mac-builds
-  Note: dlls/winemac.drv/macdrv_main.c, macdrv_init(); written for
-    wine-mac-builds after Second Chance's weak-dylib load command patched into
-    winemac.so.
+  Note: after Second Chance's weak-dylib load command patched into
+    winemac.so
 Upstream: no
 Why: An app that embeds Wine may need code of its own inside the Mac driver
  (Objective-C hooks on Wine's windows, say). Without a hook it has to add a
  load command to winemac.so and re-sign it. Now macdrv_init dlopens each
- path in the WINEMAC_PLUGINS environment variable (inherited by child
- processes) and then in the Mac Driver "Plugins" registry value
- (HKCU\Software\Wine\Mac Driver, or the per-app AppDefaults key), each a
- colon-separated list, after reading the options and before Cocoa starts.
- A path that doesn't load is logged (err:macdrv) and skipped. With neither
- set nothing changes.
+ path in the WINEMAC_PLUGINS environment variable (a colon-separated list,
+ inherited by child processes), after reading the options and before Cocoa
+ starts. Only absolute paths are loaded: a path that doesn't start with /,
+ or doesn't load, is logged (err:macdrv) and skipped. With the variable
+ unset nothing changes. There is no registry setting, so nothing a program
+ in the prefix writes makes a plugin load in later processes. A plugin
+ must be an x86_64 (or universal) Mach-O, as the driver runs under Rosetta
+ 2 on Apple silicon. Its constructors run on a Wine thread inside the
+ driver's DllMain, with the loader lock held and Cocoa not yet started: they
+ mustn't call into Wine or wait on the main thread, and AppKit work has to
+ be deferred (dispatch_async to the main queue runs once Cocoa does).
 Programs: Second Chance (an app that embeds Wine): had to patch a load
  command into winemac.so and re-sign it to load its in-process helpers
-Uncertain: whether a plugin needs to load earlier (before setup_options) or
- later (after Cocoa starts); the brief asked for between the two.
-Status: 2026-11-18 in a quick build of macfixes 11.22 (VM, not for release;
- smoke and the host OpenGL tests pass). On meeka (macOS 26.7, GUI session):
- WINEMAC_PLUGINS loads the plugin (in every process that starts the driver),
- a missing path is logged as err:macdrv and skipped, the Plugins value
- loads it, nothing loads with neither set. winemac-plugins passes on it and
- fails on 11.22-build8. In 11.22-build9 (CI, compiler cache on): the
- suite passes, winemac-plugins included (in the build VM). On meeka, an app
- that embeds Wine loaded its in-process helpers through WINEMAC_PLUGINS with
- winemac.so unpatched, and four games (White Wolf CD, Iji, Bioscopia, a Big
- Fish trial) ran with every helper armed, in bfgclient.exe as well.
+Enable: env WINEMAC_PLUGINS=/abs/a.dylib:/abs/b.dylib (inherited by child processes)
+Messages: "plugin path %s isn't absolute; skipped", "couldn't load plugin
+ %s: %s" (err:macdrv; WINEDEBUG=err-macdrv or -all hides them)
+Risk: loads native code (dlopen, RTLD_NOW | RTLD_GLOBAL) into every Wine
+ process that starts the Mac driver, from the paths in WINEMAC_PLUGINS.
+ Whoever sets the environment Wine starts in turns it on, and child
+ processes inherit it. Unsigned plugins load (Wine isn't hardened-runtime).
+Uncertain: a plugin that needs to run before the Mac Driver options are
+ read, or after Cocoa has started, isn't served by this point; none known.
+Related: winemac-cocoa-start-wait, winemac-activation-policy; they also
+ change setup_options and macdrv_init
+Status: 11.22: 2026-11-26: the Plugins registry value dropped and relative
+ paths refused (review decision 21). The earlier form
+ (variable and registry value) passed winemac-plugins in 11.22-build9, and
+ Second Chance loaded its helpers through it on meeka (macOS 26.7).
+ 11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
+ M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: winemac-plugins.sh passes in a GUI session on quick
+ T025644: absolute paths load, missing and relative paths are logged and
+ skipped, the Plugins registry value isn't read
 
 diff --git a/dlls/winemac.drv/macdrv_main.c b/dlls/winemac.drv/macdrv_main.c
-index 5dcd7ec..8d5d71f 100644
+index db14f64..591042a 100644
 --- a/dlls/winemac.drv/macdrv_main.c
 +++ b/dlls/winemac.drv/macdrv_main.c
 @@ -27,6 +27,7 @@
@@ -43,44 +56,22 @@ index 5dcd7ec..8d5d71f 100644
  #include <Security/AuthSession.h>
  #include <IOKit/pwr_mgt/IOPMLib.h>
  
-@@ -270,6 +271,8 @@ static inline DWORD get_config_key(HKEY defkey, HKEY appkey, const char *name,
-  *
-  * Set up the Mac driver options.
-  */
-+static WCHAR *plugins_option;
-+
- static void setup_options(void)
- {
-     static const WCHAR macdriverW[] = {'\\','M','a','c',' ','D','r','i','v','e','r',0};
-@@ -386,6 +389,16 @@ static void setup_options(void)
- 
-     retina_on = retina_enabled;
- 
-+    /* Libraries to load before Cocoa starts (see load_plugins). */
-+    {
-+        WCHAR plugins[1000];
-+        if (!get_config_key(hkey, appkey, "Plugins", plugins, sizeof(plugins)) && plugins[0])
-+        {
-+            len = (lstrlenW(plugins) + 1) * sizeof(WCHAR);
-+            if ((plugins_option = malloc(len))) memcpy(plugins_option, plugins, len);
-+        }
-+    }
-+
-     if (appkey) NtClose(appkey);
-     if (hkey) NtClose(hkey);
- }
-@@ -427,6 +440,60 @@ static void load_strings(struct localized_string *str)
+@@ -423,6 +424,36 @@ static void load_strings(struct localized_string *str)
  }
  
  
 +/***********************************************************************
-+ *              load_plugin_list
++ *              load_plugins
 + *
-+ * dlopen each path in a colon-separated list. A path that doesn't load
-+ * is reported and skipped.
++ * dlopen each path in WINEMAC_PLUGINS (inherited by child processes), a
++ * colon-separated list of absolute paths, before Cocoa starts. Lets an app
++ * that embeds Wine add code to the driver without changing winemac.so. A
++ * path that isn't absolute, or doesn't load, is reported and skipped.
++ * Nothing is loaded unless the variable is set.
 + */
-+static void load_plugin_list(const char *list, const char *from)
++static void load_plugins(void)
 +{
++    const char *list = getenv("WINEMAC_PLUGINS");
 +    char *copy, *path, *next;
 +
 +    if (!list || !*list || !(copy = strdup(list))) return;
@@ -88,49 +79,21 @@ index 5dcd7ec..8d5d71f 100644
 +    {
 +        if ((next = strchr(path, ':'))) *next++ = 0;
 +        if (!*path) continue;
-+        if (dlopen(path, RTLD_NOW | RTLD_GLOBAL))
-+            TRACE("loaded plugin %s (from %s)\n", debugstr_a(path), from);
++        if (path[0] != '/')
++            ERR("plugin path %s isn't absolute; skipped\n", debugstr_a(path));
++        else if (dlopen(path, RTLD_NOW | RTLD_GLOBAL))
++            TRACE("loaded plugin %s\n", debugstr_a(path));
 +        else
-+            ERR("couldn't load plugin %s (from %s): %s\n", debugstr_a(path), from, dlerror());
++            ERR("couldn't load plugin %s: %s\n", debugstr_a(path), dlerror());
 +    }
 +    free(copy);
-+}
-+
-+
-+/***********************************************************************
-+ *              load_plugins
-+ *
-+ * Load the libraries named in WINEMAC_PLUGINS (inherited by child
-+ * processes) and in the Mac Driver "Plugins" value (global or per app),
-+ * each a colon-separated list of paths, before Cocoa starts. Lets an app
-+ * that embeds Wine add code to the driver without changing winemac.so.
-+ * Nothing is loaded unless one of them is set.
-+ */
-+static void load_plugins(void)
-+{
-+    load_plugin_list(getenv("WINEMAC_PLUGINS"), "WINEMAC_PLUGINS");
-+
-+    if (plugins_option)
-+    {
-+        CFStringRef str = CFStringCreateWithCharacters(NULL, (const UniChar *)plugins_option,
-+                                                       lstrlenW(plugins_option));
-+        char path[4096];
-+
-+        if (str && CFStringGetFileSystemRepresentation(str, path, sizeof(path)))
-+            load_plugin_list(path, "the Plugins registry value");
-+        else
-+            ERR("couldn't read the Plugins registry value\n");
-+        if (str) CFRelease(str);
-+        free(plugins_option);
-+        plugins_option = NULL;
-+    }
 +}
 +
 +
  /***********************************************************************
   *              macdrv_init
   */
-@@ -450,6 +517,7 @@ static NTSTATUS macdrv_init(void *arg)
+@@ -446,6 +477,7 @@ static NTSTATUS macdrv_init(void *arg)
  
      init_win_context();
      setup_options();

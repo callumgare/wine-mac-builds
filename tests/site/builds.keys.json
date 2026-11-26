@@ -274,8 +274,45 @@
  "builds[].patches[].origins[]": [
   "object"
  ],
- "builds[].patches[].origins[].commit": [
+ "builds[].patches[].origins[].attachment": [
+  "array"
+ ],
+ "builds[].patches[].origins[].attachment[]": [
+  "number"
+ ],
+ "builds[].patches[].origins[].authors": [
+  "array"
+ ],
+ "builds[].patches[].origins[].authors[]": [
   "string"
+ ],
+ "builds[].patches[].origins[].binary": [
+  "string"
+ ],
+ "builds[].patches[].origins[].bugs": [
+  "array"
+ ],
+ "builds[].patches[].origins[].bugs[]": [
+  "string"
+ ],
+ "builds[].patches[].origins[].changes": [
+  "string"
+ ],
+ "builds[].patches[].origins[].commit": [
+  "array",
+  "string"
+ ],
+ "builds[].patches[].origins[].commit[]": [
+  "string"
+ ],
+ "builds[].patches[].origins[].covers": [
+  "string"
+ ],
+ "builds[].patches[].origins[].cw_bug_id": [
+  "array"
+ ],
+ "builds[].patches[].origins[].cw_bug_id[]": [
+  "number"
  ],
  "builds[].patches[].origins[].cw_hacks": [
   "array"
@@ -283,7 +320,31 @@
  "builds[].patches[].origins[].cw_hacks[]": [
   "number"
  ],
+ "builds[].patches[].origins[].file": [
+  "string"
+ ],
+ "builds[].patches[].origins[].files": [
+  "array"
+ ],
+ "builds[].patches[].origins[].files[]": [
+  "string"
+ ],
+ "builds[].patches[].origins[].functions": [
+  "array"
+ ],
+ "builds[].patches[].origins[].functions[]": [
+  "string"
+ ],
+ "builds[].patches[].origins[].mr": [
+  "string"
+ ],
+ "builds[].patches[].origins[].name": [
+  "string"
+ ],
  "builds[].patches[].origins[].note": [
+  "string"
+ ],
+ "builds[].patches[].origins[].patchset": [
   "string"
  ],
  "builds[].patches[].origins[].ported_here": [

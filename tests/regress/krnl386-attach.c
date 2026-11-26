@@ -5,6 +5,7 @@
  * Timeout: 60
  * Libs: -lkernel32
  * Guards: krnl386-attach-without-16bit
+ * Fails without on: wine-macfixes-11.22-build9, macOS 26.7.2, M1 Max, 2026-11-18
  *
  * Webmaster's Buddy API Xtra (Budapi.x32, a Director 7 plug-in) imports
  * kernel32's 16-bit thunks (LoadLibrary16 and the like), which Wine

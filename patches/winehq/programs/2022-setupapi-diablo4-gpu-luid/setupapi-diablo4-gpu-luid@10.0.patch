@@ -2,19 +2,40 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Diablo IV on D3DMetal: report a GPU LUID that matches D3DMetal's
 Category: graphics
 Kind: workaround
+Feature: d3dmetal
 Origin: crossover
   Version: 25.1.1
   CW-Hacks: 23560
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 CW HACK 23560 (dlls/setupapi/devinst.c)
+  Files: dlls/setupapi/devinst.c
+  Changes: verbatim
+  Note: CX 26.3.0 still carries it unchanged. Sikarugir 10.0_8 ships it:
+    setupapi.dll strings "Using LUID %08lx:%08lx from D3DMetal dxgi",
+    get_luid_from_d3dmetal, CreateDXGIFactory, L"Diablo IV.exe"
 Upstream: no
-Why: Diablo IV reads the GPU LUID through setupapi and needs it to match the LUID that
- D3DMetal's dxgi reports. Only when the process is "Diablo IV.exe" and dxgi.dll has no
- version resource (i.e. is D3DMetal's).
+Why: Diablo IV reads the GPU's LUID through setupapi (DEVPKEY_GPU_LUID) and
+ expects it to match the adapter LUID DXGI reports. In a process named
+ "Diablo IV.exe" whose dxgi.dll has no version resource (D3DMetal's; Wine's
+ and DXMT's have one), setupapi returns D3DMetal's adapter 0 LUID instead,
+ loading dxgi.dll to ask. 64-bit only. No copy for Wine 11.x, where D3DMetal
+ 3.0 can't run.
 Programs: Diablo IV: needs the GPU LUID it reads through setupapi to match
  D3DMetal's
-Evidence: Sikarugir 10.0_8: setupapi.dll strings "Using LUID %08lx:%08lx from D3DMetal dxgi",
- get_luid_from_d3dmetal, CreateDXGIFactory, L"Diablo IV.exe"
+Matches: exe Diablo IV.exe; other dxgi.dll without a version resource
+Fine on: macOS 26.7.2 (M1 Max, 10.0 build0 with D3DMetal 3.0, console run
+ without a display driver): setupapi's and DXGI's LUIDs already matched
+ (0:3f4) without the patch
+Enable: see ntdll-renderer-dll-paths (WINEDLLPATH_D3DMETAL)
+Messages: "Using LUID %08lx:%08lx from D3DMetal dxgi" (TRACE on the setupapi
+ channel, hidden unless WINEDEBUG has +setupapi)
+Uncertain: whether Diablo IV still needs it. In a console run the LUIDs
+ already matched, and D3DMetal 3.0 appears to take its LUID from Wine, which
+ would make this a no-op; a run in a GUI session, where winemac provides the
+ GPU list, can't be done here: neither Diablo IV nor D3DMetal is
+ available to test with (2026-11-26).
+No test: needs Apple's D3DMetal
+Status: 10.0: 2026-11-26: header only; the 11.21/11.22 copy is dropped (D3DMetal
+ can't run there)
 
 diff --git a/dlls/setupapi/devinst.c b/dlls/setupapi/devinst.c
 index 4e406fe..d79a71d 100644
