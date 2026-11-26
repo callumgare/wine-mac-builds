@@ -3,22 +3,34 @@ Summary: Rosetta 2: keep Armadillo DRM (Big Fish games) running by emulating fs:
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds (not in Sikarugir). Behaviour of Second
-    Chance's binary patch of 32-bit ntdll (RosettaFaultFix, part 1 only), done
-    in the Unix-side fault handler instead.
-Upstream: no (candidate, kept on Second Chance's list for later)
-Why: Rosetta faults on an %fs: access with the 0x67 address-size prefix in
- 32-bit code (fs:[disp16]) instead of running it. Armadillo, the DRM in Big
- Fish games, unlinks its exception handlers with "pop dword fs:[0000]"
- (64 67 8F 06 00 00); left linked, its next fault calls a dead handler and
- the game crashes. Emulate pop/push/mov fs:[disp16] and mov eax<->fs:[moffs16]
- against the 32-bit TEB, for 32-bit code only, on general-protection and
- page faults, and step over the instruction. Part 2 of Second Chance's patch
- (skipping int 68h/41h) is ntdll-skip-9x-debugger-probes.
+  Note: behaviour of Second Chance's binary patch of 32-bit ntdll
+    (RosettaFaultFix, part 1 only), done in the Unix-side fault handler
+    instead. Not in Sikarugir.
+Upstream: candidate (kept on Second Chance's list for later)
+Why: In 32-bit code, Rosetta 2 mishandles %fs: accesses with the 0x67
+ address-size prefix (fs:[disp16]) right after the thread returns from an
+ exception: they fault, or read and write the wrong place. Armadillo, the
+ DRM in Big Fish games, unlinks its exception handlers inside its handler
+ with "pop dword fs:[0]" (64 67 8F 06 00 00); left linked, its next fault
+ calls a dead handler and the game crashes with a stack overflow. On a
+ general-protection or page fault at such an instruction (32-bit code
+ only), perform pop/push/mov fs:[disp16] or mov eax<->fs:[moffs16]
+ against the 32-bit TEB and step over the instruction. macOS 26's
+ Rosetta runs them correctly, so there it never fires. Part 2 of Second
+ Chance's patch (skipping int 68h/41h) is ntdll-skip-9x-debugger-probes.
 Programs: Big Fish games (Armadillo DRM), White Wolf among them: crash with
  a stack overflow, as Armadillo's exception handlers stay linked
-Expects before it: ntdll-rosetta-xgetbv; context only
-Status: built in macfixes-10.0-build2 and macfixes-11.21-build1. Confirmed 2026-11-15: removes Armadillo's stack overflow in Big Fish games (traces show "emulated an fs: addr32 instruction (8f)").
+Seen on: macOS 15 (tests/regress/fs-addr16)
+Fine on: macOS 26.7.2 (M1 Max): fs-addr16 passes with no "emulated an fs:"
+ line (10.0 build0, 11.22 quick build)
+Messages: "emulated an fs: addr32 instruction (%02x) at %#x" (trace:seh;
+ shown only with WINEDEBUG=+seh)
+Uncertain: which macOS versions before 26 are affected (fs-addr16 shows
+ it on macOS 15)
+Expects before it: ntdll-rosetta-xgetbv (context)
+Status: 10.0: built in macfixes-10.0-build2. 2026-11-15: confirmed on Big
+ Fish games: Armadillo's stack overflow is gone (traces show "emulated an
+ fs: addr32 instruction (8f)").
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 770bef5..8a40639 100644

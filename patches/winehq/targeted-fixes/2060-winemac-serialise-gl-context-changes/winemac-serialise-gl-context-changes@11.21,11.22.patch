@@ -3,7 +3,8 @@ Summary: Don't let the main thread and a GL thread change an OpenGL context's vi
 Category: graphics
 Kind: fix
 Origin: wine-mac-builds
-Upstream: no
+Upstream: no; the code is the same in WineHQ 10.0 to master and CrossOver
+ 26.3.0 (checked 2026-11-25).
 Why: A WineOpenGLContext's view, latent view and update flags are changed
  by the GL threads (macdrv_make_context_current, macdrv_update_opengl_context)
  and, for contexts added while their view wasn't drawable, by the main thread
@@ -13,42 +14,35 @@ Why: A WineOpenGLContext's view, latent view and update flags are changed
  once too often. Add one recursive lock around those changes. A GL thread can
  hold it while it waits for the main thread (OnMainThread), so viewWillDraw
  only tries the lock. If it's busy, the context stays pending and the view
- asks to be drawn again.
+ asks to be drawn again. (updateGLContexts still sets the flags on the main
+ thread without it; that can only lose an update, not release twice.)
  It needs a GL context made current on a view that isn't drawable yet,
  which Wine 11's framebuffer GL surfaces (EmulateModeset) cause when two
  threads draw to one window: each gets its own surface and view.
- Upstream winemac has the same code in 10.0 and 11.x.
- Found while chasing a crash at objc_release+34 in Nancy Drew games
- ("Pattern A"), but it isn't that crash: an instrumented build logged no
- pending-context update and no overlap in any of the games' launches,
- crashed or not.
-Programs: none known
-Evidence: A winemac instrumented to count threads inside each context's
- functions reported about 40 overlaps in 15 s of a stress program (one
- context per render thread, two render threads switching between two
- windows while the main thread hides and shows them, EmulateModeset on).
- All were viewWillDraw's update on the main thread while a GL thread was
- inside. There were none with this patch. The stress program doesn't
- crash, as the double release needs a narrower interleaving, so there is
- no regression test.
-Status: 11.22: built in macfixes-11.22-build7 (2026-11-17); the regression suite passes
- on it (screen tests skipped on that run; they passed on a build6 tree with
- this winemac.so). Second Chance's four Pattern A games ran 32 launches without
- a crash on that tree, against 2 in 8 on build6, though nothing shows why.
- On meeka (macOS 26.7), White Wolf launched 10 of 10 times over 5 runs on
- build7 without hanging, and Bioscopia passed (launch 4m 22s, against
- 5m 09s on build6).
- On kiya (macOS 15.6.1), all 33 Nancy Drew games passed on build7 (about
- 54 launches), with no c0000005, including the six that had crashed on
- earlier builds. With the 32 launches above, that's no Pattern A crash in
- about 86 launches with 0060, though it's still not shown why.
- 2026-11-18: Pattern A's cause was found and is fixed by 0066 (a context
- released on the main thread after a GL thread freed it); it still
- happened with this patch (d3d8-up-draw-speed, 4 of 115 runs on build12).
- 11.21: 2026-11-17: built in macfixes-11.21-build8. The same change as
- 11.22's. The regression suite passes on it on macOS 15.6.1 (42 passed; the
- two fullscreen screen tests skipped, and exe-base-taken, which needs
- 11.22). No games run on it yet.
+ A winemac instrumented to count threads inside each context's functions
+ found about 40 such overlaps in 15 s of a stress program (two render
+ threads switching between two windows), all viewWillDraw's update during
+ a GL thread's, and none with this patch.
+ It came out of the hunt for a crash at objc_release+34 in Nancy Drew games
+ ("Pattern A"), which turned out to be another bug
+ (winemac-gl-context-dealloc-off-main-thread).
+Programs: none known; programs that draw to one window from two threads
+ with EmulateModeset on (Wine 11)
+Uncertain: whether any program hits the double release: the stress program
+ shows the overlap but never crashed, and no crash has been traced to it.
+ The one lock is shared by every context and held while a GL thread waits
+ for the main thread, which could deadlock two window-owning GL threads if
+ a paste or drop query comes then (found by reading, not seen).
+Related: winemac-gl-update-on-main-thread,
+ winemac-gl-context-dealloc-off-main-thread; the same viewWillDraw and GL
+ thread interplay
+No test: timing only: the stress program shows two threads overlapping,
+ but the crash needs a narrower interleaving than it reaches
+Status: 11.22: 2026-11-17: built in macfixes-11.22-build7; the regression
+ suite passes. No crash in about 86 Nancy Drew launches on it, but Pattern
+ A turned out to be another bug, and still happened with this patch.
+ 11.21: 2026-11-17: built in macfixes-11.21-build8; the regression suite
+ passes on macOS 15.6.1. No games run.
 
 diff --git a/dlls/winemac.drv/cocoa_opengl.m b/dlls/winemac.drv/cocoa_opengl.m
 index 5488840..5bb2850 100644

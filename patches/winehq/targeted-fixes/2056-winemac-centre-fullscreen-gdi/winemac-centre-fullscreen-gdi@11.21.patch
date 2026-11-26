@@ -7,8 +7,8 @@ Origin: wine-mac-builds
   Changes: 11.21's winemac draws the window surface as a CGImage cropped to
     the layer's bounds rather than an IOSurface; the sublayer gets the
     whole image, sized from it
-Upstream: no (candidate; draft in .local/bug-reports/). WineHQ master has
- the same code, checked 2026-11-16.
+Upstream: candidate (draft in .local/bug-reports/). WineHQ master has
+ the same code (checked 2026-11-25).
 Why: under EmulateModeset, when a program switches to a mode whose shape
  differs from the screen's, win32u stretches its fullscreen window's
  visible rect over the whole monitor and keeps the window rect where the
@@ -17,7 +17,8 @@ Why: under EmulateModeset, when a program switches to a mode whose shape
  unpainted band:
  - WindowPosChanged stores swp_flags & WINE_SWP_FULLSCREEN (0x80000000) in
    the 1-bit data->fullscreen, which keeps the low bit, so it is always 0.
-   Store !!(...) instead.
+   Store !!(...) instead. This also lets the black bars be removed when the
+   window stops being fullscreen, which they weren't.
  - The window surface is relative to the window rect there, not the
    visible rect. Offset it in the surface flush. Moving the content view's
    own layer (layer.position) has no effect, since AppKit keeps it at the
@@ -26,17 +27,17 @@ Why: under EmulateModeset, when a program switches to a mode whose shape
    before.
  OpenGL and Vulkan output already gets the offset from win32u.
  Seen in Bioscopia (Director 8, GDI, 800x600 on 2560x1440): the picture at
- x=0 with a white band to its right.
+ x=0 with a white band to its right. A test program (960x540 on a 1024x768
+ screen) showed the flag fix plus the offset alone, without the sublayer,
+ still leaves the picture at the top.
 Programs: Bioscopia: its fullscreen GDI picture is drawn at the left edge
  with a white band beside it (EmulateModeset)
-Evidence: test program switching to 960x540 on a 1024x768 screen and
- painting a 1024x576 frame with GDI: before, the frame sat at the top with
- a white band below it; after, it fills rows 96-672 with black bars above
- and below. The flag fix plus the offset alone (without the sublayer) left
- it at the top.
-Status: 2026-11-16: built in wine-macfixes-11.21-build5. Same change as the
- 11.22 patch, which was tested with Bioscopia; tests/regress
- fullscreen-gdi-centred guards it.
+Uncertain: that the black bars now go when the window leaves fullscreen:
+ read from the code, not seen.
+Related: winemac-raw-client-surface-backing; the GL and GDI halves of a
+ fullscreen picture under EmulateModeset
+Status: 11.21: 2026-11-16: built in wine-macfixes-11.21-build5; the same
+ change as 11.22's, not run with Bioscopia.
 
 diff --git a/dlls/winemac.drv/cocoa_window.m b/dlls/winemac.drv/cocoa_window.m
 index 1ffe959..1c7dd5e 100644

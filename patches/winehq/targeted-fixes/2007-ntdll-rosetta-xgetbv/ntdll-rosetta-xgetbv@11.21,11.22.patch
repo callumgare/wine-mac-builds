@@ -1,5 +1,5 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: emulate XGETBV, which it rejects
+Summary: Rosetta 2: emulate XGETBV, which it rejects before macOS 26
 Category: cpu
 Kind: workaround
 Origin: crossover (ported here)
@@ -7,6 +7,9 @@ Origin: crossover (ported here)
   CW-Hacks: 23427
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Files: dlls/ntdll/unix/signal_x86_64.c
+  Note: Sikarugir 10.0_8 ships it: ntdll.so: "emulate_xgetbv", "emulated an
+    XGETBV instruction"; disassembly matches (0f 01 d0 check, ecx==0, cmov
+    between 0xe7 and 0x07, rip += 3)
   Changes: emulate_xgetbv() and the macOS 15 check as CX's, but returning
     0x07 on macOS 15 and later and 0x03 before, instead of 0xe7 and 0x07;
     the call in segv_handler passes sigcontext and goes through
@@ -17,12 +20,35 @@ Origin: other
   URL: https://github.com/dblark/macos-wine-build/commit/3d842d14ad68ac1594939354fbc90ece25db96ae
   Note: the same code, in patches/0002-macos-hacks.patch
 Upstream: no
-Why: Rosetta raises #UD for XGETBV before macOS 26 (macOS 26's Rosetta runs it itself and returns 0x07); emulate it for XCR0: 0x07 (x87, SSE, AVX) on macOS 15 and later, 0x03 (x87, SSE) before, where Rosetta has no AVX. CrossOver returns 0xe7 and 0x07: 0xe7 claims AVX-512 state, which no Rosetta has, and 0x07 claims AVX state before macOS 15.
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so: "emulate_xgetbv", "emulated an XGETBV instruction"; disassembly matches (0f 01 d0 check, ecx==0, cmov between 0xe7 and 0x07, rip += 3)
-Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-mxcsr; context only
-Status: 11.21: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7, 0x07); not yet in a build
- 11.22: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7, 0x07); not yet in a build
+Why: XGETBV with ECX = 0 reads XCR0, which says what register state the
+ OS saves; programs run it before using AVX. Rosetta 2 before macOS 26
+ raises an invalid-opcode fault for it (macOS 26's Rosetta runs it itself
+ and returns 0x07), so a program that runs it gets
+ EXCEPTION_ILLEGAL_INSTRUCTION and usually dies. Emulate it for XCR0 in
+ the fault handler and step over it: 0x07 (x87, SSE, AVX) on macOS 15 and
+ later, 0x03 (x87, SSE) before, where Rosetta has no AVX. CrossOver
+ returns 0xe7 and 0x07: 0xe7 claims AVX-512 state, which no Rosetta has,
+ and 0x07 claims AVX state before macOS 15. Programs that check CPUID's
+ OSXSAVE bit first don't run XGETBV under Rosetta's default CPUID, so
+ this matters for programs that skip that check.
+Programs: none known; programs that run XGETBV without checking CPUID's
+ OSXSAVE bit first
+Seen on: macOS 15 (tests/regress/rosetta-xgetbv)
+Fine on: macOS 26.7.2 (M1 Max): Rosetta runs XGETBV with ECX = 0 itself
+ and returns 0x07, with or without ROSETTA_ADVERTISE_AVX=1 (native probe)
+Messages: "emulated an XGETBV instruction" (trace:seh; shown only with
+ WINEDEBUG=+seh)
+Uncertain: which macOS versions before 15 fault (presumably all). Whether
+ macOS 15 with ROSETTA_ADVERTISE_AVX=1 faults: if it did, Wine itself
+ would crash at start, since init_cpu_info() runs XGETBV when CPUID
+ reports XSAVE, before this handler is installed.
+Expects before it: ntdll-rosetta-cet-rdssp (context),
+ ntdll-rosetta-mxcsr (context); handle_cet_nop's call in segv_handler,
+ the CW HACK 24256 block
+Status: 11.21: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7,
+ 0x07); not yet in a build
+ 11.22: 2026-11-26: XCR0 0x07 on macOS 15+, 0x03 before (was 0xe7,
+ 0x07); not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index eed47c9..02860fe 100644

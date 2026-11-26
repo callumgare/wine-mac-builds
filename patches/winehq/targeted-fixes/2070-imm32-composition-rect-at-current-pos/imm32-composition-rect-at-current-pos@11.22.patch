@@ -3,36 +3,37 @@ Summary: Report the composition position, not the whole CFS_RECT area, to the di
 Category: input
 Kind: fix
 Origin: wine-mac-builds
-Upstream: no (candidate; draft in .local/bug-reports/)
+Upstream: candidate (draft in .local/bug-reports/). WineHQ master is
+ unchanged (checked 2026-11-25).
 Why: ImmSetCompositionWindow tells the display driver where the program
  shows its composition (SetIMECompositionRect), which the Mac driver gives
  macOS input methods for their candidate window
  (firstRectForCharacterRange:). With CFS_RECT it passed rcArea, the whole
  area the composition may use, though the composition starts at
- ptCurrentPos with every style (rcArea only bounds it, as on Windows). An
+ ptCurrentPos with every style (rcArea only bounds it, as on Windows; Wine's
+ builtin IME already places a CFS_RECT composition at ptCurrentPos). An
  edit control sets CFS_RECT with its whole formatting rect, and caret
  moves set the caret rect, so the driver's rect alternated between the
  two and the candidate window opened below the edit area, at the bottom
  of the screen, whenever the edit control's call came last. Now the rect
  is at ptCurrentPos, one line of the composition font tall when the
  program set one (edit controls do), else 1 high as CFS_POINT was.
+ winex11's XIM spot uses the same rect, so it moves there too.
 Programs: Notepad (and any edit control) with a macOS input method
  (Japanese Romaji): the candidate window opened at the bottom left of the
  screen, far from the text being composed
+Seen on: macOS 26.7 (a Screen Slots slot, 11.22-build0, Notepad, Japanese
+ Romaji: the candidate window at the bottom left, 1 run)
 Uncertain: Programs that set CFS_RECT without a meaningful ptCurrentPos
  would now get their candidates at that point rather than below their
- area; none known.
-Status: 2026-11-22: Second Chance, host8 (build0 + 0068-0070) through its
- host in a Screen Slots slot, Notepad, Japanese Romaji: ime_rect came as
- the caret (8,83 1x16) and the candidate list opened just below the caret
- (1 run).
- 2026-11-21: not yet in a build. In a Screen Slots slot (macOS
- 26.7), 11.22-build0 in plain mode, Notepad, Japanese Romaji, "nihon"
- and two spaces: the candidate window opened at the bottom left of the
- screen (1 run); with imm32.dll built with this patch swapped in, it
- opened directly below the composition at Notepad's caret (1 run). No
- regression test: the rect only reaches the driver, and no Win32 call
- reads it back.
+ area; none known. A ptCurrentPos outside rcArea (Windows shows no
+ composition window then) is reported as it is.
+No test: the rect only reaches the display driver, and no Win32 call reads
+ it back
+Status: 11.22: 2026-11-22: in Second Chance's host8 test tarball, through
+ its host, Notepad, Japanese Romaji: the candidate list opened just below
+ the caret (1 run). 2026-11-21: imm32.dll built with it, swapped into
+ 11.22-build0, plain mode: below the composition at the caret (1 run).
 
 diff --git a/dlls/imm32/imm.c b/dlls/imm32/imm.c
 --- a/dlls/imm32/imm.c

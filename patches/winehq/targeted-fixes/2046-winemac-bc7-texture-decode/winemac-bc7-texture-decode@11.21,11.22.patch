@@ -6,18 +6,24 @@ Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 23422
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CX HACK 23422 (dlls/winemac.drv/opengl.c, opengl_bcdec.h)
   Files: dlls/winemac.drv/opengl.c, dlls/winemac.drv/opengl_bcdec.h
   Changes: the decoder loop is rewritten: CrossOver's wrote whole 4x4
     blocks past the end of textures whose size isn't a multiple of 4, and
     decoded only every fourth array layer, from the wrong offset. Uploads
-    from a pixel unpack buffer pass straight through. The rest as in CX.
+    from a pixel unpack buffer pass straight through.
+    The rest as in CrossOver, at its places: glTexImage3D and
+    glTexSubImage3D are loaded in init_opengl.
+  Note: Sikarugir 10.0_8 ships it: winemac.so's init_opengl looks up both
+    functions, and it has the bcdec BC7 decoder and two wrappers ours
+    lacked (found by comparing functions, 2026-11-15)
 Origin: other
   Name: bcdec
   Version: 0.96
   Authors: Sergii Kudlai
   URL: https://github.com/iOrange/bcdec
-  Note: opengl_bcdec.h, unchanged; MIT or Unlicense (text at its end)
+  Covers: dlls/winemac.drv/opengl_bcdec.h, the BC7 block decoder
+  Changes: verbatim
+  Note: MIT or Unlicense (text at the file's end)
 Upstream: no
 Why: macOS OpenGL has no BC7 (BPTC). Tomb Raider I-III Remastered upload
  BC7 2D-array textures; decode them on the CPU (bcdec) and upload RGBA8
@@ -33,11 +39,6 @@ Uncertain: whether the game uses mip levels below 4x4 or uploads several
  reported working there). The upload still uses the program's own
  GL_UNPACK_* settings, which only matter if it changed ROW_LENGTH, SKIP_*
  or IMAGE_HEIGHT for its other uploads.
-Evidence: Sikarugir 10.0_8: winemac.so's init_opengl looks up both functions, and
- it has the bcdec BC7 decoder and two wrappers ours lacked (found by
- comparing functions, 2026-11-15).
-Port: 11.21, 11.22: CX 26.3's placement (the decoder aside);
- glTexImage3D and glTexSubImage3D are loaded in init_opengl, as in CX.
 Status: 11.21: 2026-11-26: decoder rewritten (sizes not a multiple of 4,
  array layers), PBO uploads passed through; not yet in a build
  11.22: 2026-11-26: decoder rewritten (sizes not a multiple of 4, array

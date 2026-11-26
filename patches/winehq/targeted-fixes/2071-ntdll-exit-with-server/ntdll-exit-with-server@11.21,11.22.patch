@@ -14,42 +14,28 @@ Why: A Wine thread only finds out that the wineserver has gone when its
  a kqueue in a thread of its own, with every signal blocked, and exits
  (status 1, "wine: the server is gone; exiting") when the server's end
  closes. The server closes that socket only when it exits or has killed
- the process, so nothing that should go on running is stopped.
+ the process, so nothing that should go on running is stopped. Measured
+ on 11.22 without it: a program whose threads only sleep, the prefix's
+ explorer.exe and its service processes were still running long after
+ wineserver -k9 (half an hour to two hours).
 Programs: Second Chance (an app that embeds Wine): games went on running
- after their wineserver was killed
-Uncertain: macOS only (kqueue); other systems keep the old behaviour.
-Evidence: On 11.22 (host10 tree, macOS 26.7.2), a program whose two
- threads only sleep was still running after wineserver -k9 (1 run, and
- the regression test after 10 s). With this change it exited at once in 3
- of 3 runs. In that same unfixed run, the prefix's explorer.exe (its
- desktop thread waits in a message loop) was still running half an hour
- after its wineserver was killed, and 12 service processes of two such
- test prefixes (services.exe, plugplay, svchost, winedevice) were still
- running nearly two hours later. On Second Chance's slot-1, a steam.exe
- whose wineserver had gone spun at 96% CPU for about six hours with its
- services and explorer, slowing the other tests on that Mac.
-Expects before it: ntdll-async-iosb-unwritable; context only
- (dlls/ntdll/unix/server.c)
-Status: 11.22: 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
- hosted integration run on meeka passed every source: disc 36/36, download
- 6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
- Can Kill Remastered's trial needed reruns (its DRM ended without starting
- the game, no Wine errors), as on host8 and host10 before these patches.
- 2026-11-22: not yet in a build. Tested by swapping a ntdll.so
- built with it into the host10 tree on meeka (macOS 26.7.2): the
- regression test server-gone passes; on host10 it fails (still running
- 10 s after the kill). The test compiles with llvm-mingw (i686, x86_64);
- Homebrew's mingw isn't installed on meeka, so not checked with it.
- The full suite on that tree: 53 passed, 0 failed, 2 skipped (the
- screen-taking tests, WMB_REGRESS_NO_SCREEN).
- 11.21: 2026-11-22 (evening): in a local test build (macfixes-11.21-build0,
- not published): server-gone passes (the program exited after its
- wineserver was killed; 1 run).
- The build's full suite (screen-taking tests skipped): 51 passed,
- 0 failed, 3 skipped.
- 2026-11-22: ported from 11.22 (applies unchanged); not yet in a build.
- server-gone fails on macfixes-11.21-build9 (the program outlives
- the server; 1 run), as on 11.22 before this patch.
+ after their wineserver was killed; a steam.exe whose wineserver had gone
+ spun at 96% CPU for about six hours with its services and explorer
+Seen on: macOS 26.7.2 (11.22, a program whose two threads only sleep,
+ after wineserver -k9)
+Messages: "wine: the server is gone; exiting" (MESSAGE, shown whatever
+ WINEDEBUG says)
+Uncertain: macOS only (kqueue); other systems keep the old behaviour. The
+ cost of the watcher thread waking each time the server sends the
+ process a file descriptor isn't measured.
+Expects before it: ntdll-async-iosb-unwritable (context); in
+ dlls/ntdll/unix/server.c
+Status: 11.22: 2026-11-22: swapped into the host10 tree (macOS 26.7.2):
+ server-gone passes (fails on host10); the full suite 53 passed, 0 failed,
+ 2 skipped. In host14, Second Chance's full hosted integration run passed.
+ 11.21: 2026-11-22: in a local test build (macfixes-11.21-build0, not
+ published): server-gone passes (1 run); the full suite 51 passed, 0
+ failed, 3 skipped. It fails on macfixes-11.21-build9.
 
 diff --git a/dlls/ntdll/unix/server.c b/dlls/ntdll/unix/server.c
 --- a/dlls/ntdll/unix/server.c

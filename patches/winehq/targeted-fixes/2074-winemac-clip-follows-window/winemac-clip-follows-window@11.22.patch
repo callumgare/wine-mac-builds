@@ -5,7 +5,7 @@ Kind: fix
 Origin: wine-mac-builds
   Note: after Second Chance's workaround (it re-clips on NSWindowDidResize
     and NSWindowDidMove)
-Upstream: no (candidate; draft in .local/bug-reports/)
+Upstream: candidate (draft in .local/bug-reports/)
 Why: The Mac driver clips the cursor with -[NSWindow
  setMouseConfinementRect:] on the front Wine window. That rect is in the
  window's own coordinates and is cut to the window's frame when clipping
@@ -15,6 +15,9 @@ Why: The Mac driver clips the cursor with -[NSWindow
  the controller whenever its frame changes, including when Wine set the
  frame itself, and the confinement handler works the rect out again for
  the clipping window.
+ With a debug build, a program that clips over its 400x300 window and then
+ grows it to 1920x1080 kept the confinement {0,0,400,300} without the
+ update, and got {10,0,1910,1080} with it.
 Programs: Warnings at Waverly Academy, plain Wine with EmulateModeset on a
  loaded MacBook (Second Chance, 2026-11-13): the game sized its window to
  the mode (800x600 at the top left), switched mode, and win32u clipped to
@@ -23,28 +26,16 @@ Programs: Warnings at Waverly Academy, plain Wine with EmulateModeset on a
  grew first.
 Uncertain: Only the confinement handler (the default) does this; the event
  tap handler (UseConfinementCursorClipping=n) clips to the screen rect and
- doesn't depend on the window.
-Evidence: In a Screen Slots slot on meeka (macOS 26.7.2), with a debug
- build: a program clips to (10,10)-(2550,1430) over its 400x300 window
- (confinement {0,0,400,300}), then grows the window to 1920x1080. The
- confinement stayed {0,0,400,300} with the update turned off (1 run) and
- became {10,0,1910,1080} with it (1 run). The pointer itself can't be
- tested there: Screen Slots moves it to absolute positions, which
- confinement doesn't limit.
-Status: 2026-11-22 (evening): on meeka's console with host14 (Second Chance,
- watched by the user): Waverly Academy, plain driver, Second Chance's
- re-clip off: the pointer reached the bottom right of the display after
- the mode switch (1 session). The Mac was mostly idle, when the bug didn't
- show before either, so this backs the slot evidence but doesn't prove
- the fix on its own.
- 2026-11-22 (later): in host14 (build0 + 0068-0074), Second Chance's full
- hosted integration run on meeka passed every source: disc 36/36, download
- 6/6, Her downloads 3/3, Steam 11/11, Big Fish owned and trial. Secrets
- Can Kill Remastered's trial needed reruns (its DRM ended without starting
- the game, no Wine errors), as on host8 and host10 before these patches.
- 2026-11-22: not yet in a build (in Second Chance's host14 test
- tarball). Tested only as in Evidence, and winemac-activation-policy and
- winemac-plugins pass on that tree; not yet with Waverly Academy.
+ doesn't depend on the window. If the window moves so the clip rect no
+ longer overlaps it, confinement is removed (NSZeroRect) while Wine still
+ thinks it's clipping, and a ClipCursor with the same rect won't restore it.
+No test: the confinement rect isn't visible to a Windows program, and the
+ pointer can only be checked with relative mouse movement (a synthetic
+ absolute move isn't confined)
+Status: 11.22: 2026-11-22: on a console with host14 (watched by the user):
+ Waverly Academy, plain driver, Second Chance's re-clip off: the pointer
+ reached the display's bottom right after the mode switch (1 session, on a
+ mostly idle Mac, where the bug didn't show before either).
 
 diff --git a/dlls/winemac.drv/cocoa_cursorclipping.h b/dlls/winemac.drv/cocoa_cursorclipping.h
 --- a/dlls/winemac.drv/cocoa_cursorclipping.h

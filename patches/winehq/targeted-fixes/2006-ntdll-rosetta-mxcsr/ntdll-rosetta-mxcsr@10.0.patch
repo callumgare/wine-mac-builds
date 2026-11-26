@@ -1,17 +1,35 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
+Summary: Rosetta 2: keep the program's MXCSR across exceptions and raw syscalls (M3)
 Category: cpu
 Kind: workaround
 Origin: crossover
   Version: 25.1.1
   CW-Hacks: 24256, 24265
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 CW HACK 24256 and 24265
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Note: Sikarugir 10.0_8 ships it: ntdll.so exports ___restore_mxcsr_thunk;
+    has "sysctl.proc_translated"
+  Changes: verbatim (the thunk keeps the value in amd64_thread_data()->mxcsr
+    at 0x350, a new field: 10.0 has no Unix-side MXCSR slot)
 Upstream: no
-Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
+Why: On some Apple chips (M3 per CrossOver; M1 and M2 are fine) Rosetta 2
+ puts a stale MXCSR in signal contexts and ignores changes to it, while
+ the live register is right. Exception contexts then carry the wrong
+ MXCSR, which NtContinue restores, and a raw syscall returns with it.
+ Under Rosetta, read the live register in save_context() and in the
+ syscall SIGSYS handler, and for raw syscalls restore it through a thunk
+ on the way into the dispatcher.
+Programs: none known; programs that set MXCSR (rounding, FTZ/DAZ,
+ exception masks) and then take a handled exception or make a raw
+ syscall, on an M3
+Seen on: M3 (CrossOver's comments on CW HACK 24265)
+Fine on: macOS 26.7.2 (M1 Max): signal contexts carry the live MXCSR and
+ changes to them are honoured (native probe); M2 (tests/regress/README.md)
+Uncertain: everything about the M3 behaviour comes from CrossOver's
+ comments; not reproduced here (no M3) and not checked on macOS 26 on an
+ M3, so neither copy's thunk has been seen to act
+No test: needs an M3: on M1 and M2 Rosetta's signal contexts carry the
+ right MXCSR, so a test passes either way
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 8d273eb..397948f 100644

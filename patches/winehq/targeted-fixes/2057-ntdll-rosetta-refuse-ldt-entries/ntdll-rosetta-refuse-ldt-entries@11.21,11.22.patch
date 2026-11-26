@@ -3,32 +3,36 @@ Summary: Rosetta 2: refuse a program's own LDT entries, as Wine 10 did, instead 
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds
-Upstream: no
+Upstream: candidate (draft in .local/bug-reports/, with
+ krnl386-attach-without-16bit)
 Why: Wine 11 implements NtSetLdtEntries for wow64 processes and passes the
- entry to i386_set_ldt. Rosetta 2 accepts only the entries Wine sets up
- itself (32-bit code and %fs, which don't go through NtSetLdtEntries); for
- others, such as a 16-bit data selector, it prints "rosetta error: LDT ...
- not supported" and the thread spins for ever. Wine 10's NtSetLdtEntries
- returned STATUS_NOT_IMPLEMENTED on 64-bit macOS, and programs carried on.
- Under Rosetta, return that again.
+ entry to i386_set_ldt. Rosetta 2 can't serve 16-bit segments: for any
+ 16-bit entry it prints "rosetta error: LDT ... not supported" and the
+ thread never returns (a native test process aborts). 32-bit entries are
+ accepted, but only flat ones can be loaded into a data segment register.
+ Wine 10's NtSetLdtEntries returned STATUS_NOT_IMPLEMENTED on 64-bit macOS
+ and programs carried on; under Rosetta, return that again. Wine's own
+ 32-bit code and %fs selectors don't go through NtSetLdtEntries.
  Seen in Bioscopia (Director 8): it stops on its first title frame after
  "rosetta error: LDT 0xf00f3210488323f not supported" (base 0x0f210488,
- limit 0x323f, 16-bit data, DPL 3).
+ limit 0x323f, 16-bit data, DPL 3). A 32-bit test program setting that
+ descriptor spins at 100% CPU on macfixes 11.22-build3; with this patch
+ the call returns 0xc0000002 and the program continues.
 Programs: Bioscopia: stops on its first title frame after "rosetta error:
  LDT ... not supported" (Wine 11)
-Evidence: a 32-bit test program calling NtSetLdtEntries with that
- descriptor: on macfixes 11.22-build3 Rosetta prints the error and the
- process spins at 100% CPU; with this patch the call returns 0xc0000002
- and the program continues.
-Expects before it: ntdll-is-apple-silicon; for is_apple_silicon
+Seen on: macOS 26.7.2 (M1 Max): i386_set_ldt with any 16-bit entry aborts a
+ native process, and a 32-bit data entry with a non-zero base aborts it
+ when loaded into %es (native probe)
+Uncertain: measured on macOS 26.7.2 only. A program whose LDT entry is a
+ flat 32-bit data segment would work under Rosetta and is now refused, as
+ on Wine 10.
+Expects before it: ntdll-is-apple-silicon; is_apple_silicon()
 Status: 11.22: 2026-11-16: built in wine-macfixes-11.22-build4;
- tests/regress/ldt-program-selector (the test program above) hangs on
- build3 and passes on build4. Bioscopia passes on build4 (Second Chance
- integration run on meeka, 2026-11-16): no LDT error, picture centred.
+ ldt-program-selector hangs on build3 and passes on build4. Bioscopia
+ passes on build4 (Second Chance integration run on meeka): no LDT error,
+ picture centred. 2026-11-25: the quick build returns 0xc0000002.
  11.21: 2026-11-16: built in wine-macfixes-11.21-build5;
- tests/regress/ldt-program-selector passes there. Not yet tried with
- Bioscopia.
+ ldt-program-selector passes there. Not yet tried with Bioscopia.
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 index dfa8f2f..b608594 100644

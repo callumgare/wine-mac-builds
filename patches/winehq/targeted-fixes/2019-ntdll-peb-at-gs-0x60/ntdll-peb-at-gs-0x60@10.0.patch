@@ -5,18 +5,36 @@ Kind: workaround
 Origin: crossover
   Version: 25.1.1
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 (unmarked hunks in dlls/ntdll/unix/signal_x86_64.c, thread.c,
-    loader.c that go with the D3DMetal support)
-Upstream: no; WineHQ 10.5 and later point GSBASE at the TEB while PE code
- runs (_thread_set_tsd_base, 3a16aabb), so only 10.0 needs this
-Why: Windows code (D3DMetal among it) reads the PEB from %gs:0x60. On macOS %gs is the
- pthread TSD, where slot 0x60 belongs to localtime(), so CrossOver stores the PEB there,
- hooks localtime() to a thread-local localtime_r(), and clears the slot before pthread_exit
- so libSystem won't free() it.
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so writes %gs:0x60 in call_init_thunk (movq %rax,%gs:0x60 right
- after the %gs:0x30 and %gs:0x58 writes) and zeroes it before pthread_exit; the localtime
- hook's movabsq $0xcccc0000000225ff (jmp *2(%rip); int3; int3) is present
+  Files: dlls/ntdll/unix/signal_x86_64.c, dlls/ntdll/unix/thread.c, dlls/ntdll/unix/loader.c
+  Changes: verbatim
+  Note: unmarked hunks (no CW HACK number) that go with CrossOver's
+    D3DMetal support; CrossOver 26.3.0 still has them. Sikarugir 10.0_8
+    ships it: ntdll.so writes %gs:0x60 in call_init_thunk (movq
+    %rax,%gs:0x60 right after the %gs:0x30 and %gs:0x58 writes) and zeroes
+    it before pthread_exit; the localtime hook's movabsq
+    $0xcccc0000000225ff (jmp *2(%rip); int3; int3) is present
+Upstream: differently (3a16aabb, Wine 10.5: GSBASE points at the TEB while
+ PE code runs, through _thread_set_tsd_base)
+Needed until: 10.5 (WineHQ 3a16aabb)
+Why: 64-bit Windows code reads the PEB from %gs:0x60 (TEB->Peb), often
+ inlined (NtCurrentPeb()). In Wine 10.0 on macOS %gs is the pthread TSD,
+ not the TEB, and slot 0x60 belongs to libc's localtime(), so such code
+ reads the wrong thing. Store the PEB there in every thread, hook
+ localtime() to a thread-local localtime_r() so libc no longer uses the
+ slot, and clear the slot before pthread_exit so libpthread's key
+ destructor doesn't free() it. Measured on a 10.0 build (macOS 26.7.2):
+ %gs:0x60 is the PEB in the main thread and a new thread.
+Programs: none known; any 64-bit program or DLL that reads the PEB through
+ %gs (CrossOver ties it to D3DMetal)
+Risk: patches libsystem_c's localtime() in memory at start-up (a jump
+ written into its code, the page made writable with mprotect), in every
+ 64-bit Wine process on 10.0
+Uncertain: whether D3DMetal needs it (CrossOver's grouping, not verified).
+ The localtime() hook works under Rosetta; not tried on an Intel Mac,
+ where it depends on mprotect granting write access to the shared cache
+ page (its result isn't checked).
+Related: ntdll-preallocate-tls-expansion; the same cause (10.0's %gs is
+ the pthread TSD), another TEB field
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 index 2c4e1f4..9442a15 100644

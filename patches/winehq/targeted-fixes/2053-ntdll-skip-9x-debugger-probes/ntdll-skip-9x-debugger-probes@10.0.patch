@@ -3,9 +3,9 @@ Summary: Skip the int 68h/41h SoftICE probes that Wine's macOS code segment prov
 Category: cpu
 Kind: workaround
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds. Behaviour of Second Chance's binary patch
-    of 32-bit ntdll (RosettaFaultFix, part 2), done in the Unix-side fault
-    handler beside ntdll-rosetta-fs-addr16 (which is part 1).
+  Note: behaviour of Second Chance's binary patch of 32-bit ntdll
+    (RosettaFaultFix, part 2), done in the Unix-side fault handler beside
+    ntdll-rosetta-fs-addr16 (part 1)
 Upstream: no
 Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  NT's 0x23. Armadillo, the DRM in Big Fish games, tells Windows 9x from NT
@@ -15,15 +15,24 @@ Why: On macOS Wine runs 32-bit code in an LDT code segment (cs 0x107), not
  the fault goes to its debugger (the parent), whose debugger thread is
  meanwhile in WaitForInputIdle on the child, so the launcher stalls and the
  game never starts. Only in that LDT code segment, step over int 68h/41h
- as 9x would. On NT they'd fault, but no NT program runs in that segment
- expecting that: the segment is what makes these checks misfire.
+ as 9x would.
 Programs: Big Fish games (Armadillo DRM), White Wolf's launcher wqxgxgg.exe:
  stalls and the game never starts; Iji: launched on 10.0 only with this or
  Second Chance's binary patch
-Expects before it: ntdll-rosetta-fs-addr16; context only
-Status: built in macfixes-10.0-build4. Confirmed 2026-11-16: without
- Second Chance's binary patch, White Wolf's launcher (wqxgxgg.exe) starts
- the game and Iji launches; on build3 the launcher stalled every time.
+Seen on: macOS 26.7.2 (M1 Max): int 68h and int 41h fault under Rosetta
+ (native probe)
+Messages: "skipped int %02xh (9x debugger probe) at %#x" (trace:seh; shown
+ only with WINEDEBUG=+seh)
+Uncertain: it applies to every 32-bit program, since every one runs in
+ that segment under Wine on macOS, not only those that took a 9x path. An
+ NT program that runs int 41h or int 68h expecting the access violation
+ now gets nothing, with AX unchanged, which the common checks read as "no
+ SoftICE" (no such program known). Intel Macs use the same code segment
+ and should need it too; not tested on one.
+Expects before it: ntdll-rosetta-fs-addr16 (context)
+Status: 10.0: 2026-11-16: built in macfixes-10.0-build4; without Second
+ Chance's binary patch, White Wolf's launcher (wqxgxgg.exe) starts the
+ game and Iji launches (on build3 the launcher stalled every time).
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 671ba63..2190e0e 100644

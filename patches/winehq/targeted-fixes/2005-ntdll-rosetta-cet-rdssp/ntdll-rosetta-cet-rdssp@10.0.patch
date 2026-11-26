@@ -1,21 +1,42 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: skip the CET RDSSP instructions it rejects
+Summary: Rosetta 2: step over the 0F 1E hint NOPs (CET RDSSP and others) it rejects
 Category: cpu
 Kind: workaround
 Origin: crossover (ported here)
   Version: 25.1.1
   CW-Hacks: 20186
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
-  Note: CrossOver 25.1.1 CW HACK 20186
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Note: Sikarugir 10.0_8 ships it: ntdll.so: "handle_cet_nop", "skipped
+    RDSSPD/RDSSPQ instruction"
   Changes: the instruction's length is decoded from its ModRM, SIB and
     displacement (CX steps 3 bytes, mid-instruction for the memory forms),
     and the scan stops at an 0F that isn't followed by 1E
 Upstream: no
-Why: Rosetta raises #UD for the CET RDSSPD/RDSSPQ instructions (which are NOPs without CET), and macOS 26's Rosetta for memory forms of the same 0F 1E hint NOP; skip them in the SIGILL path. The length comes from the ModRM byte: memory forms are 3 to 8 bytes after their prefixes (16-bit addressing with 0x67 in 32-bit code included). CrossOver's handler stepped 3 bytes for every form, and a memory form crashed (c0000005, 10.0 and 11.22 build0, i686 and x86_64).
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so: "handle_cet_nop", "skipped RDSSPD/RDSSPQ instruction"
-Status: 10.0: 2026-11-26: instruction length decoded from ModRM/SIB/displacement; scan stops at an 0F not followed by 1E; not yet in a build
+Why: Opcodes 0F 1E /r are NOPs on CPUs without CET: RDSSPD/RDSSPQ and
+ ENDBR32/64 in their register forms, reserved hint NOPs in the others.
+ Rosetta 2 raised an invalid-opcode fault for the CET ones on macOS 11
+ (CrossOver: fixed in 12), and on macOS 26 still does for the forms
+ without an F3 prefix, memory forms included. Step over the instruction
+ in the SIGILL path instead of raising EXCEPTION_ILLEGAL_INSTRUCTION. The
+ length comes from the ModRM byte: memory forms are 3 to 8 bytes after
+ their prefixes (16-bit addressing with 0x67 in 32-bit code included).
+ CrossOver's handler stepped 3 bytes for every form, and a memory form
+ crashed (c0000005, 10.0 and 11.22 build0, i686 and x86_64).
+Programs: none known; code that runs the reserved 0F 1E hint-NOP forms
+Seen on: macOS 26.7.2 (M1 Max): 0f 1e c0, 0f 1e 44 00 00 and 66 0f 1e c0
+ raise SIGILL (native probe); macOS 11 (CrossOver's comment): RDSSPD/RDSSPQ
+Fine on: macOS 26.7.2 (M1 Max): RDSSPD/RDSSPQ and ENDBR32/64 run (native
+ probe); macOS 12 (CrossOver's comment: RDSSP fixed in Monterey)
+Messages: "skipped RDSSPD/RDSSPQ instruction" (trace:seh; shown only with
+ WINEDEBUG=+seh), for every form it steps over
+Uncertain: which programs run the non-CET 0F 1E forms (compilers use 0F
+ 1F for NOPs); which macOS versions between 12 and 26 fault on which
+ forms; whether Rosetta raises an invalid opcode for the 16-bit-addressed
+ forms (0x67 in 32-bit code), which the handler decodes but no test runs
+Status: 10.0: 2026-11-26: instruction length decoded from ModRM, SIB and
+ displacement; the scan stops at an 0F not followed by 1E; not yet
+ in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

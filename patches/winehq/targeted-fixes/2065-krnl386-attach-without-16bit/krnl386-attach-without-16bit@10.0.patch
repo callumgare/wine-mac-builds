@@ -6,44 +6,46 @@ Origin: wine-mac-builds
   Version: 11.22
   Changes: ldt_entries_supported passes 10.0's LDT_ENTRY arguments
     (null_entry) to its four-argument NtSetLdtEntries
-Upstream: no
+Upstream: candidate (draft in .local/bug-reports/, with
+ ntdll-rosetta-refuse-ldt-entries)
 Why: kernel32's 16-bit thunks (LoadLibrary16, GetProcAddress16,
  FreeLibrary16 and the like) are forwarded to krnl386.exe16, so a 32-bit
  DLL that imports any of them makes the loader load krnl386.exe16 and run
  its attach, even if it never calls one. The attach loads the 16-bit
  KERNEL, which needs LDT entries for its segments. Under Rosetta 2,
- NtSetLdtEntries refuses them (ntdll-rosetta-refuse-ldt-entries), krnl386 ignored that, and the load
- faulted on a segment that was never set up (Wine 11.22: a write to address
- 0xc22). The attach failed, and with it the importing DLL. Now the attach
- first checks that LDT entries can be set, and if not, succeeds without
- loading the 16-bit KERNEL or giving threads a 16-bit stack. A 16-bit call
- made anyway then fails with an error in the log instead of a fault:
- loading a 16-bit module (LoadLibrary16, LoadModule16, and ThunkConnect32,
- which loads the 16-bit side of a thunk) returns 2, file not found, and a
- call into 16-bit code (WOWCallback16Ex, which the 32-to-16 thunks go
- through) returns FALSE. Before, both faulted in the same way as the
- attach. Where LDT entries work nothing changes.
- On 10.0 nothing needs to come before it: its x86_64 NtSetLdtEntries
- always returns STATUS_NOT_IMPLEMENTED, as ntdll-rosetta-refuse-ldt-entries
- makes it under Rosetta 2 on 11.x.
+ NtSetLdtEntries refuses them (ntdll-rosetta-refuse-ldt-entries), krnl386
+ ignored that, and the load faulted on a segment that was never set up
+ (Wine 11.22: a write to address 0xc22). The attach failed, and with it the
+ importing DLL. Now the attach first checks that LDT entries can be set,
+ and if not, succeeds without loading the 16-bit KERNEL or giving threads a
+ 16-bit stack. A 16-bit call made anyway then fails with an error in the
+ log instead of a fault: loading a 16-bit module (LoadLibrary16,
+ LoadModule16, and ThunkConnect32, which loads the 16-bit side of a thunk)
+ returns 2, file not found, and a call into 16-bit code (WOWCallback16Ex,
+ which the 32-to-16 thunks go through) returns FALSE. Before, both faulted
+ in the same way as the attach. Where LDT entries work nothing changes.
+ On 10.0 nothing needs to come before it: its x86_64 NtSetLdtEntries always
+ returns STATUS_NOT_IMPLEMENTED, as ntdll-rosetta-refuse-ldt-entries makes
+ it under Rosetta 2 on 11.x.
 Programs: Webmaster (Tivola, a Director 7 projector): Director reports
  "Handler not defined #baRegister", as its Buddy API Xtra (Budapi.x32),
  which imports LoadLibrary16, is unloaded straight after it maps.
  Bioscopia ships a budapi32.dll beside its Budapi Xtra that imports
  LoadLibrary16, FreeLibrary16 and GetProcAddress16 (found by
  tools/scan16; not run)
+Messages: "this process can't set LDT entries; 16-bit code won't run"
+ (warn:module; shown only with WINEDEBUG=warn+module); "can't load 16-bit
+ module %s: this process can't run 16-bit code" (err:module) and "can't
+ call 16-bit code: this process can't run 16-bit code" (err:thunk), shown
+ by default
 Uncertain: what a program does when a 16-bit call fails; Budapi's
  functions that Webmaster uses make none. A 32-to-16 thunk can only be
  called after ThunkConnect32 succeeds, which it now can't, so the thunks'
  own code past WOWCallback16Ex (which reads the 16-bit stack that isn't
  there) shouldn't run.
-Status: 2026-11-18: ported from 11.22. 2026-11-19: CI run 44332082425
- failed to compile it: 10.0's NtSetLdtEntries takes two LDT_ENTRY values
- (four arguments), not 11.x's six ULONGs. ldt_entries_supported now passes
- null_entry; the patched krnl386 sources pass a syntax check with
- llvm-mingw (which does catch the old call). Not yet in a build.
- krnl386-attach fails on macfixes-10.0-build7 (krnl386.exe16 doesn't load, error
- 998), as on 11.22 before this patch.
+Status: 10.0: 2026-11-25: krnl386-attach passes on 10.0 build0
+ (krnl386.exe16 loads, LoadLibrary16 returns 2, WOWCallback16Ex returns
+ FALSE); it fails on macfixes-10.0-build7, before this patch (error 998).
 
 diff --git a/dlls/krnl386.exe16/kernel.c b/dlls/krnl386.exe16/kernel.c
 --- a/dlls/krnl386.exe16/kernel.c

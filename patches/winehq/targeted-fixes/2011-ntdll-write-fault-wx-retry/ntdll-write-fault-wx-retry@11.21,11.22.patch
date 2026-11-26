@@ -6,24 +6,45 @@ Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 24945
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 24945 (dlls/ntdll/unix/virtual.c)
-    Source: (sources/wine/dlls/ntdll/unix/virtual.c)
+  Files: dlls/ntdll/unix/virtual.c
+  Note: CX 26.3.0's form differs from 25.1.1's only in putting the done:
+    label under #ifdef __APPLE__. Sikarugir 10.0_8 ships it: ntdll.so:
+    "HACK: write fault on a w|x page, addr %p"
   Changes: retries only if the page's Mach protection includes write after
     the toggle; otherwise the fault goes on to Wine's normal handling (CX
-    retries regardless, and loops for ever if the mprotect didn't take)
+    retries regardless, and loops for ever if the mprotect didn't take);
+    CW HACK 25719, next to it in CX 26.3.0 (the same toggle for an exec
+    fault on an executable page), isn't taken: Sikarugir 10.0_8 doesn't
+    have it
 Upstream: no
-Why: On macOS a write fault can hit a page that is mapped w|x; drop and re-add exec on the page and retry instead of raising an exception. The retry happens only if the page is writable at the Mach level afterwards, so a page whose protection Wine can't change doesn't fault the same write for ever.
+Why: Under Rosetta 2 a write fault can hit a page that is mapped both
+ writable and executable (presumably Rosetta write-protecting a page whose
+ code it has translated), and Wine, which doesn't expect a write fault on
+ a writable page, raises an access violation. On macOS, drop and re-add
+ exec on the page and retry the write instead. The retry happens only if
+ the page is writable at the Mach level afterwards, so a page whose
+ protection Wine can't change doesn't fault the same write for ever.
 Programs: none known
-Uncertain: the guard catches a toggle that doesn't make the page
- writable. If Rosetta went on faulting a page that is writable, the write
- would still be retried for ever. A plain retry-once (same address twice
- from one thread) can't be used: a program that rewrites and runs the same
- code in a loop (tests/regress/smc-rwx) faults at the same address and
+Fine on: macOS 26.7.2 (M1 Max): the hack never fires in smc-rwx or in a
+ version with a second thread calling the code (10.0 build0, 11.22 quick
+ build, WINEDEBUG=fixme+virtual)
+Messages: "HACK: write fault on a w|x page, addr %p" (fixme:virtual; shown
+ by default); "page %p still isn't writable, not retrying" (warn:virtual;
+ shown only with WINEDEBUG=warn+virtual)
+Uncertain: when Rosetta lets such a fault through. Whether smc-rwx guards
+ this patch: on macOS 26.7.2 it passes without the hack firing, and its
+ failure on plain Wine on macOS 15 may be the wow64 mode-switch crash
+ that wow64cpu-rosetta-lretq works around (WineHQ bugs 60034, 60494). The
+ guard catches a toggle that doesn't make the page writable; if Rosetta
+ went on faulting a page that is writable, the write would still be
+ retried for ever. A plain retry-once (same address twice from one
+ thread) can't be used: a program that rewrites and runs the same code in
+ a loop (tests/regress/smc-rwx) faults at the same address and
  instruction every round, legitimately.
-Evidence: Sikarugir 10.0_8: ntdll.so: "HACK: write fault on a w|x page, addr %p"
-Port: to 11.21: CX 26.3.0's form, which differs from 25.1.1's only in putting the done: label under #ifdef __APPLE__. CX 26.3.0 also adds CW Hack 25719 (same treatment for an exec fault on an executable page) next to it; not taken, since 10.0_8 does not have it.
-Status: 11.21: 2026-11-26: retries only if the page is writable after the toggle; not yet in a build
- 11.22: 2026-11-26: retries only if the page is writable after the toggle; not yet in a build
+Status: 11.21: 2026-11-26: retries only if the page is writable after the
+ toggle; not yet in a build
+ 11.22: 2026-11-26: retries only if the page is writable after the
+ toggle; not yet in a build
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

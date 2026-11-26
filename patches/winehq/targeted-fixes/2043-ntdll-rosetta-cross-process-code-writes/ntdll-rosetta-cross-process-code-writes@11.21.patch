@@ -6,27 +6,41 @@ Origin: crossover
   Version: 26.3.0
   CW-Hacks: 18947
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 18947 (dlls/ntdll/unix/virtual.c)
-    Source: (sources/wine/dlls/ntdll/unix/virtual.c)
+  Files: dlls/ntdll/unix/virtual.c
+  Note: Sikarugir 10.0_8 ships it: its NtWriteVirtualMemory calls
+    NtQueryVirtualMemory and NtProtectVirtualMemory twice after the server
+    call (disassembly; no strings of its own, so the string inventory
+    missed it)
+  Changes: verbatim, apart from is_apple_silicon(), which
+    ntdll-is-apple-silicon adds
 Upstream: no
 Why: NtWriteVirtualMemory writes another process's memory with
  mach_vm_write from wineserver, and Rosetta doesn't notice code changed
  that way: the target keeps running its old translation. After the write,
- toggle the executable bit off and on from inside the target
- (NtProtectVirtualMemory on the process handle) so Rosetta retranslates.
- Armadillo, the DRM in Big Fish games, writes "jmp $" (EB FE) over its
- child's entry point, waits for the child to reach it, then writes the
- original bytes back; without this the child spins on the stale "jmp $"
- for ever and activation fails.
+ if the target allocation's original protection (AllocationProtect) is
+ executable, change the written range's protection to PAGE_NOACCESS and
+ back from inside the target (NtProtectVirtualMemory on the process
+ handle), so Rosetta retranslates. Armadillo, the DRM in Big Fish games,
+ writes "jmp $" (EB FE) over its child's entry point, waits for the child
+ to reach it, then writes the original bytes back; without this the child
+ spins on the stale "jmp $" for ever and activation fails. Toggling the
+ entry page's protection by hand inside a stuck gmActivator child (lldb,
+ mprotect) let it continue as on Sikarugir 10.0_8 (2026-11-15).
 Programs: Big Fish games (Armadillo DRM): activation fails, as gmActivator's
  child spins for ever on a stale "jmp $"
-Evidence: Sikarugir 10.0_8: its NtWriteVirtualMemory calls NtQueryVirtualMemory and
- NtProtectVirtualMemory twice after the server call (disassembly). The
- inventory missed it because it adds no strings of its own.
-Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of this patch's CW HACK 18947 (2026-11-26)
-Status: confirmed 2026-11-15 by hand: toggling the entry page's protection
- inside a stuck gmActivator child (lldb, mprotect) let it continue exactly
- as on Sikarugir 10.0_8. Not yet built.
+Seen on: macOS 26.7.2 (M1 Max): cross-process-code-write fails 3 of 3 with
+ the toggle turned off (an interposer hiding sysctl.proc_translated)
+Known issues: every page of an image has AllocationProtect
+ PAGE_EXECUTE_WRITECOPY, so a write into an image's data (a trainer,
+ launcher or DRM parent writing a running program's .data) also makes the
+ page PAGE_NOACCESS for a moment, and another thread of the target that
+ touches it faults: the child died after 4-5 writes, 12 of 12
+ (cross-process-data-write; 10.0 build0 and the 11.22 quick build). Only
+ the first page's protection is restored over a range that spans pages
+ of different protection. The 11.22 copy fixes both; not yet ported.
+Expects before it: ntdll-is-apple-silicon; is_apple_silicon(), split out of
+ this patch's CW HACK 18947 (2026-11-26)
+Status: 11.21: not yet in a build
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
 --- a/dlls/ntdll/unix/virtual.c

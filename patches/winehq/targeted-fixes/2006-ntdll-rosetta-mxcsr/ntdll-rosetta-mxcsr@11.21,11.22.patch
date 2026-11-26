@@ -1,23 +1,45 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: read and restore the real MXCSR register in signal handling
+Summary: Rosetta 2: keep the program's MXCSR across exceptions and raw syscalls (M3)
 Category: cpu
 Kind: workaround
 Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 24256, 24265
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 24256 and 24265 (dlls/ntdll/unix/signal_x86_64.c), adapted
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Note: Sikarugir 10.0_8 ships it: ntdll.so exports ___restore_mxcsr_thunk;
+    has "sysctl.proc_translated"
+  Changes: 24256 (is_rosetta2, stmxcsr in save_context, the sysctl in
+    signal_init_process) is CX's code at 11.21's places. 24265's thunk
+    loads the value from the syscall frame (frame->xsave.MxCsr,
+    0xd8(%rcx); %rcx is the frame when sigsys_handler resumes at
+    __wine_syscall_dispatcher_prolog_end), and the dispatcher overwrites
+    that field with the live MXCSR right after. CX's thunk reads the TEB
+    from %gs:0x30 and keeps the value in amd64_thread_data()->mxcsr
+    (0x33c): in Wine 11 that slot is upstream's Unix-side MXCSR (saved
+    at thread start, loaded on every syscall entry), so CX's copy leaves
+    Unix code running with the program's MXCSR, and after a signal
+    handler on macOS %gs is the pthread TSD, not the TEB. No
+    amd64_thread_data mxcsr field is added
 Upstream: no
-Why: Under Rosetta the MXCSR in signal contexts is wrong; read the live register in save_context() and in the syscall SIGSYS handler, and restore it through a thunk (needed on M3).
-Programs: none known
-Evidence: Sikarugir 10.0_8: ntdll.so exports ___restore_mxcsr_thunk; has "sysctl.proc_translated"
-Port: to 11.21: 24256 (is_rosetta2, stmxcsr in save_context, sysctl in signal_init_process) is CX 26.3.0's code at 11.21's locations. 24265 is adapted, and is the one uncertain part:
- CX's __restore_mxcsr_thunk reads the TEB from %gs:0x30 and stashes the value in amd64_thread_data()->mxcsr (offset 0x33c). In 11.21 both are wrong: 0x33c is upstream's
- "Unix-side mxcsr" slot (saved at thread start, loaded on every syscall entry), so CX's thunk would leave Unix code running with the Windows MXCSR; and after a signal
- handler on macOS %gs is the pthread TSD, not the TEB. The thunk now loads the value from the syscall frame instead (frame->xsave.MxCsr, 0xd8(%rcx); %rcx is the frame
- when sigsys_handler resumes at __wine_syscall_dispatcher_prolog_end), and the dispatcher overwrites that field with the live MXCSR right after. The 10.0 patch's
- amd64_thread_data mxcsr field is therefore not added. Not compiled or run here: check a raw-syscall app under Rosetta.
+Why: On some Apple chips (M3 per CrossOver; M1 and M2 are fine) Rosetta 2
+ puts a stale MXCSR in signal contexts and ignores changes to it, while
+ the live register is right. Exception contexts then carry the wrong
+ MXCSR, which NtContinue restores, and a raw syscall returns with it.
+ Under Rosetta, read the live register in save_context() and in the
+ syscall SIGSYS handler, and for raw syscalls restore it through a thunk
+ on the way into the dispatcher.
+Programs: none known; programs that set MXCSR (rounding, FTZ/DAZ,
+ exception masks) and then take a handled exception or make a raw
+ syscall, on an M3
+Seen on: M3 (CrossOver's comments on CW HACK 24265)
+Fine on: macOS 26.7.2 (M1 Max): signal contexts carry the live MXCSR and
+ changes to them are honoured (native probe); M2 (tests/regress/README.md)
+Uncertain: everything about the M3 behaviour comes from CrossOver's
+ comments; not reproduced here (no M3) and not checked on macOS 26 on an
+ M3, so neither copy's thunk has been seen to act
+No test: needs an M3: on M1 and M2 Rosetta's signal contexts carry the
+ right MXCSR, so a test passes either way
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 774a142..eed47c9 100644

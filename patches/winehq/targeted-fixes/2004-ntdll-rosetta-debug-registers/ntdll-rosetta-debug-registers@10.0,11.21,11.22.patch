@@ -1,19 +1,40 @@
 SPDX-License-Identifier: LGPL-2.1-or-later
-Summary: Rosetta 2: report success when setting debug registers instead of failing
+Summary: Rosetta 2: report success when a thread sets its own debug registers
 Category: cpu
 Kind: workaround
 Origin: crossover
   Version: 26.3.0
   CW-Hacks: 22131
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-  Note: CrossOver 26.3.0 CW HACK 22131 (dlls/ntdll/unix/signal_x86_64.c), verbatim
-    Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
-Upstream: partly: WineHQ already fakes zeroed debug registers in wineserver (is_rosetta() in server/mach.c, 10.0 included); this ntdll half isn't upstream
-Why: Rosetta 2 cannot set or read x86 debug registers; report success from NtSetContextThread / the wow64 set-context path instead of failing, so anti-debug/DRM checks and debuggers don't abort.
+  Files: dlls/ntdll/unix/signal_x86_64.c
+  Note: identical to CrossOver 25.1.1's. Sikarugir 10.0_8 ships it:
+    ntdll.so: "Setting debug registers is not supported under Rosetta,
+    faking success" (its wineserver also has CW HACK 21217's "%04x:
+    thread_get_state failed on Apple Silicon - faking zero debug
+    registers", which WineHQ's is_rosetta() in server/mach.c makes
+    unneeded, 10.0 included; CrossOver 26.3.0 no longer carries 21217)
+  Changes: verbatim
+Upstream: partly (wineserver already returns zeroed debug registers under
+ Rosetta and refuses to set them, is_rosetta() in server/mach.c, 10.0
+ included; reporting success is not upstream)
+Why: Rosetta 2 can't set x86 debug registers, so wineserver refuses when
+ a thread sets its own (server/mach.c, is_rosetta()), and
+ NtSetContextThread fails, dropping the other registers in the same call
+ as well. Report success instead, from NtSetContextThread and the wow64
+ set-context path: Wine keeps the values, so the thread reads back what
+ it set, but no hardware breakpoint fires. Anti-debug and DRM code that
+ sets debug registers on itself (Armadillo) then carries on.
 Programs: Big Fish games (Armadillo DRM): setting debug registers fails
  under Rosetta (Armadillo's parent relies on the faked success)
-Evidence: Sikarugir 10.0_8: ntdll.so: "Setting debug registers is not supported under Rosetta, faking success"; wineserver: "%04x: thread_get_state failed on Apple Silicon - faking zero debug registers"
-Port: to 11.21: ntdll half is CX 26.3.0's CW HACK 22131, identical to 25.1.1's. The 10.0 patch's wineserver half (CX HACK 21217, fake zero debug registers in server/mach.c get_thread_context) is dropped: WineHQ 11.21 already has it as is_rosetta() in server/mach.c (get_thread_context returns zeroed debug registers, set_thread_context returns STATUS_UNSUCCESSFUL, which this hack turns into success), and CX 26.3.0 no longer carries 21217.
+Messages: "Setting debug registers is not supported under Rosetta, faking
+ success" (warn:seh; shown only with WINEDEBUG=warn+seh)
+Uncertain: a program that sets a hardware breakpoint and waits for it
+ now gets success and no breakpoint, instead of an error
+Status: 10.0: 2026-11-26: now this copy (the 10.0 copy's dead wineserver
+ half dropped); not yet in a build. debug-registers passed on 10.0 build0
+ with the old copy (2026-11-25, i686 and x86_64).
+ 11.22: 2026-11-25: debug-registers passes on the 11.22 quick build (i686
+ and x86_64, "faking success" logged twice per run); not run without it.
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 index 7bff70b..adc9260 100644

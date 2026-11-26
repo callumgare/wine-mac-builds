@@ -2,28 +2,51 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: skip the obsolete x87 FNDISI instruction (WineHQ bug 56441)
 Category: cpu
 Kind: workaround
-Origin: other
-  Name: WineHQ bug 56441 attachment
+Origin: winehq-bugzilla
+  Bugs: 56441
+  Attachment: 76358
   Authors: Brendan Shanks
   URL: https://bugs.winehq.org/show_bug.cgi?id=56441
-  Note: "Patch to ignore FNDISI" (attachment 76358); also shipped by Gcenx
-    (winehq-9.8 packages) and dblark/macos-wine-build
+  Note: "Patch to ignore FNDISI"; also shipped by Gcenx (winehq-9.8
+    packages) and dblark/macos-wine-build. Sikarugir 10.0_8 ships it:
+    ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler
+    checks DB E1 between the CET and XGETBV checks
 Origin: other
   Name: dblark/macos-wine-build
   Version: 71877c1
   URL: https://github.com/dblark/macos-wine-build
   Note: patches/0001-macos-hacks.patch (handle_fndisi, Wine 11.0-rc2 version)
-  Changes: comment fixed (dblark's says "RDSSPD/RDSSPQ"); the scan stops at a DB
-    that isn't followed by E1, where dblark's scanned on into the opcode
-Upstream: no (bug 56441 closed NOTOURBUG: Apple fixed Rosetta in macOS 15)
-Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy says "RDSSPD/RDSSPQ".)
+  Changes: comment fixed (dblark's says "RDSSPD/RDSSPQ"); the scan stops
+    at a DB that isn't followed by E1, where dblark's scanned on into the
+    opcode; the segv_handler call returns through leave_handler(), as in
+    ntdll-rosetta-cet-rdssp (11.x's segv_handler needs it on macOS)
+Upstream: declined (bug 56441 closed NOTOURBUG: Apple fixed Rosetta in
+ macOS 15)
+Why: Rosetta 2 on macOS 14 and earlier raises an invalid-opcode fault for
+ the obsolete x87 FNDISI (DB E1), which real CPUs have treated as a no-op
+ since the 80287, so a program that runs it dies with an illegal
+ instruction. Skip it in the fault handler. Checked after the CET handler
+ and before XGETBV, as in Sikarugir 10.0_8. macOS 15 and later run it
+ themselves.
 Programs: DSDPlus 1.101 (32-bit): "Unhandled illegal instruction" at
  start on macOS 14 (WineHQ bug 56441)
-Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks
-Port: to 11.21: handle_fndisi() is unchanged (dblark's Wine 11 copy has the same code); the segv_handler call goes through leave_handler() before returning, as in ntdll-rosetta-cet-rdssp.
-Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-xgetbv; context only
-Status: 11.21: 2026-11-26: the scan stops at a DB not followed by E1 (it scanned on into the instruction); not yet in a build
- 11.22: 2026-11-26: the scan stops at a DB not followed by E1 (it scanned on into the instruction); not yet in a build
+Seen on: macOS 14.4 (M3 Pro, WineHQ bug 56441)
+Fine on: macOS 15 (Brendan Shanks on WineHQ bug 56441: fixed in Sequoia);
+ macOS 26.7.2 (M1 Max): Rosetta runs DB E1 itself (native and Wine probes)
+Messages: "skipped FNDISI instruction" (trace:seh; shown only with
+ WINEDEBUG=+seh)
+Uncertain: whether macOS 13 and earlier also fault (presumably); whether
+ the code is attachment 76358 byte for byte (not compared; taken from
+ dblark's copy)
+References: https://bugs.winehq.org/show_bug.cgi?id=56441
+Expects before it: ntdll-rosetta-cet-rdssp (context),
+ ntdll-rosetta-xgetbv (context)
+No test: can't fail on our Macs: Rosetta on macOS 15 and later runs
+ FNDISI itself
+Status: 11.21: 2026-11-26: the scan stops at a DB not followed by E1 (it
+ scanned on into the instruction); not yet in a build
+ 11.22: 2026-11-26: the scan stops at a DB not followed by E1 (it
+ scanned on into the instruction); not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
 --- a/dlls/ntdll/unix/signal_x86_64.c

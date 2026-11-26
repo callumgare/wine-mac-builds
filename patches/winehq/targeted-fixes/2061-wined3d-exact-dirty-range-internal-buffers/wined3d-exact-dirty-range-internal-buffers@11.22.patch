@@ -3,7 +3,7 @@ Summary: wined3d: keep the mapped range for Wine's own buffers, so streamed draw
 Category: graphics
 Kind: performance, fix
 Origin: wine-mac-builds
-Upstream: no (candidate; draft in .local/bug-reports/). Master still marks
+Upstream: candidate (draft in .local/bug-reports/). Master still marks
  the whole buffer (checked 2026-11-25). Bug 60690 is the same commit's
  rendering regression; its comment 2 reports a slowdown (Treasure Adventure
  Game) that looks like this one.
@@ -23,25 +23,17 @@ Programs: Iji: its menu loop runs about 3x slower on 11.22 than on 11.21
  (software vertex processing). Treasure Adventure Game (Multimedia Fusion):
  reported upstream as much slower since b6810e41 (bug 60690 comment 2); not
  tested here.
+Seen on: macOS 26 (Iji's menu loop, 219-259 ms a frame on 11.22-build7
+ against 77-85 ms on 11.21-build8); macOS 26.7 (M1 Max):
+ d3d8-up-draw-speed about 40x on 11.22-build7 and plain 11.22-build1
 Uncertain: whether every parentless buffer's writer stays inside its mapped
  range (wined3d's streaming buffers and push constants, ddraw's execute
- buffer copies were read and do).
-Status: 2026-11-17 in a quick build of macfixes 11.22 (VM, not for release).
- Iji on kiya (macOS 26, interleaved, 3 rounds): median main-loop gap
- 74-79 ms, the same as 11.21-build8 (77-85 ms); 11.22-build7 219-259 ms.
- F12 quit Iji in 3 of 3 (2.7-2.9 s). d3d8-up-draw-speed on meeka (M1 Max,
- macOS 26.7): passes 3 of 3 (1.4-1.5x), fails 3 of 3 on 11.22-build7 and
- on plain 11.22-build1 (about 40x).
- 2026-11-17 in wine-macfixes-11.22-build8 (draft): d3d8-up-draw-speed passes
- on meeka (1.6x). On a test Mac (macOS 26): Iji runs and quits from its
- menu; White Wolf passes from disc and in 4 of 5 Big Fish trial runs (the
- fifth failed in the test harness, not Wine); Bioscopia passes; nothing
- worse than build7. Second Chance's full set on build8 (kiya, macOS 26,
- muted): 36 of 36 disc games, 5 of 6 download games (Icy Tower fails in
- Second Chance's own msvcrt patch, not Wine). Iji's menu loop, 3
- interleaved rounds: 73-77 ms on build8, 73-74 ms on 11.21-build8, 222 ms
- on 11.22-build7.
+ buffer copies and d3d11's decoder buffers, mapped whole, were read and do).
+Status: 11.22: 2026-11-17: in wine-macfixes-11.22-build8 (draft):
+ d3d8-up-draw-speed passes (1.6x); Iji's menu loop 73-77 ms, as on
+ 11.21-build8; Second Chance's full set passes (macOS 26).
 
+diff --git a/dlls/wined3d/buffer.c b/dlls/wined3d/buffer.c
 --- a/dlls/wined3d/buffer.c
 +++ b/dlls/wined3d/buffer.c
 @@ -581,8 +581,15 @@

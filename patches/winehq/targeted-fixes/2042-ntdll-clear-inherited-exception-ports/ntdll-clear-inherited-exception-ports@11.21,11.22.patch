@@ -3,9 +3,11 @@ Summary: Clear Mach exception ports inherited from the parent, such as a crash r
 Category: system
 Kind: fix
 Origin: wine-mac-builds
-  Note: written for wine-mac-builds (not in Sikarugir). Second Chance does
-    the same in the parent before exec today.
-Upstream: no (candidate, kept on Second Chance's list for later)
+  Version: 10.0
+  Changes: same code; called at the start of signal_init_process( TEB * ),
+    and 11.x already includes <sys/sysctl.h>
+  Note: not in Sikarugir
+Upstream: candidate (not drafted; kept on Second Chance's list for later)
 Why: Mach task exception ports are inherited across fork and exec. When
  the program that starts Wine has a task-level crash handler (Sentry,
  KSCrash), faults, bad instructions, breakpoints and software exceptions in
@@ -17,10 +19,15 @@ Why: Mach task exception ports are inherited across fork and exec. When
  which uses them. It used to clear only bad access, bad instruction and
  arithmetic, and the first int3 still hung under an inherited breakpoint
  port (measured on 10.0 and 11.22).
-Programs: none known
-Port: to 11.21: same code; called at the start of signal_init_process( TEB * ), which 11.21 already includes <sys/sysctl.h> for.
-Status: built in macfixes-11.21-build1; behaviour not yet tested on its own (2026-11-15).
- 11.21: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
+Programs: none known by name; any program started by a launcher whose
+ crash handler takes the task's exception ports (Sentry, KSCrash). Second
+ Chance clears the ports itself before starting Wine.
+Seen on: macOS 26.7.2 (M1 Max): a launcher that points the ports at a port
+ nobody answers, then runs Wine (10.0 and 11.22)
+Messages: "task_set_exception_ports failed: %d" (WARN, shown only with
+ WINEDEBUG=warn+seh)
+Status: 11.21: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build.
+ The three-mask version was in macfixes-11.21-build1.
  11.22: 2026-11-26: clears EXC_MASK_ALL instead of three masks; not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
