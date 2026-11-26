@@ -50,6 +50,7 @@ All guard patches in macfixes' patch sets, named as in
 | `dxmt-dlls` | `winemetal-stub`, `wine-inf-d3dmetal-placeholder-dlls` | DXMT's DLLs can't load: no winemetal.dll, no nvapi64.dll and nvngx.dll placeholders |
 | `desktop-wait` | `win32u-desktop-wait` | when explorer takes more than 10 s to set up the desktop (every core busy), the first process to need it is left on the null display driver for good: no windows, Direct3D games crash, installers exit |
 | `d3dmetal-dlls` | `ntdll-export-wine-unix-call`, `wine-inf-d3dmetal-placeholder-dlls` | D3DMetal's DLLs can't load: no `__wine_unix_call` export, no atidxx64.dll placeholder. 10.0 only: D3DMetal 3.0 needs Wine 10.4's GSBASE model |
+| `esync-abandoned-mutex` | `ntdll-msync` | the same as `msync-abandoned-mutex`, with `WINEESYNC=1` (10.0 only, the one version with esync) |
 | `exe-base-taken` | `ntdll-exe-entry-after-base-taken` | when a 64-bit exe's random base is already in use on the Mac side, the program starts at the entry point of that base and dies before running (start.exe and explorer.exe before Nancy Drew games) |
 | `gl-context-dealloc` | `winemac-gl-context-dealloc-off-main-thread` | a GL context released last on a GL thread is released again on the main thread after it's freed: "Exception c0000005 in system thread" at objc_release+34 (Nancy Drew games, Steam's Game.exe) |
 | `hung-ll-hook` | `server-disable-hung-hooks` | a low-level keyboard hook that stops answering delays every key press by 2 s |
@@ -61,7 +62,7 @@ All guard patches in macfixes' patch sets, named as in
 | `mouse-in-pointer` | `win32u-enable-mouse-in-pointer` | `EnableMouseInPointer` is a stub that fails on 10.0 |
 | `msi-unix-path` | `msi-database-path-length` | opening an MSI database by a Unix path (no backslash) from a deep current directory overruns a stack buffer in msi; msiexec crashes (Second Chance's Waverly Academy install) |
 | `msync` | `ntdll-msync` | `WINEMSYNC=1` doesn't start msync, or its waits behave wrongly |
-| `msync-abandoned-mutex` | `ntdll-msync` | with `WINEMSYNC=1`, a thread waiting on a mutex whose last handle was closed hangs when the owner exits, instead of getting `WAIT_ABANDONED` (11.x; 10.0's msync and esync have the same hang, not fixed) |
+| `msync-abandoned-mutex` | `ntdll-msync` | with `WINEMSYNC=1`, a thread waiting on a mutex whose last handle was closed hangs when the owner exits, instead of getting `WAIT_ABANDONED` |
 | `nvngx-redirect` | `kernelbase-nvngx-d3dmetal` | DLSS games read system32's nvngx.dll instead of D3DMetal's (10.0 only) |
 | `renderer-dll-paths` | `ntdll-renderer-dll-paths`, `ntdll-launcher-metal-hud` | `WINEDLLPATH_DXVK` isn't searched; launchers get DXVK and the Metal HUD, or the games they start lose the HUD |
 | `replace-launchers` | `kernelbase-replace-launchers` | ELDEN RING's EasyAntiCheat launcher runs instead of the game; the hack also rewrote other programs' arguments, ignored letter case, and replaced the launcher with a game that wasn't there |
