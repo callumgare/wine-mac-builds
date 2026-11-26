@@ -2,26 +2,32 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Rosetta 2: skip the CET RDSSP instructions it rejects
 Category: cpu
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 26.3.0
   CW-Hacks: 20186
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
   Note: CrossOver 26.3.0 CW HACK 20186 (dlls/ntdll/unix/signal_x86_64.c)
     Source: (sources/wine/dlls/ntdll/unix/signal_x86_64.c)
+  Changes: the instruction's length is decoded from its ModRM, SIB and
+    displacement (CX steps 3 bytes, mid-instruction for the memory forms),
+    and the scan stops at an 0F that isn't followed by 1E
 Upstream: no
-Why: Rosetta raises #UD for the CET RDSSPD/RDSSPQ instructions (which are NOPs without CET); skip them in the SIGILL path.
+Why: Rosetta raises #UD for the CET RDSSPD/RDSSPQ instructions (which are NOPs without CET), and macOS 26's Rosetta for memory forms of the same 0F 1E hint NOP; skip them in the SIGILL path. The length comes from the ModRM byte: memory forms are 3 to 8 bytes after their prefixes (16-bit addressing with 0x67 in 32-bit code included). CrossOver's handler stepped 3 bytes for every form, and a memory form crashed (c0000005, 10.0 and 11.22 build0, i686 and x86_64).
 Programs: none known
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_cet_nop", "skipped RDSSPD/RDSSPQ instruction"
 Port: to 11.21: handle_cet_nop() is CX 26.3.0's (identical to 25.1.1's). Adapted call site: 11.21's segv_handler gets thread data from init_handler() and must call leave_handler() before returning to user code (on macOS that restores GSBASE to the TEB; init_handler() pointed it at the pthread TSD), so the early return now goes through leave_handler(), like the other "handled, resume" paths in 11.21. CX 26.3.0 (Wine 11.0) just returns: there, leave_handler() did not touch GSBASE on macOS, so skipping it was harmless; in 11.21 skipping it would resume Windows code with %gs pointing at the pthread TSD.
+Status: 11.21: 2026-11-26: instruction length decoded from ModRM/SIB/displacement; scan stops at an 0F not followed by 1E; not yet in a build
+ 11.22: 2026-11-26: instruction length decoded from ModRM/SIB/displacement; scan stops at an 0F not followed by 1E; not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
-index adc9260..774a142 100644
 --- a/dlls/ntdll/unix/signal_x86_64.c
 +++ b/dlls/ntdll/unix/signal_x86_64.c
-@@ -1781,6 +1781,71 @@ NTSTATUS WINAPI NtCallbackReturn( void *ret_ptr, ULONG ret_len, NTSTATUS status
+@@ -1779,7 +1779,93 @@ NTSTATUS WINAPI NtCallbackReturn( void *ret_ptr, ULONG
+     if (!frame->prev_frame) return STATUS_NO_CALLBACK_ACTIVE;
+     user_mode_callback_return( ret_ptr, ret_len, status, data->teb );
  }
- 
- 
++
++
 +#ifdef __APPLE__
 +/***********************************************************************
 + *           handle_cet_nop
@@ -33,8 +39,9 @@ index adc9260..774a142 100644
 +static inline BOOL handle_cet_nop( ucontext_t *sigcontext, CONTEXT *context )
 +{
 +    BYTE instr[16];
-+    unsigned int i, prefix_count = 0;
++    unsigned int i, prefix_count = 0, size, mod, rm;
 +    unsigned int len = virtual_uninterrupted_read_memory( (BYTE *)context->Rip, instr, sizeof(instr) );
++    BOOL code32 = cs32_sel && CS_sig(sigcontext) == cs32_sel, addr16 = FALSE;
 +
 +    for (i = 0; i < len; i++) switch (instr[i])
 +    {
@@ -63,34 +70,53 @@ index adc9260..774a142 100644
 +    case 0x65:  /* %gs: */
 +    case 0x66:  /* opcode size */
 +    case 0x67:  /* addr size */
++        if (instr[i] == 0x67) addr16 = code32;  /* 16-bit addressing in 32-bit code */
++        /* fall through */
 +    case 0xf0:  /* lock */
 +    case 0xf2:  /* repne */
 +    case 0xf3:  /* repe */
 +        if (++prefix_count >= 15) return FALSE;
 +        continue;
-+
+ 
 +    case 0x0f: /* extended instruction */
-+        if (i == len - 1) return 0;
-+        switch (instr[i + 1])
++        /* RDSSPD/RDSSPQ: (prefixes) 0F 1E modrm [sib] [displacement]. The
++         * memory forms are hint NOPs too; step over the whole instruction.
++         * (wine-mac-builds: CrossOver stepped 3 bytes, mid-instruction for
++         * those.) */
++        if (i + 2 >= len || instr[i + 1] != 0x1e) return FALSE;
++        mod = instr[i + 2] >> 6;
++        rm = instr[i + 2] & 7;
++        size = 3;
++        if (mod != 3 && addr16)
 +        {
-+        case 0x1E:
-+            /* RDSSPD/RDSSPQ: (prefixes) 0F 1E (modrm) */
-+            RIP_sig(sigcontext) += prefix_count + 3;
-+            TRACE_(seh)( "skipped RDSSPD/RDSSPQ instruction\n" );
-+            return TRUE;
++            if (mod == 1) size += 1;
++            else if (mod == 2 || (mod == 0 && rm == 6)) size += 2;
 +        }
-+        break;
++        else if (mod != 3)
++        {
++            if (rm == 4)  /* SIB byte */
++            {
++                if (i + 3 >= len) return FALSE;
++                size += 1;
++                if (mod == 0 && (instr[i + 3] & 7) == 5) size += 4;
++            }
++            if (mod == 1) size += 1;
++            else if (mod == 2 || (mod == 0 && rm == 5)) size += 4;
++        }
++        if (i + size > len) return FALSE;
++        RIP_sig(sigcontext) += prefix_count + size;
++        TRACE_(seh)( "skipped RDSSPD/RDSSPQ instruction\n" );
++        return TRUE;
 +    default:
 +        return FALSE;
 +    }
 +    return FALSE;
 +}
 +#endif
-+
+ 
  /***********************************************************************
   *           is_privileged_instr
-  *
-@@ -2265,6 +2330,14 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *_sigcontext )
+@@ -2265,6 +2351,14 @@ static void segv_handler( int signal, siginfo_t *sigin
          rec.ExceptionCode = EXCEPTION_ARRAY_BOUNDS_EXCEEDED;
          break;
      case TRAP_x86_PRIVINFLT:   /* Invalid opcode exception */

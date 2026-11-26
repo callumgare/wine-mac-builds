@@ -34,6 +34,7 @@ All guard patches in macfixes' patch sets, named as in
 | `debug-registers` | `ntdll-rosetta-debug-registers` | a thread setting its own debug registers fails under Rosetta (Armadillo) |
 | `exception-ports` | `ntdll-clear-inherited-exception-ports` | under a launcher with a crash reporter, inherited Mach exception ports swallow faults and the program hangs at its first one |
 | `fs-addr16` | `ntdll-rosetta-fs-addr16` | fs:[disp16] accesses (0x67 prefix) right after an exception fault or hit the wrong place, so Armadillo's SEH frames stay linked (Big Fish games) |
+| `hint-nop` | `ntdll-rosetta-cet-rdssp` | Rosetta rejects memory forms of the 0F 1E hint NOP, and Wine stepped over them as if they were 3 bytes long, resuming mid-instruction (c0000005) |
 | `ldt-program-selector` | `ntdll-rosetta-refuse-ldt-entries` | a program's own LDT entry stops the process under Rosetta (Bioscopia) |
 | `peb-at-gs-0x60` | `ntdll-peb-at-gs-0x60` | in Wine 10.0 %gs:0x60 isn't the PEB, which 64-bit Windows code (D3DMetal) reads |
 | `rosetta-xgetbv` | `ntdll-rosetta-xgetbv` | Rosetta rejects XGETBV, so a program checking for AVX gets an illegal-instruction exception |
@@ -97,7 +98,7 @@ that Wine 11's own fix still holds.
 ### Patches without a test
 
 - **Can't be shown on our Macs.**
-  - `ntdll-rosetta-cet-rdssp` (RDSSP) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use.
+  - `ntdll-rosetta-cet-rdssp` (RDSSP, register forms) and `ntdll-rosetta-fndisi` (FNDISI): Rosetta on macOS 15 runs the forms programs use. `hint-nop` covers cet-rdssp's memory forms, which macOS 26's Rosetta rejects.
   - `ntdll-rosetta-mxcsr` (MXCSR): needed on M3; MXCSR is right on M1/M2.
   - `ntdll-invalid-gsbase` (gs_base, 10.0): Rosetta keeps the gs base on a null selector and refuses any other.
   - `wow64cpu-rosetta-lretq` (wow64 transition race, Iji): no crash in 12 attempts at provoking it.

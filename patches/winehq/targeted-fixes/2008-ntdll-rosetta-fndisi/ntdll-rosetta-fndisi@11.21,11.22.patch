@@ -13,7 +13,8 @@ Origin: other
   Version: 71877c1
   URL: https://github.com/dblark/macos-wine-build
   Note: patches/0001-macos-hacks.patch (handle_fndisi, Wine 11.0-rc2 version)
-  Changes: comment fixed (dblark's says "RDSSPD/RDSSPQ")
+  Changes: comment fixed (dblark's says "RDSSPD/RDSSPQ"); the scan stops at a DB
+    that isn't followed by E1, where dblark's scanned on into the opcode
 Upstream: no (bug 56441 closed NOTOURBUG: Apple fixed Rosetta in macOS 15)
 Why: Rosetta raises #UD for the obsolete x87 FNDISI (DB E1), which real CPUs treat as a NOP; skip it. Checked after the CET handler and before XGETBV, as in 10.0_8. (Comment fixed: dblark's copy says "RDSSPD/RDSSPQ".)
 Programs: DSDPlus 1.101 (32-bit): "Unhandled illegal instruction" at
@@ -21,16 +22,16 @@ Programs: DSDPlus 1.101 (32-bit): "Unhandled illegal instruction" at
 Evidence: Sikarugir 10.0_8: ntdll.so: "handle_fndisi", "skipped FNDISI instruction"; segv_handler checks DB E1 between the CET and XGETBV checks
 Port: to 11.21: handle_fndisi() is unchanged (dblark's Wine 11 copy has the same code); the segv_handler call goes through leave_handler() before returning, as in ntdll-rosetta-cet-rdssp.
 Expects before it: ntdll-rosetta-cet-rdssp, ntdll-rosetta-xgetbv; context only
+Status: 11.21: 2026-11-26: the scan stops at a DB not followed by E1 (it scanned on into the instruction); not yet in a build
+ 11.22: 2026-11-26: the scan stops at a DB not followed by E1 (it scanned on into the instruction); not yet in a build
 
 diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
-index 02860fe..96b8535 100644
 --- a/dlls/ntdll/unix/signal_x86_64.c
 +++ b/dlls/ntdll/unix/signal_x86_64.c
-@@ -1861,6 +1861,68 @@ static inline BOOL handle_cet_nop( ucontext_t *sigcontext, CONTEXT *context )
-     return FALSE;
+@@ -1883,6 +1883,63 @@ static inline BOOL handle_cet_nop( ucontext_t *sigcont
  }
  
-+/***********************************************************************
+ /***********************************************************************
 + *           handle_fndisi
 + *
 + * Check if the fault location is an x87 FNDISI instruction that should be treated as a NOP.
@@ -76,26 +77,22 @@ index 02860fe..96b8535 100644
 +        continue;
 +
 +    case 0xdb:
-+        if (i == len - 1) return 0;
-+        switch (instr[i + 1])
-+        {
-+        case 0xe1:
-+            /* FNDISI: (prefixes) DB E1 */
-+            RIP_sig(sigcontext) += prefix_count + 2;
-+            TRACE_(seh)( "skipped FNDISI instruction\n" );
-+            return TRUE;
-+        }
-+        break;
++        /* FNDISI: (prefixes) DB E1. Anything else is another instruction. */
++        if (i == len - 1 || instr[i + 1] != 0xe1) return FALSE;
++        RIP_sig(sigcontext) += prefix_count + 2;
++        TRACE_(seh)( "skipped FNDISI instruction\n" );
++        return TRUE;
 +    default:
 +        return FALSE;
 +    }
 +    return FALSE;
 +}
 +
- /***********************************************************************
++/***********************************************************************
   *           emulate_xgetbv
   *
-@@ -2388,6 +2450,12 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *_sigcontext )
+  * Check if the fault location is an Intel XGETBV instruction for xcr0 and
+@@ -2409,6 +2466,12 @@ static void segv_handler( int signal, siginfo_t *sigin
              leave_handler( data, sigcontext );
              return;
          }
