@@ -41,6 +41,30 @@ T="$W/pkg/$BUILD_ID"
 LOG="$W/smoke"
 rm -rf "$LOG"; mkdir -p "$LOG"
 
+# Run the tree from one fixed folder, not the build's own. Wine's audio
+# setup makes macOS ask whether "wine" may use the microphone, and macOS
+# keys its answer for an unsigned program by its path: from each build's
+# own folder every build asked again, and the audio probe waited on the
+# unanswered question until it timed out (meeka, 2026-11-26). From a fixed
+# folder, one answer (Don't Allow) does for every later build. The copy is
+# an APFS clone, and running it from elsewhere also shows the tree is
+# relocatable. One smoke test at a time holds the folder.
+SMOKE_DIR="${WMB_SMOKE_DIR:-$HOME/Library/Caches/wmb-smoke}"
+mkdir -p "$SMOKE_DIR"
+until mkdir "$SMOKE_DIR/lock" 2>/dev/null; do
+    holder="$(cat "$SMOKE_DIR/lock/pid" 2>/dev/null || true)"
+    if [[ -n $holder ]] && ! kill -0 "$holder" 2>/dev/null; then
+        rm -rf "$SMOKE_DIR/lock"; continue
+    fi
+    log "smoke: waiting for another smoke test (pid ${holder:-?}) to finish with $SMOKE_DIR"
+    sleep 10
+done
+echo $$ > "$SMOKE_DIR/lock/pid"
+trap 'rm -rf "$SMOKE_DIR/lock"' EXIT
+rm -rf "$SMOKE_DIR/wine"
+cp -cR "$T" "$SMOKE_DIR/wine" 2>/dev/null || { rm -rf "$SMOKE_DIR/wine"; cp -R "$T" "$SMOKE_DIR/wine"; }
+T="$SMOKE_DIR/wine"
+
 export WINEPREFIX="$LOG/prefix" WINEDEBUG=-all
 unset WINEARCH WINEDLLPATH WINELOADER VK_DRIVER_FILES VK_ICD_FILENAMES VK_ADD_DRIVER_FILES DYLD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH
 
@@ -60,7 +84,7 @@ run() {
         "$secs" "$@" > "$LOG/$name.log" 2>&1
 }
 stop_wine() { sandbox-exec -p "$PROFILE" "$T/bin/wineserver" -k >/dev/null 2>&1 || true; }
-trap stop_wine EXIT
+trap 'stop_wine; rm -rf "$SMOKE_DIR/lock"' EXIT
 
 fail() { stop_wine; die "smoke test: $*"; }
 # Each check, as it starts; written to $LOG/results.json at the end (a

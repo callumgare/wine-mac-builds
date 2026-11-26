@@ -207,6 +207,20 @@ projects.
   while it's pending, output won't start for any process. Restarting
   coreaudiod doesn't clear it; answering the prompt (Don't Allow) does
   (meeka, 2026-11-26).
+  A pending prompt doesn't always stop `afplay`, but it always stops the
+  Wine process that raised it: the smoke test's audio probe then prints
+  nothing at all (only dyld lines) until its 120 s timeout. Wine's audio
+  setup raises the prompt in every new prefix. `wine` is unsigned, so
+  macOS keys the answer by the binary's path, and a build run from its own
+  folder asks again. smoke.sh therefore runs the tree from one fixed folder
+  (`~/Library/Caches/wmb-smoke/wine`, or `WMB_SMOKE_DIR`), where one Don't
+  Allow covers every later build. A tree run from anywhere else (a
+  regression run, an unpacked release) can still ask. Look for a pending
+  prompt without the screen: a window owned by `UserNotificationCenter` at
+  layer 8 in `CGWindowListCopyWindowInfo` (a few lines of Swift). Clicking
+  it from a script needs Accessibility permission (osascript gets "not
+  allowed assistive access"). See `.local/AGENTS.md` for a way that needs
+  none.
 - `lldb` attaches to Rosetta-translated Wine processes and shows x86
   registers. `sample` shows only native frames.
 - "Exception c0000005 in system thread at <addr>" is a crash in a macOS
