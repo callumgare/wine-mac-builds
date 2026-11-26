@@ -43,6 +43,7 @@ All guard patches in macfixes' patch sets, named as in
 | `tls-expansion-gs` | `ntdll-preallocate-tls-expansion` | %gs:0x1780 (TLS expansion slots) is NULL, unlike CrossOver, for code that reads TLS through %gs |
 | `wow64-teb-peb-high` | `ntdll-wow64-teb-top-down` | Wine 11.18+ puts a 32-bit process's TEB and PEB low in memory; Armadillo can't unpack |
 | **System and programs** | | |
+| `abandoned-mutex` | `server-keep-abandoned-mutex-alive` | on 10.0 without msync or esync, a thread waiting on a mutex whose last handle was closed, when the owner exits: wineserver frees the mutex while waking the waiter and crashes, taking every program in the prefix with it |
 | `async-iosb-decommitted` | `ntdll-async-iosb-unwritable` | an async read finishing while its thread runs its own code, with its status block no longer writable: the store faults on the signal stack and the thread never returns ("nested exception on signal stack"; Steam's updater, holding the loader lock) |
 | `cef-append-flags` | `kernelbase-cef-append-flags` | Steam's CEF helper starts without the flags it needs to render in Wine |
 | `commandline-append` | `kernelbase-commandline-append` | the registry's `CommandLineAppend` for an exe isn't added to its command line |

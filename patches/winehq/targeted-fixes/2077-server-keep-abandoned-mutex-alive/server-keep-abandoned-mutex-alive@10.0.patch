@@ -1,0 +1,54 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Keep an abandoned mutex alive while its waiters are woken, so wineserver doesn't crash
+Category: sync
+Kind: fix
+Origin: wine-mac-builds
+  Note: WineHQ fixed the same use-after-free in 10.12 by having an owned
+    mutex hold a reference to itself (934514db, "server: Keep owned mutex
+    syncs alive until abandoned"), after it had split the mutex's sync
+    state into an object of its own. Ported to 10.0, where the mutex is
+    still the named object, that reference would also keep an owned
+    mutex's name reachable after its last handle is closed, so this fix
+    holds a reference only while abandon_mutexes() wakes the waiters.
+Upstream: differently (934514db, Wine 10.12)
+Needed until: 10.12 (WineHQ 934514db)
+Why: On 10.0 (WineHQ's release, without msync or esync), when a thread
+ exits owning a mutex whose last handle was closed while another thread
+ waited on it, the waiter's wait is the mutex's last reference. Abandoning
+ the mutex wakes the waiter, the end of its wait frees the mutex, and
+ wake_up() then reads the freed mutex's wait queue to go on: wineserver
+ crashes ("wineserver crashed, please enable coredumps") and every
+ program in the prefix exits with it. AddressSanitizer on 10.0's
+ wineserver: heap-use-after-free in wake_up (thread.c), freed by
+ end_wait under the same wake_up, from abandon_mutexes and kill_thread.
+ abandon_mutexes() now holds a reference to each mutex across
+ do_release(). 11.x doesn't crash (an owned mutex holds a reference
+ there).
+Programs: none known; a program where one thread closes a mutex's last
+ handle while another waits on it and the owner then exits or is
+ terminated (WineHQ's kernel32 sync test does this since 10.12)
+Seen on: macOS 26.7.2 (M1 Max, 10.0: tests/regress/abandoned-mutex, 8 of 8
+ runs crashed wineserver, i686 and x86_64)
+Fine on: macOS 26.7.2 (M1 Max, 11.22: 3 of 3 runs passed without the patch)
+Related: ntdll-msync; with WINEMSYNC or WINEESYNC its own abandon path
+ handles these mutexes
+Status: 10.0: 2026-11-26: written; not yet in a build. Its wineserver,
+ built with AddressSanitizer outside the build, passed abandoned-mutex 7
+ of 7 (i686 and x86_64), with no ASan report; without the fix 4 of 4 were
+ reported as heap-use-after-free
+
+diff --git a/server/mutex.c b/server/mutex.c
+--- a/server/mutex.c
++++ b/server/mutex.c
+@@ -142,7 +142,11 @@
+         assert( mutex->owner == thread );
+         mutex->count = 0;
+         mutex->abandoned = 1;
++        /* a waiter's reference may be the last one, and waking it ends its
++         * wait; keep the mutex until wake_up() is done with its wait queue */
++        grab_object( mutex );
+         do_release( mutex );
++        release_object( mutex );
+     }
+ }
+ 
