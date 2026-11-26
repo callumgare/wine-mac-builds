@@ -150,6 +150,15 @@ def release(flavour, version, number, platform, published, *, experimental=False
             "regress": {"passed": ["rosetta-mxcsr (i686)", "rosetta-mxcsr (x86_64)"], "skipped": ["gl-main-thread"],
                         "failed": []},
             "regress_opengl": {"passed": ["gl-main-thread"], "skipped": [], "failed": []}}
+        if tests == "guards":
+            # Schema 2: each test's Guards, for the patches page's Tests rows.
+            # gl-context-dealloc fails in 11.21 build2 (made up for the test).
+            failed = ["gl-context-dealloc"] if tag.startswith("wine-macfixes-11.21-") else []
+            rel["test_results"].update(schema_version=2, guards={
+                "rosetta-mxcsr": ["ntdll-rosetta-mxcsr"], "gl-main-thread": ["winemac-gl-update-on-main-thread"],
+                "gl-context-dealloc": ["winemac-gl-context-dealloc-off-main-thread"]})
+            rel["test_results"]["regress_opengl"] = {
+                "passed": ["gl-main-thread"] + ([] if failed else ["gl-context-dealloc"]), "skipped": [], "failed": failed}
     return rel
 
 
@@ -166,8 +175,8 @@ RELEASES = [
     release("wine", "10.20", 1, "macos-x86_64", "2026-11-14T09:00:00Z"),
     release("wine", "11.22", 1, "macos-x86_64", "2026-11-18T10:00:00Z"),
     release("macfixes", "11.21", 1, "macos-x86_64", "2026-11-15T08:00:00Z", legacy=True),
-    release("macfixes", "11.21", 2, "macos-x86_64", "2026-11-17T08:00:00Z"),
-    release("macfixes", "11.22", 1, "macos-x86_64", "2026-11-18T08:00:00Z"),
+    release("macfixes", "11.21", 2, "macos-x86_64", "2026-11-17T08:00:00Z", tests="guards"),
+    release("macfixes", "11.22", 1, "macos-x86_64", "2026-11-18T08:00:00Z", tests="guards"),
     release("macfixes", "11.22", 2, "macos-x86_64", None, draft=True),
 ]
 

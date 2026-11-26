@@ -6,9 +6,15 @@ The patches come from the latest build of each flavour and Wine version
 recorded them. A patch is listed once, with the versions that apply it as
 ranges, and each distinct copy (by diff_sha256) with the versions that
 share it. Links use the commit of the newest build that applied the copy.
+
+Each patch's "Built in" and "Tests" rows come from every build's own
+records: the builds whose BUILD-INFO lists the patch, and the builds whose
+.tests.json shows a test that guards it (by that file's "guards", which
+older files don't have) passing or failing.
 """
 
 import collections
+import re
 
 from . import legacy
 from .buildpage import dl_rows, head, header_rows, origin_chip, patch_badges, wrap
@@ -52,6 +58,60 @@ def collect(d):
     return patches, known, order
 
 
+def records(d):
+    """Per patch name: {(flavour, version): [builds]} it was built in, and
+    {test: {"passed": [builds], "failed": [builds]}} for the tests that guard
+    it, counting only builds that applied it. Builds in order."""
+    built = collections.defaultdict(lambda: collections.defaultdict(list))
+    tests = collections.defaultdict(lambda: collections.defaultdict(lambda: {"passed": [], "failed": []}))
+    for b in sorted(d.builds.values(), key=lambda b: (b["flavour"] != "wine", b["flavour"],
+                                                      version_key(b["wine_version"]), b["build_number"])):
+        names = {p["name"] for p in b["primary"]["_patches"]}
+        for n in names:
+            built[n][(b["flavour"], b["wine_version"])].append(b)
+        for e in b["platforms"].values():
+            r = e.get("_test_results")
+            guards = r.get("guards") if isinstance(r, dict) else None
+            if not isinstance(guards, dict):
+                continue
+            for group in ("regress", "regress_opengl"):
+                g = r.get(group)
+                if not isinstance(g, dict):
+                    continue
+                for status in ("passed", "failed"):
+                    for t in g.get(status) or []:
+                        t = re.sub(r" \(.*\)$", "", t)
+                        for n in guards.get(t) or []:
+                            got = tests[n][t][status]
+                            if n in names and b not in got:
+                                got.append(b)
+    return built, tests
+
+
+def build_link(b, flavour=True):
+    label = b["name"][len(b["buildless_name"]) + 1:]
+    label = f"{b['flavour']} {b['wine_version']} {label}" if flavour else label
+    return el("a", label, href=b["path"])
+
+
+def built_in(built):
+    return el("span", *[el("span", el("b", f), " ", v, ": ", join((build_link(b, False) for b in bs), ", "),
+                            class_="pbuilt") for (f, v), bs in built.items()], class_="pfiles")
+
+
+def tests_text(tests):
+    out = []
+    for t, r in sorted(tests.items()):
+        bits = [el("code", t)]
+        if r["passed"]:
+            bits += [" passed in ", join((build_link(b) for b in r["passed"]), ", ")]
+        if r["failed"]:
+            bits += [";" if r["passed"] else "", " ", el("span", "failed in ", class_="fail"),
+                     join((build_link(b) for b in r["failed"]), ", ")]
+        out.append(el("span", *bits, class_="pbuilt"))
+    return el("span", *out, class_="pfiles")
+
+
 def applied_text(applied, known):
     order = sorted(applied, key=lambda f: (f != "wine", f))
     return join((el("span", el("b", f), " ", version_ranges(applied[f], known[f])) for f in order), " · ")
@@ -67,9 +127,13 @@ def search_text(x):
     return " ".join(bits).lower()
 
 
-def row(x, known):
+def row(x, known, built, tests):
     p = x["latest"]
     rows = header_rows(p)
+    if built.get(x["name"]):
+        rows.append(("Built in", built_in(built[x["name"]]), None))
+    if tests.get(x["name"]):
+        rows.append(("Tests", tests_text(tests[x["name"]]), None))
     copies = []
     for c in x["copies"].values():
         link = f"{c['repo']}/blob/{c['commit']}/{c['file']}" if c["commit"] and c["repo"] and c["file"] else None
@@ -96,11 +160,13 @@ def chips(attr, counts, label):
 
 def render(site, d):
     patches, known, set_order = collect(d)
+    built, tests = records(d)
     hero = el("div", el("div", el("h1", "Patches"), el("p",
         "Every patch in the latest build of each flavour and Wine version, listed once with the versions that "
         "apply it. Each patch's header says what it does, what sort of change it is, where it came from and "
         "whether WineHQ has it. Copies of a patch for different Wine versions are listed with the versions "
-        "that share each one.", class_="lede"), class_="hero"), class_="wrap")
+        "that share each one. Which builds applied it, and which builds its regression tests passed in, come "
+        "from each build's own records.", class_="lede"), class_="hero"), class_="wrap")
     if not patches:
         site.page("/patches/", title="Patches", nav="patches",
                   body=[hero, wrap(el("p", "No builds are published yet.", class_="empty"))])
@@ -137,7 +203,7 @@ def render(site, d):
         summary = next((x["set_summaries"].get(s) for x in ps if x["set_summaries"].get(s)), None)
         groups.append(el("section", el("h3", el("code", s), " ", el("span", str(len(ps)), data_n="")),
                          el("p", summary, class_="muted small") if summary else None,
-                         el("ol", *[row(x, known) for x in ps], class_="plist"), class_="pcat", id=f"set-{s}"))
+                         el("ol", *[row(x, known, built, tests) for x in ps], class_="plist"), class_="pcat", id=f"set-{s}"))
     body = [hero, wrap(filters, el("div", *groups, class_="pcats"),
                        el("p", "No patches match these filters.", class_="empty", data_empty="", hidden=True),
                        cls="block tight")]

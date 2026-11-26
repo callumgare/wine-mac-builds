@@ -599,7 +599,8 @@ table.cmp tr.setsrow th { border-bottom: 0; }
 table.cmp th .colh { padding: 0; text-transform: none; letter-spacing: 0; font-size: 1rem; }
 .fsec .side h3 i { flex: none; }
 .prow .pv { font-size: 1rem; color: var(--muted); }
-.pcopy { display: block; }
+.pcopy, .pbuilt { display: block; }
+.pbuilt .fail { color: var(--warn); }
 @media (max-width: 640px) {
   .dhead { grid-template-columns: 0 repeat(4, minmax(0, 1fr)); gap: 0 .5rem; margin-left: -.5rem; }
   .dhead .colh { font-size: 1rem; }
