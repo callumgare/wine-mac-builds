@@ -5,6 +5,7 @@
  * Env: WINENCPU=2
  * Wrapper: mac-cpus
  * Guards: ntdll-cpu-count-cap
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * Some games break on Macs with many cores; WINENCPU=<n> makes Wine report
  * at most n processors. Every way of asking has to agree, or a game that

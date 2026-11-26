@@ -3,6 +3,7 @@
  * Arch: i686 x86_64
  * Timeout: 30
  * Guards: kernelbase-cef-append-flags
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * The Chromium (CEF) user interfaces of Steam, Battle.net, the EA app, GOG
  * Galaxy and Rockstar's Social Club render blank or crash in Wine unless

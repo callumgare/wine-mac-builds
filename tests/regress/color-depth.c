@@ -5,6 +5,7 @@
  * Timeout: 60
  * Libs: -lgdi32 -luser32 -ladvapi32
  * Guards: gdi32-per-program-color-depth
+ * Fails without on: wine-macfixes-11.22-build9, macOS 26.7, M1 Max, 2026-11-18
  *
  * An old program (a Director projector, say) asks the screen's colour depth
  * and won't run unless it's 8 or 16 bits. AppDefaults\<exe>\Mac

@@ -5,6 +5,7 @@
  * Timeout: 60
  * Libs: -lmsi
  * Guards: msi-database-path-length
+ * Fails without on: wine-macfixes-11.22-build0+0068+host14-test, macOS 26.7.2, M1 Max, 2026-11-22; wine-macfixes-11.21-build9, macOS 26.7.2, M1 Max, 2026-11-22; wine-macfixes-10.0-build7, macOS 26.7.2, M1 Max, 2026-11-22
  *
  * MSI_OpenDatabaseW takes a path without a backslash as relative and built
  * "<current directory>\<path>" in a MAX_PATH buffer on the stack. A Unix

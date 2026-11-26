@@ -164,7 +164,7 @@ run it:
      * Log: ^msync: up and running  a regex Wine's own output must match
      * Screenshot: centred ff00ff   see below
      * Guards: ntdll-rosetta-refuse-ldt-entries   the patches it guards
-     * Fails without on: wine-11.22-build3, macOS 26.7.2, M1 Max, 2026-11-16
+     * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
      *
      * What the game did, what went wrong, and what passing means.
      */
@@ -180,8 +180,8 @@ names, unless its header gives a `No test` reason.
 
 `Fails without on` records where the test was last seen to fail on a
 build without the fix: the build, then `macOS <version>`, the Mac and the
-date, comma-separated; several such entries are separated by `; `.
-`wine-11.22-build3, macOS 26.7.2, M1 Max, 2026-11-16`. A test can stop
+date, comma-separated; several such entries are separated by `; `, for example
+`wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26`. A test can stop
 failing without its fix when macOS or Rosetta changes (see "Where a test
 can't see its bug"), so this says when it last caught the bug, and where.
 The checker checks its form; the runner ignores it.

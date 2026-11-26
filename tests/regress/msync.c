@@ -5,6 +5,7 @@
  * Env: WINEMSYNC=1
  * Log: ^msync: up and running
  * Guards: ntdll-msync
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26; wine-macfixes-10.0-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * msync (WINEMSYNC=1) moves waits on events, mutexes and semaphores out of
  * wineserver into shared memory and Mach messages, which makes games that

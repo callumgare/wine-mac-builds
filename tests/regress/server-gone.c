@@ -4,6 +4,7 @@
  * Timeout: 60
  * Wrapper: kill-server server-gone
  * Guards: ntdll-exit-with-server
+ * Fails without on: wine-macfixes-11.22-build0+0068+host10-test, macOS 26.7.2, M1 Max, 2026-11-22; wine-macfixes-11.21-build9, macOS 26.7.2, M1 Max, 2026-11-22; wine-macfixes-10.0-build7, macOS 26.7.2, M1 Max, 2026-11-22
  *
  * A Wine thread only notices that its wineserver is gone on its next
  * request. A program whose threads only sleep, render or wait in a macOS

@@ -3,6 +3,7 @@
  * Arch: i686 x86_64
  * Timeout: 30
  * Guards: kernelbase-replace-launchers
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * ELDEN RING's shortcut starts EasyAntiCheat's start_protected_game.exe,
  * which doesn't work in Wine; the game itself, eldenring.exe, does. So

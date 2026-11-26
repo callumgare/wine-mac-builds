@@ -5,6 +5,7 @@
  * Env: MTL_HUD_ENABLED=1
  * Wrapper: prefix-env WINEDLLPATH_DXVK=regress-dxvk
  * Guards: ntdll-renderer-dll-paths ntdll-launcher-metal-hud
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26; wine-macfixes-10.0-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * Sikarugir's launcher puts each renderer's DLLs (DXVK's d3d11.dll and so
  * on) on Wine's DLL search path through a variable of its own,
@@ -175,7 +176,7 @@ int main(void)
     {
         WCHAR *end;
 
-        /* up to the next space: 0033 appends steamwebhelper.exe's CEF flags */
+        /* up to the next space: kernelbase-cef-append-flags appends steamwebhelper.exe's CEF flags */
         lstrcpynW(out, arg + 14, MAX_PATH);
         if ((end = wcschr(out, ' '))) *end = 0;
         return child(out);

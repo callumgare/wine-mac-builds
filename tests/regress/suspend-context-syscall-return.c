@@ -4,6 +4,7 @@
  * Versions: 10.0 11.21 11.22
  * Timeout: 60
  * Guards: ntdll-suspend-context-syscall-return
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-21; wine-macfixes-11.21-build9, macOS 26.7.2, M1 Max, 2026-11-22; wine-macfixes-10.0-build7, macOS 26.7.2, M1 Max, 2026-11-22
  *
  * SuspendThread followed by GetThreadContext must give the thread's own
  * registers. On its way out of a syscall, Wine's dispatcher points rsp into

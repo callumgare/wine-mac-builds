@@ -6,6 +6,7 @@
  * Libs: -mwindows -ld3d8 -luser32
  * Wrapper: needs-opengl
  * Guards: winemac-gl-context-dealloc-off-main-thread
+ * Fails without on: wine-macfixes-11.22-build12, macOS 26.7.2, M1 Max, 2026-11-18
  *
  * When a GL thread drops the last reference to one of winemac's OpenGL
  * contexts, -[NSOpenGLContext dealloc] calls winemac's -clearDrawable,

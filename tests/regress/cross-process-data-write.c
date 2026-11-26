@@ -3,6 +3,7 @@
  * Arch: i686 x86_64
  * Timeout: 60
  * Guards: ntdll-rosetta-cross-process-code-writes
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * What a trainer, a mod loader or a DRM parent does: write a variable in a
  * running program's .data section with WriteProcessMemory while the

@@ -3,6 +3,7 @@
  * Arch: i686 x86_64
  * Timeout: 30
  * Guards: ntdll-rosetta-cet-rdssp
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26; wine-macfixes-10.0-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * 0F 1E is a hint NOP (RDSSPD/RDSSPQ and ENDBR in its register forms) and
  * takes a ModRM operand like any other: with a memory operand it can be 3

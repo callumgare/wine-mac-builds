@@ -4,6 +4,7 @@
 # Versions: 11.22
 # Timeout: 180
 # Guards: winemac-activation-policy
+# Fails without on: wine-macfixes-11.22-build14, macOS 26.7.2, M1 Max, 2026-11-19; wine-macfixes-11.22-build9, macOS 26.7, M1 Max, 2026-11-18
 #
 # A program run as a helper of an app that embeds Wine shouldn't get a Dock
 # icon or take focus. The Mac Driver "ActivationPolicy" value set to

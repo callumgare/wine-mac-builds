@@ -4,6 +4,7 @@
  * Timeout: 30
  * Wrapper: unserviced-exception-port
  * Guards: ntdll-clear-inherited-exception-ports
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * Mach task exception ports are inherited across fork and exec. A launcher
  * with a task-level crash reporter (Sentry, KSCrash) passes its ports on

@@ -4,6 +4,7 @@
 # Versions: 11.22
 # Timeout: 180
 # Guards: winemac-plugins
+# Fails without on: wine-macfixes-11.22-build8, macOS 26.7, M1 Max, 2026-11-18
 #
 # The Mac driver loads the libraries named in WINEMAC_PLUGINS before Cocoa
 # starts, so an app that embeds Wine can add code to the driver without

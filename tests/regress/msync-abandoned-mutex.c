@@ -6,6 +6,7 @@
  * Env: WINEMSYNC=1
  * Log: ^msync: up and running
  * Guards: ntdll-msync
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * A thread waits on a mutex that another thread owns; the last handle to
  * the mutex is closed while it waits, and then the owner exits. Windows

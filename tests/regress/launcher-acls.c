@@ -3,6 +3,7 @@
  * Arch: i686 x86_64
  * Timeout: 30
  * Guards: advapi32-launcher-acls
+ * Fails without on: wine-macfixes-11.22-build0, macOS 26.7.2, M1 Max, 2026-11-26
  *
  * Battle.net's Agent.exe refuses to run unless its folders report
  * Administrators (S-1-5-32-544) as their owner, so GetNamedSecurityInfoW

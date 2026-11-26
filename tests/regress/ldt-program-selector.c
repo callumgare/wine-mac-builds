@@ -3,6 +3,7 @@
  * Arch: i686
  * Timeout: 30
  * Guards: ntdll-rosetta-refuse-ldt-entries
+ * Fails without on: wine-macfixes-11.22-build3, macOS 26.7.2, M1 Max, 2026-11-16
  *
  * A 32-bit program asks ntdll for an LDT entry of its own. Wine 11 passes
  * such entries to i386_set_ldt, and Rosetta 2 stops the thread for good on
