@@ -2,22 +2,56 @@ SPDX-License-Identifier: LGPL-2.1-or-later
 Summary: Retry write faults on pages mapped both writable and executable
 Category: cpu
 Kind: workaround
-Origin: crossover
+Origin: crossover (ported here)
   Version: 25.1.1
   CW-Hacks: 24945
   URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-25.1.1.tar.gz
   Note: CrossOver 25.1.1 CW HACK 24945
     Source: (sources/wine/dlls/ntdll/unix/virtual.c)
+  Changes: retries only if the page's Mach protection includes write after
+    the toggle; otherwise the fault goes on to Wine's normal handling (CX
+    retries regardless, and loops for ever if the mprotect didn't take)
 Upstream: no
-Why: On macOS a write fault can hit a page that is mapped w|x; drop and re-add exec on the page and retry instead of raising an exception.
+Why: On macOS a write fault can hit a page that is mapped w|x; drop and re-add exec on the page and retry instead of raising an exception. The retry happens only if the page is writable at the Mach level afterwards, so a page whose protection Wine can't change doesn't fault the same write for ever.
 Programs: none known
+Uncertain: the guard catches a toggle that doesn't make the page
+ writable. If Rosetta went on faulting a page that is writable, the write
+ would still be retried for ever. A plain retry-once (same address twice
+ from one thread) can't be used: a program that rewrites and runs the same
+ code in a loop (tests/regress/smc-rwx) faults at the same address and
+ instruction every round, legitimately.
 Evidence: Sikarugir 10.0_8: ntdll.so: "HACK: write fault on a w|x page, addr %p"
+Status: 10.0: 2026-11-26: retries only if the page is writable after the toggle; not yet in a build
 
 diff --git a/dlls/ntdll/unix/virtual.c b/dlls/ntdll/unix/virtual.c
-index 14286ae..0f5d875 100644
 --- a/dlls/ntdll/unix/virtual.c
 +++ b/dlls/ntdll/unix/virtual.c
-@@ -4042,6 +4042,17 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, void *stack )
+@@ -4021,6 +4021,24 @@ static NTSTATUS grow_thread_stack( char *page, struct 
+ }
+ 
+ 
++#ifdef __APPLE__
++/* whether the host page is writable at the Mach level (CW Hack 24945's retry) */
++static BOOL wx_page_writable( void *page )
++{
++    mach_vm_address_t address = (mach_vm_address_t)page;
++    mach_vm_size_t size = 0;
++    vm_region_basic_info_data_64_t info;
++    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
++    mach_port_t object_name;
++
++    if (mach_vm_region( mach_task_self(), &address, &size, VM_REGION_BASIC_INFO_64,
++                        (vm_region_info_t)&info, &count, &object_name ))
++        return TRUE;  /* can't tell: retry, as before */
++    if (address > (mach_vm_address_t)page) return TRUE;
++    return (info.protection & VM_PROT_WRITE) != 0;
++}
++#endif
++
+ /***********************************************************************
+  *           virtual_handle_fault
+  */
+@@ -4042,6 +4060,25 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, 
          WARN( "treating read fault in a readable page as a write fault, addr %p\n", addr );
          err = EXCEPTION_WRITE_FAULT;
      }
@@ -29,13 +63,21 @@ index 14286ae..0f5d875 100644
 +        FIXME( "HACK: write fault on a w|x page, addr %p\n", addr );
 +        mprotect_range( page, page_size, 0, VPROT_EXEC );
 +        mprotect_range( page, page_size, VPROT_EXEC, 0 );
-+        ret = STATUS_SUCCESS;
-+        goto done;
++        /* wine-mac-builds: retry only if the page really is writable now.
++         * If the mprotect didn't take (the mapping's maximum protection has
++         * no write, say), the retried write would fault the same way for
++         * ever; let the fault take its normal course instead. */
++        if (wx_page_writable( page ))
++        {
++            ret = STATUS_SUCCESS;
++            goto done;
++        }
++        WARN( "page %p still isn't writable, not retrying\n", page );
 +    }
  #endif
  
      if (!is_inside_signal_stack( stack ) && (vprot & VPROT_GUARD))
-@@ -4078,6 +4089,8 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, void *stack )
+@@ -4078,6 +4115,8 @@ NTSTATUS virtual_handle_fault( EXCEPTION_RECORD *rec, 
                  ret = STATUS_SUCCESS;
          }
      }
