@@ -3,33 +3,39 @@ Summary: EnableMouseInPointer semi-stub: turn it on and send WM_POINTER messages
 Category: input
 Kind: fix
 Origin: winehq
-  Commit: 71b686ce9fdce65416080c834a9103a743dc095c
+  Commit: 71b686ce9fdce65416080c834a9103a743dc095c,
+    b94237cd34864bd8f920b44532f7827a73784563
   Bugs: 59415
   MR: 10120
-  Authors: Rémi Bernon
-  URL: https://gitlab.winehq.org/wine/wine/-/commit/71b686ce9fdce65416080c834a9103a743dc095c
+  Authors: Rémi Bernon, Paul Gofman
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/71b686ce9fdce65416080c834a9103a743dc095c,
+    https://gitlab.winehq.org/wine/wine/-/commit/b94237cd34864bd8f920b44532f7827a73784563
   Changes: win32u_private.h context differs (10.0 has destroy_caret there);
     the user32 test hunks that drop todo_wine from pointer message sequences
     are left out, as 10.0's test_GetPointerInfo has no such checks
-Upstream: yes, since wine-11.3 (committed 2026-02-19)
+Upstream: yes, since wine-11.3 (committed 2026-02-19; the button fix since
+ wine-11.4)
 Why: EnableMouseInPointer and IsMouseInPointerEnabled were stubs that
  failed. Now the first EnableMouseInPointer call sets the process-wide
  state, a later call asking for the opposite fails with
  ERROR_ACCESS_DENIED, and while it is enabled each mouse move, button and
  wheel message also sends the window the matching WM_POINTER* message
- (except for mouse input generated from pen or touch).
+ (except for mouse input generated from pen or touch). WM_POINTERDOWN comes
+ only for the first button pressed and WM_POINTERUP only when the last is
+ released, as on Windows (b94237cd; without it a second button sent a
+ second WM_POINTERDOWN and two WM_POINTERUPs).
 Programs: In Falsus demo (Unreal Engine, WineHQ bug 59415): no input after
  the title screen. Unity 6 games (bug 53847: The Planet Crafter, How to
  Fish): the mouse is ignored
 Evidence: Sikarugir 10.0_8: its win32u has the semi-stub and the mouse-to-
  WM_POINTER conversion.
 Status: not yet built (2026-11-15).
+ 10.0: 2026-11-26: WineHQ b94237cd (pointer button flags) added, applies as is; not yet in a build
 
 diff --git a/dlls/user32/tests/input.c b/dlls/user32/tests/input.c
-index 9196e67..333b740 100644
 --- a/dlls/user32/tests/input.c
 +++ b/dlls/user32/tests/input.c
-@@ -5591,23 +5591,18 @@ static void test_EnableMouseInPointer( const char *arg )
+@@ -5591,23 +5591,18 @@ static void test_EnableMouseInPointer( const char *arg
      winetest_push_context( "enable %lu", enable );
  
      ret = pEnableMouseInPointer( enable );
@@ -54,10 +60,9 @@ index 9196e67..333b740 100644
  
      test_GetPointerInfo( enable );
 diff --git a/dlls/win32u/input.c b/dlls/win32u/input.c
-index ae7aeba..bde9ca7 100644
 --- a/dlls/win32u/input.c
 +++ b/dlls/win32u/input.c
-@@ -405,6 +405,7 @@ static const KBDTABLES kbdus_tables =
+@@ -405,6 +405,7 @@ static LONG clipping_cursor; /* clipping thread counte
  };
  
  static LONG clipping_cursor; /* clipping thread counter */
@@ -92,7 +97,7 @@ index ae7aeba..bde9ca7 100644
  }
  
  /**********************************************************************
-@@ -2539,9 +2547,14 @@ BOOL WINAPI NtUserEnableMouseInPointerForThread( void )
+@@ -2539,11 +2547,16 @@ BOOL WINAPI NtUserIsMouseInPointerEnabled(void)
   */
  BOOL WINAPI NtUserIsMouseInPointerEnabled(void)
  {
@@ -102,53 +107,93 @@ index ae7aeba..bde9ca7 100644
 +    BOOL ret = ReadNoFence( &enable_mouse_in_pointer ) == 1;
 +    TRACE( "-> %d.\n", ret );
 +    return ret;
-+}
-+
+ }
+ 
 +BOOL is_mouse_in_pointer_enabled( HWND hwnd )
 +{
 +    return ReadNoFence( &enable_mouse_in_pointer ) == 1;
- }
- 
++}
++
  static BOOL is_captured_by_system(void)
+ {
+     GUITHREADINFO info;
 diff --git a/dlls/win32u/message.c b/dlls/win32u/message.c
-index 72a802e..1c5a704 100644
 --- a/dlls/win32u/message.c
 +++ b/dlls/win32u/message.c
-@@ -2487,6 +2487,51 @@ static BOOL process_mouse_message( MSG *msg, UINT hw_id, ULONG_PTR extra_info, H
+@@ -2433,6 +2433,32 @@ static BOOL process_keyboard_message( MSG *msg, UINT h
+             msg->wParam = VK_PROCESSKEY;
+ 
+     return TRUE;
++}
++
++static WORD pointer_buttons_from_mouse_buttons( WORD mouse_flags )
++{
++    static const struct
++    {
++        WORD mouse_flag;
++        WORD pointer_flag;
++    }
++    flags[] =
++    {
++        { MK_LBUTTON, POINTER_MESSAGE_FLAG_FIRSTBUTTON },
++        { MK_RBUTTON, POINTER_MESSAGE_FLAG_SECONDBUTTON },
++        { MK_MBUTTON, POINTER_MESSAGE_FLAG_THIRDBUTTON },
++        { MK_XBUTTON1, POINTER_MESSAGE_FLAG_FOURTHBUTTON },
++        { MK_XBUTTON2, POINTER_MESSAGE_FLAG_FIFTHBUTTON },
++    };
++
++    WORD pointer_flags = 0;
++    unsigned int i;
++
++    for (i = 0; i < ARRAY_SIZE(flags); ++i)
++    {
++        if (mouse_flags & flags[i].mouse_flag) pointer_flags |= flags[i].pointer_flag;
++    }
++    return pointer_flags;
+ }
+ 
+ /***********************************************************************
+@@ -2486,7 +2512,57 @@ static BOOL process_mouse_message( MSG *msg, UINT hw_i
+ 
      msg->pt = point_phys_to_win_dpi( msg->hwnd, msg->pt );
      set_thread_dpi_awareness_context( get_window_dpi_awareness_context( msg->hwnd ));
- 
++
 +    if ((extra_info & 0xffffff00) != 0xff515700 && is_mouse_in_pointer_enabled( msg->hwnd ))
 +    {
-+        WORD flags = POINTER_MESSAGE_FLAG_INRANGE;
++        WORD flags = POINTER_MESSAGE_FLAG_INRANGE, pointer_button_flags;
 +        DWORD message = 0;
++
++        pointer_button_flags = pointer_buttons_from_mouse_buttons( LOWORD( msg->wParam ));
++        if (pointer_button_flags) flags |= pointer_button_flags | POINTER_MESSAGE_FLAG_INCONTACT;
 +
 +        switch (msg->message)
 +        {
 +        case WM_MOUSEMOVE:
 +            message = WM_POINTERUPDATE;
-+            flags |= POINTER_MESSAGE_FLAG_PRIMARY;
++            if (!pointer_button_flags) flags |= POINTER_MESSAGE_FLAG_PRIMARY;
 +            break;
 +        case WM_LBUTTONDOWN:
 +        case WM_RBUTTONDOWN:
 +        case WM_MBUTTONDOWN:
 +        case WM_XBUTTONDOWN:
-+            message = WM_POINTERDOWN;
-+            flags |= POINTER_MESSAGE_FLAG_PRIMARY|POINTER_MESSAGE_FLAG_INCONTACT;
-+            if (msg->message == WM_LBUTTONDOWN) flags |= POINTER_MESSAGE_FLAG_FIRSTBUTTON;
-+            if (msg->message == WM_RBUTTONDOWN) flags |= POINTER_MESSAGE_FLAG_SECONDBUTTON;
-+            if (msg->message == WM_MBUTTONDOWN) flags |= POINTER_MESSAGE_FLAG_THIRDBUTTON;
-+            if (msg->message == WM_XBUTTONDOWN && LOWORD( msg->wParam ) == MK_LBUTTON) flags |= POINTER_MESSAGE_FLAG_FIRSTBUTTON;
-+            if (msg->message == WM_XBUTTONDOWN && LOWORD( msg->wParam ) == MK_RBUTTON) flags |= POINTER_MESSAGE_FLAG_SECONDBUTTON;
-+            if (msg->message == WM_XBUTTONDOWN && LOWORD( msg->wParam ) == MK_MBUTTON) flags |= POINTER_MESSAGE_FLAG_THIRDBUTTON;
-+            if (msg->message == WM_XBUTTONDOWN && LOWORD( msg->wParam ) == MK_XBUTTON1) flags |= POINTER_MESSAGE_FLAG_FOURTHBUTTON;
-+            if (msg->message == WM_XBUTTONDOWN && LOWORD( msg->wParam ) == MK_XBUTTON2) flags |= POINTER_MESSAGE_FLAG_FIFTHBUTTON;
++            if (pointer_button_flags & (pointer_button_flags - 1))
++            {
++                /* More than one flag in pointer_button_flags, some buttons were already pressed.
++                 * WM_POINTERDOWN is only sent on the first button press. */
++                message = WM_POINTERUPDATE;
++            }
++            else
++            {
++                message = WM_POINTERDOWN;
++                flags |= POINTER_MESSAGE_FLAG_PRIMARY;
++            }
 +            break;
 +        case WM_LBUTTONUP:
 +        case WM_RBUTTONUP:
 +        case WM_MBUTTONUP:
 +        case WM_XBUTTONUP:
-+            message = WM_POINTERUP;
++            /* WM_POINTERUP is only sent once all the buttons are up. */
++            message = pointer_button_flags ? WM_POINTERUPDATE : WM_POINTERUP;
 +            break;
 +        case WM_MOUSEWHEEL:
 +            message = WM_POINTERWHEEL;
@@ -159,7 +204,7 @@ index 72a802e..1c5a704 100644
 +            flags = HIWORD( msg->wParam );
 +            break;
 +        }
-+
+ 
 +        if (message) send_message( msg->hwnd, message, MAKELONG( 1, flags ), MAKELONG( msg->pt.x, msg->pt.y ) );
 +    }
 +
@@ -167,10 +212,9 @@ index 72a802e..1c5a704 100644
      event.message = msg->message;
      event.time    = msg->time;
 diff --git a/dlls/win32u/tests/win32u.c b/dlls/win32u/tests/win32u.c
-index 8e1b56f..dd7c505 100644
 --- a/dlls/win32u/tests/win32u.c
 +++ b/dlls/win32u/tests/win32u.c
-@@ -1687,26 +1687,20 @@ static void test_NtUserEnableMouseInPointer( const char *arg )
+@@ -1687,26 +1687,20 @@ static void test_NtUserEnableMouseInPointer( const cha
      ok( !ret, "NtUserIsMouseInPointerEnabled returned %u, error %lu\n", ret, GetLastError() );
  
      ret = NtUserEnableMouseInPointer( enable );
@@ -198,10 +242,9 @@ index 8e1b56f..dd7c505 100644
  
      test_NtUserGetPointerInfoList( enable );
 diff --git a/dlls/win32u/win32u_private.h b/dlls/win32u/win32u_private.h
-index f1e286b..d3d031a 100644
 --- a/dlls/win32u/win32u_private.h
 +++ b/dlls/win32u/win32u_private.h
-@@ -90,6 +90,7 @@ extern void unregister_imm_window( HWND hwnd );
+@@ -90,6 +90,7 @@ extern BOOL grab_fullscreen;
  /* input.c */
  extern BOOL grab_pointer;
  extern BOOL grab_fullscreen;
