@@ -24,6 +24,10 @@ Programs: none known
 Enable: by WINEDLLPATH_DXMT (ntdll-renderer-dll-paths) naming DXMT's DLLs; the stub file is in every prefix
 Related: wine-inf-d3dmetal-placeholder-dlls; the same loader rule, met with
  wine.inf placeholders
+ 11.22: 2026-11-26: DXMT v0.74 through WINEDLLPATH_DXMT on quick T025644, in a
+ Screen Slots login (macOS 26.7.2, M1 Max): a Direct3D 11 program loaded
+ DXMT's d3d11.dll from system32, got the M1 Max at feature level 11_0, and
+ presented about 2,400 frames of the green it cleared to, as on screen
 
 diff --git a/configure b/configure
 index dee0e8d..32e8f15 100755

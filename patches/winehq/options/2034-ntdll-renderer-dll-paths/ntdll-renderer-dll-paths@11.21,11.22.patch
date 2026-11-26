@@ -55,6 +55,10 @@ Status: 11.21, 11.22: 2026-11-26: WINEDLLPATH_D3DMETAL removed; not yet in a
  M1 Max): smoke and the regression suite passed
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (macOS 26.7.2,
  M1 Max): smoke and the regression suite passed
+ 11.22: 2026-11-26: DXMT v0.74 through WINEDLLPATH_DXMT on quick T025644, in a
+ Screen Slots login (macOS 26.7.2, M1 Max): a Direct3D 11 program loaded
+ DXMT's d3d11.dll from system32, got the M1 Max at feature level 11_0, and
+ presented about 2,400 frames of the green it cleared to, as on screen
 
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
 --- a/dlls/ntdll/unix/loader.c
