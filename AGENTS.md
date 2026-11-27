@@ -267,6 +267,16 @@ projects.
   run a small Windows program in the same prefix that calls `SendInput`.
 - A variable set to an empty string is still set: `getenv()` returns `""`,
   not NULL. Unset it when a test program checks whether it exists.
+- When a game works on 10.0 and breaks on 11.x, check whether a DLL the
+  game ships (d3dx9_*, d3dcompiler_*, xinput and the like) is still
+  loaded from its folder. 11.x builds about 120 DLLs without
+  `--prefer-native` (`EXTRADLLFLAGS` in `dlls/<dll>/Makefile.in`;
+  `IMAGE_DLLCHARACTERISTICS_PREFER_NATIVE`, 0x10, in the built DLL's
+  DllCharacteristics), so Wine's builtin replaces the game's copy. Run
+  once with `WINEDLLOVERRIDES=<dll>=n,b` to tell. White Wolf's save-load
+  hang was Wine's d3dx9_30 `DrawText` word wrap, run in place of the
+  game's own d3dx9_30.dll. A `+font` trace that measures thousands of
+  strings where 10.0 measured hundreds was the sign.
 - `tools/scan16 <game folder>` reads every Windows file's headers and lists
   the 16-bit ones (NE), DOS ones, and 32-bit ones that import 16-bit
   thunks (LoadLibrary16, QT_Thunk and the like, often by ordinal). No 16-bit
