@@ -14,7 +14,8 @@ specific to this build:
   SOURCES.json            every component's source: name, version, licence,
                           sha256, upstream URLs and our copy
 
-Third-party sources (each bundled MacPorts port's distfiles, Gecko, Mono)
+Third-party sources (each bundled MacPorts port's distfiles, Gecko, Mono,
+GStreamer)
 aren't copied into every build: one copy of each version is kept on GitHub's
 container registry, and never deleted while a build needs it
 (build/publish_sources.py, run by the publish job).
@@ -183,13 +184,29 @@ components.append({
                "upstream": [env["MOLTENVK_URL"]]}],
     "source": f"https://github.com/KhronosGroup/MoltenVK/tree/v{env['MOLTENVK_VERSION']}",
 })
+gst_files = [{"name": os.path.basename(env["GSTREAMER_URL"]), "sha256": env["GSTREAMER_SHA256"],
+              "upstream": [env["GSTREAMER_URL"]], "note": "the framework as bundled; not kept"}]
+gst_src = [(env.get(f"GSTREAMER_SRC_{k}_URL"), env.get(f"GSTREAMER_SRC_{k}_SHA256"))
+           for k in ("BUNDLE", "CERBERO", "MODULES", "FREI0R", "DVDNAV", "DVDREAD", "SVTJPEGXS")]
+if all(url and sha for url, sha in gst_src):
+    gst_note = ("Its corresponding source is kept: upstream's cerbero bundle-source for the "
+                "release, the cerbero and GStreamer commits the framework's share/versions.txt "
+                "names, and the recipes the bundle leaves out whose files ship (frei0r-plugins, "
+                "libdvdnav, libdvdread, svt-jpeg-xs), from cerbero's recipe URLs.")
+    for url, sha in gst_src:
+        # GitHub's tag archives are named after the tag alone (v2.3.3.tar.gz).
+        m = re.match(r"https://github\.com/[^/]+/([^/]+)/archive/refs/tags/([^/]+)$", url)
+        name = f"{m.group(1)}-{m.group(2)}" if m else os.path.basename(url)
+        gst_files.append({"name": name, "sha256": sha, "upstream": [url],
+                          "copy": copy_ref("GStreamer.framework", env["GSTREAMER_VERSION"])})
+else:
+    gst_note = ("Not yet resolved: the framework's complete corresponding source (everything cerbero "
+                "built into it) isn't archived for this toolchain.")
 components.append({
     "name": "GStreamer.framework", "version": env["GSTREAMER_VERSION"],
     "license": "LGPL-2.0-or-later, and its parts' own licences",
-    "note": "Not yet resolved: the framework's complete corresponding source (everything cerbero "
-            "built into it) isn't archived yet.",
-    "files": [{"name": os.path.basename(env["GSTREAMER_URL"]), "sha256": env["GSTREAMER_SHA256"],
-               "upstream": [env["GSTREAMER_URL"]]}],
+    "note": gst_note,
+    "files": gst_files,
     "source": f"https://github.com/Sikarugir-App/gstreamer/tree/{env['GSTREAMER_VERSION']}",
 })
 

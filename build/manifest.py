@@ -202,11 +202,15 @@ if mvk_lic.is_dir() and any(mvk_lic.iterdir()):
     shutil.copytree(mvk_lic, licenses_dir / "MoltenVK")
 else:
     missing_licenses.append("MoltenVK")
-# GStreamer.framework ships the licences of everything in it; point at them
-# rather than keep a second copy.
+# GStreamer.framework ships the licences of most of what's in it; point at
+# them rather than keep a second copy. The parts whose licences it leaves out
+# are in build/licenses/GStreamer.framework/, taken from the framework's
+# archived source (its README), and go in beside the link.
 gst_lic = "lib/GStreamer.framework/Versions/1.0/share/licenses"
 if (T / gst_lic).is_dir() and any((T / gst_lic).iterdir()):
     (licenses_dir / "GStreamer.framework").symlink_to("../" + gst_lic)
+    shutil.copytree(ROOT / "build/licenses/GStreamer.framework",
+                    licenses_dir / "GStreamer.framework-additions")
 else:
     missing_licenses.append("GStreamer.framework")
 
