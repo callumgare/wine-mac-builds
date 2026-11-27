@@ -80,7 +80,17 @@ ADDONS="$TMP/wine-$VERSION/dlls/appwiz.cpl/addons.c"
 GECKO="$(sed -n 's/^#define GECKO_VERSION "\(.*\)"/\1/p' "$ADDONS")"
 MONO="$(sed -n 's/^#define MONO_VERSION "\(.*\)"/\1/p' "$ADDONS")"
 
-hash_url() { curl -fsSL "$1" | shasum -a 256 | cut -d' ' -f1; }
+# A URL another version already pinned keeps its sha256 (WineHQ's add-on
+# tarballs don't change); only new ones are downloaded and hashed.
+hash_url() {
+    local f
+    f="$(grep -lF "_URL=\"$1\"" "$ROOT"/inputs/*/*.sh 2>/dev/null | head -1 || true)"
+    if [[ -n "$f" ]]; then
+        grep -A1 -F "_URL=\"$1\"" "$f" | sed -n 's/^[A-Z0-9_]*_SHA256="\([0-9a-f]\{64\}\)"$/\1/p' | head -1
+    else
+        curl -fsSL "$1" | shasum -a 256 | cut -d' ' -f1
+    fi
+}
 G86="https://dl.winehq.org/wine/wine-gecko/$GECKO/wine-gecko-$GECKO-x86.tar.xz"
 G64="https://dl.winehq.org/wine/wine-gecko/$GECKO/wine-gecko-$GECKO-x86_64.tar.xz"
 M86="https://dl.winehq.org/wine/wine-mono/$MONO/wine-mono-$MONO-x86.tar.xz"

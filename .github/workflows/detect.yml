@@ -90,7 +90,7 @@ jobs:
             fi
 
             # wine: straight to main and a build.
-            if ! tools/pin wine "$v" > pin.log 2>&1 || grep -q '^Not carried' pin.log; then
+            if ! tools/pin wine "$v" > pin.log 2>&1 || grep -q "^Not carried (doesn't apply" pin.log; then
               body "tools/pin couldn't carry the wine flavour's patches to Wine $v. Port them (AGENTS.md, \"Fixing a bug\"), then pin it by hand." pin.log
               issue "Wine $v: pinning the wine flavour needs a hand" body.md
               exit 1
@@ -113,7 +113,7 @@ jobs:
             base="$(git rev-parse HEAD)"
             branch="pin/macfixes-$v"
             git switch -q -c "$branch"
-            if tools/pin macfixes "$v" > pin.log 2>&1 && ! grep -q '^Not carried' pin.log &&
+            if tools/pin macfixes "$v" > pin.log 2>&1 && ! grep -q "^Not carried (doesn't apply" pin.log &&
                 { python3 build/patch_header.py && tools/patch check macfixes "$v"; } >> pin.log 2>&1; then
               git add -A inputs flavours patches
               git commit -q -m "Pin Wine $v for the macfixes flavour" -m "By the detect workflow: $run_url"

@@ -18,12 +18,16 @@
         tools/pin runs this.
     tools/patch extend <flavour> <version> <wine source dir>
         Carry the flavour's patches into a newly pinned version: in order,
-        each patch whose copy for the flavour's previous version applies to
-        <version> without fuzz gets <version> added to that copy (git mv).
-        A copy that needs fuzz isn't carried, and nor is one whose Needed
-        until is <version> or earlier. Patches that don't apply are listed:
-        port them by hand (AGENTS.md). Copies whose Needed until is a
-        condition are carried and listed, to check by hand.
+        each patch the flavour applies at its previous or next version
+        (the nearest listed versions either side) gets <version> added to
+        the first of its copies that applies without fuzz, trying the
+        previous version's copy, then the next's, then the others nearest
+        first (git mv). A copy that needs fuzz isn't carried, and nor is one
+        whose Needed until is <version> or earlier. Patches that don't apply
+        are listed: port them by hand (AGENTS.md). Listed to check by hand:
+        copies whose Needed until is a condition, and patches carried from
+        the next version that the previous one doesn't apply (when pinning
+        backwards, a fix may be for a change made after <version>).
         The source directory is changed: pass a scratch copy. tools/pin
         runs this.
     tools/patch rename <old name> <new name> [--base winehq]
@@ -180,38 +184,57 @@ def cmd_extend(argv):
     fl = P.flavour(flavour)
     base, sets = fl["base"], fl["sets"]
     pinned = P.base_versions(base)
-    earlier = [v for v in fl["versions"] if P.version_key(v) < P.version_key(version)]
-    if not earlier:
-        sys.exit(f"{flavour} has no version before {version} to carry patches from")
-    prev = max(earlier, key=P.version_key)
+    key = P.version_key(version)
+    earlier = [v for v in fl["versions"] if P.version_key(v) < key]
+    later = [v for v in fl["versions"] if P.version_key(v) > key]
+    if not earlier and not later:
+        sys.exit(f"{flavour} has no other version to carry patches from")
+    prev = max(earlier, key=P.version_key) if earlier else None
+    nxt = min(later, key=P.version_key) if later else None
     import patch_header
     have = {c.patch.name: c for c in P.resolve(base, sets, version)}
-    carried, missing, ended, conditions = [], [], [], []
-    for c in P.resolve(base, sets, prev):
-        name = c.patch.name
+    at_prev = {c.patch.name: c for c in P.resolve(base, sets, prev)} if prev else {}
+    at_next = {c.patch.name: c for c in P.resolve(base, sets, nxt)} if nxt else {}
+    patches = {c.patch.name: c.patch for c in [*at_prev.values(), *at_next.values()]}
+
+    def distance(c):
+        return min(abs(pinned.index(v) - pinned.index(version))
+                   for v in c.versions)
+
+    carried, missing, ended, conditions, newer = [], [], [], [], []
+    for p in sorted(patches.values(), key=lambda p: p.number):
+        name = p.name
         use = have.get(name)
         if use is None:
-            h = patch_header.parse(c.path)
+            h = patch_header.parse((at_prev.get(name) or at_next[name]).path)
             until = h.fields.get("Needed until")
             nu = patch_header.needed_until(h)
-            if nu and P.version_key(version) >= P.version_key(nu):
+            if nu and key >= P.version_key(nu):
                 ended.append(f"{name} (Needed until: {until})")
                 continue
             if until and not nu:
                 conditions.append(f"{name} (Needed until: {until})")
-        if use is None and apply(c, src, dry=True):
-            use = c
-            dst = c.path.with_name(
-                f"{name}@{P.format_versions(c.versions + [version], pinned)}.patch")
-            git_mv(c.path, dst)
-            c.path = dst
-            carried.append(name)
+            tries = [c for c in (at_prev.get(name), at_next.get(name)) if c]
+            tries += sorted((c for c in p.copies if c.versions and c not in tries), key=distance)
+            for c in tries:
+                if apply(c, src, dry=True):
+                    use = c
+                    break
+            if use is not None:
+                dst = use.path.with_name(
+                    f"{name}@{P.format_versions(use.versions + [version], pinned)}.patch")
+                git_mv(use.path, dst)
+                use.path = dst
+                carried.append(name)
+                if name not in at_prev and prev:
+                    newer.append(name)
         if use is None:
             missing.append(name)
             continue
         if not apply(use, src, dry=False):
             sys.exit(f"{use.file} passed its dry run but didn't apply")
-    print(f"{flavour} {version}: carried {len(carried)} patches from {prev}; "
+    sides = " and ".join(v for v in (prev, nxt) if v)
+    print(f"{flavour} {version}: carried {len(carried)} patches from {sides}; "
           f"{len(have)} already had a copy for {version}")
     if ended:
         print(f"Not carried (their Needed until is {version} or earlier):")
@@ -226,6 +249,11 @@ def cmd_extend(argv):
         print(f"Needed until a condition: check that it still holds at {version}, and drop the "
               "copy from this version if not:")
         for n in conditions:
+            print(f"  {n}")
+    if newer:
+        print(f"Carried from {nxt} although {prev} doesn't apply them: check each is "
+              f"needed at {version}, and drop the copy from this version if not:")
+        for n in newer:
             print(f"  {n}")
 
 

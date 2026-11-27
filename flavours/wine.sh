@@ -14,7 +14,7 @@ FLAVOUR_DESCRIPTION="WineHQ's release, with only the changes needed to build and
 PATCH_BASE=winehq
 PATCH_SETS=(build packaging)
 # The Wine versions this flavour is built for.
-VERSIONS=(10.0 10.20 11.21 11.22)
+VERSIONS=(10.0 10.1 10.2 10.3 10.4 10.5 10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15 10.16 10.17 10.18 10.19 10.20 11.0 11.1 11.2 11.3 11.4 11.5 11.6 11.7 11.8 11.9 11.10 11.11 11.12 11.13 11.14 11.15 11.16 11.17 11.18 11.19 11.20 11.21 11.22)
 
 # Configure options: Gcenx's wine-devel Portfile at fc0301b, with the
 # default +gstreamer variant. Paths that depend on the toolchain are added
