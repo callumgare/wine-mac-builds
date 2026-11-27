@@ -78,6 +78,7 @@ All guard patches in macfixes' patch sets, named as in
 | `bc7-texture` | `winemac-bc7-texture-decode` | BC7 textures upload as nothing, as macOS's OpenGL has no BC7 (Tomb Raider I-III Remastered) |
 | `color-depth` | `gdi32-per-program-color-depth` | a program that won't run unless the screen is 8 or 16 bits can't be given that depth on a Mac; `AppDefaults\<exe>\Mac Driver\ColorDepth` sets what it sees, Wine's own bitmaps stay 32-bit, and at 8 bits the system palette holds the program's palette |
 | `d3d8-up-draw-speed` | `wined3d-exact-dirty-range-internal-buffers` | Wine 11.22 sends wined3d's whole streaming buffer again for each small `DrawPrimitiveUP` with software vertex processing; Iji runs about 3x slower. A timing test: it compares against the same draws with hardware vertex processing (about 1.5x with the fix, 40x without) |
+| `d3dx9-wordbreak-narrow` | `d3dx9-wordbreak-progress` | Wine's `ID3DXFont::DrawText` with `DT_WORDBREAK` never returns when a character is wider than the rectangle; Wine 11 loads its builtin d3dx9_30 in place of a game's own, and White Wolf hangs loading a save |
 | `d3d11-vulkan-renderer` | `wined3d-vulkan-on-moltenvk` | Direct3D 10 and 11 get wined3d's OpenGL renderer instead of Vulkan on MoltenVK |
 | `fullscreen-gdi-centred` | `winemac-centre-fullscreen-gdi` | with EmulateModeset, a fullscreen picture in a mode of another shape is drawn at the left instead of centred (Bioscopia) |
 | `fullscreen-gl-centred` | `winemac-raw-client-surface-backing` | with EmulateModeset, a fullscreen OpenGL picture in a mode of another shape comes out zoomed and cropped on Wine 11 (White Wolf Queen) |
@@ -91,7 +92,7 @@ that Wine 11's own fix still holds.
 - `fs-addr16` and `rosetta-xgetbv` catch their bugs on macOS 15. macOS
   26's Rosetta handles both instructions itself, so on a macOS 26 Mac or
   build VM they pass even without the fix.
-- Build VMs have no accelerated OpenGL, so `bc7-texture`,
+- Build VMs have no accelerated OpenGL, so `bc7-texture`, `d3dx9-wordbreak-narrow`,
   `d3d8-up-draw-speed` and `gl-core-context` skip there (the
   `needs-opengl` helper asks macOS first). After a VM build,
   `build/hostgl.sh` runs them on the host Mac. Elsewhere, run them on a
