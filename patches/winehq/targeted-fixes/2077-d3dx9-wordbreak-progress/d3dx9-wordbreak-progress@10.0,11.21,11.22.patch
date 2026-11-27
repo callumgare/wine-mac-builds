@@ -20,7 +20,7 @@ Uncertain: what native d3dx9 returns for a rectangle narrower than one
  character: the game's own d3dx9_30.dll doesn't hang there, and user32's
  DrawText puts one character on each line, but Windows wasn't tested. A
  conformance test in dlls/d3dx9_36/tests would need that checked first.
-Status: 2026-11-27: tests/regress/d3dx9-wordbreak-narrow fails on
+Status: 11.22: 2026-11-27: tests/regress/d3dx9-wordbreak-narrow fails on
  macfixes 11.22-build0 (DrawText doesn't return in 10 s) and passes in a
  host quick build of macfixes 11.22 with this patch (two lines of one
  character; not for release). On that quick build in a Screen Slots slot
@@ -29,6 +29,15 @@ Status: 2026-11-27: tests/regress/d3dx9-wordbreak-narrow fails on
  11.22-build0 hung on it 2 of 2. +d3dx shows the call: L"is" in
  (143,36)-(146,48), format DT_WORDBREAK | DT_CALCRECT. Not tested on
  Windows, and not in a full build.
+ 10.0: 2026-11-27: applies unchanged (font.c is the same as 11.22's). The
+ test fails on macfixes 10.0-build0 (doesn't return in 10 s) and passes
+ in host quick build 10.0-quick20261127T053758, with the other hostgl
+ tests. 10.0 builds d3dx9 with --prefer-native, so a game's own d3dx9
+ normally loads instead; the game wasn't run on it. Not in a full build.
+ 11.21: 2026-11-27: applies unchanged. The test fails on macfixes
+ 11.21-build0 and passes in host quick build 11.21-quick20261127T055226,
+ with the other hostgl tests. The game wasn't run on it. Not in a full
+ build.
 
 --- a/dlls/d3dx9_36/font.c
 +++ b/dlls/d3dx9_36/font.c
