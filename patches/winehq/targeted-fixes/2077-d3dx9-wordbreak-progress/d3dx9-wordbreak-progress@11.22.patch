@@ -1,0 +1,49 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: d3dx9: put at least one character on each line in DrawText, so a word break can't loop
+Category: graphics
+Kind: fix
+Origin: wine-mac-builds
+  Note: dlls/d3dx9_36/font.c, word_break()
+Upstream: no
+Why: With DT_WORDBREAK, ID3DXFont::DrawText breaks each line in
+ word_break(). When not even the line's first character fits the width,
+ it used no characters at all, so read_line() started the next line at the
+ same place, and DrawText never returned with DT_CALCRECT or DT_NOCLIP.
+ Now at least one character (a surrogate pair counts as one) goes on the
+ line, as in user32's DrawText. Wine 11 loads its builtin d3dx9_30 where
+ 10.0 loaded the copy a game ships (upstream dropped --prefer-native from
+ the d3dx9 DLLs), so games that worked on 10.0 reach this code.
+Programs: Nancy Drew: The White Wolf of Icicle Creek: loading a save at the
+ peg-board puzzle hangs (Game.exe at 100% CPU) on Wine 11, where the game
+ lays out the word "is" of a subtitle in a rectangle 3 pixels wide
+Uncertain: what native d3dx9 returns for a rectangle narrower than one
+ character: the game's own d3dx9_30.dll doesn't hang there, and user32's
+ DrawText puts one character on each line, but Windows wasn't tested. A
+ conformance test in dlls/d3dx9_36/tests would need that checked first.
+Status: 2026-11-27: tests/regress/d3dx9-wordbreak-narrow fails on
+ macfixes 11.22-build0 (DrawText doesn't return in 10 s) and passes in a
+ host quick build of macfixes 11.22 with this patch (two lines of one
+ character; not for release). On that quick build in a Screen Slots slot
+ (meeka, macOS 26.7), White Wolf (Big Fish edition) with the builtin
+ d3dx9_30 loads the user's peg-board save and the clock runs, 1 of 1;
+ 11.22-build0 hung on it 2 of 2. +d3dx shows the call: L"is" in
+ (143,36)-(146,48), format DT_WORDBREAK | DT_CALCRECT. Not tested on
+ Windows, and not in a full build.
+
+--- a/dlls/d3dx9_36/font.c
++++ b/dlls/d3dx9_36/font.c
+@@ -538,8 +538,13 @@
+     if (!sla[i].fSoftBreak)
+         i = chars_fit;
+ 
++    /* Put at least one character on the line, even if it doesn't fit, or a
++     * character wider than the line is never passed. */
++    if (!i && !sla[0].fWhiteSpace)
++        i = (*str_len > 1 && IS_HIGH_SURROGATE(str[0]) && IS_LOW_SURROGATE(str[1])) ? 2 : 1;
++
+     *chars_used = i;
+-    if (sla[i].fWhiteSpace)
++    if (i < *str_len && sla[i].fWhiteSpace)
+         ++(*chars_used);
+ 
+     /* Remove extra spaces */
