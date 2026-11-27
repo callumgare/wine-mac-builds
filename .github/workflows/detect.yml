@@ -1,0 +1,129 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+#
+# Finds WineHQ releases newer than the newest version the wine flavour
+# lists (tools/new-releases) and, for each, oldest first:
+#
+# - wine: pins it (tools/pin), checks the patch headers and that every patch
+#   applies at fuzz 0 (as checks.yml does; a push from this workflow starts
+#   no other workflow), commits the result to main and starts build.yml.
+#   The build ends as a draft release; publishing it is still a person's job.
+# - macfixes (not release candidates): pins it on a branch,
+#   pin/macfixes-<version>, and opens an issue: one to review the branch and
+#   build it when every patch carried over, or one listing the patches to
+#   port by hand when some didn't.
+#
+# A release whose tarball isn't on dl.winehq.org yet (tags come first) is
+# left for the next run. Anything else that goes wrong opens an issue and
+# stops the run, so versions are always pinned in order. Issues aren't
+# opened twice: an open issue with the same title is left as it is.
+
+name: detect
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: detect
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit pins to main, push pin/macfixes-* branches
+      actions: write    # start build.yml
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      # The main plan promises plain builds of every release, release
+      # candidates included; macfixes skips them.
+      WINE_FLAGS: --release-candidates
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Pin and build new releases
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          run_url="$GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
+
+          issue() {   # issue <title> <body file>
+            if [[ -n "$(gh issue list --state open --search "in:title \"$1\"" --json title -q ".[] | select(.title == \"$1\") | .title")" ]]; then
+              echo "An open issue already says: $1"
+            else
+              gh issue create --title "$1" --body-file "$2"
+            fi
+          }
+          body() {    # body <text> <log file>: issue text with the log below it
+            { echo "$1"; echo; echo "Run: $run_url"; echo; echo '```'; tail -c 60000 "$2"; echo '```'; } > body.md
+          }
+          reset() { git reset -q --hard "$1"; git clean -qfd -e .cache; }
+          fetch_tarball() {   # into .cache/<sha256>/, where tools/patch looks
+            local f="inputs/winehq/$1.sh" url sha
+            url="$(sed -n 's/^WINE_URL="\(.*\)"$/\1/p' "$f")"
+            sha="$(sed -n 's/^WINE_SHA256="\(.*\)"$/\1/p' "$f")"
+            mkdir -p ".cache/$sha"
+            [[ -f ".cache/$sha/${url##*/}" ]] || curl -fsSL --retry 3 -o ".cache/$sha/${url##*/}" "$url"
+          }
+
+          # shellcheck disable=SC2086,SC2207
+          new=($(tools/new-releases wine $WINE_FLAGS))
+          [[ ${#new[@]} -gt 0 ]] || { echo "No new WineHQ releases."; exit 0; }
+          echo "New WineHQ releases: ${new[*]}"
+
+          for v in "${new[@]}"; do
+            case "$v" in
+              *.0|*.0-rc*|*.0.*) dir="${v%%.*}.0" ;;
+              *) dir="${v%%.*}.x" ;;
+            esac
+            if ! curl -fsIL -o /dev/null "https://dl.winehq.org/wine/source/$dir/wine-$v.tar.xz"; then
+              echo "::notice::wine-$v is tagged but its tarball isn't on dl.winehq.org yet; next run."
+              break
+            fi
+
+            # wine: straight to main and a build.
+            if ! tools/pin wine "$v" > pin.log 2>&1 || grep -q '^Not carried' pin.log; then
+              body "tools/pin couldn't carry the wine flavour's patches to Wine $v. Port them (AGENTS.md, \"Fixing a bug\"), then pin it by hand." pin.log
+              issue "Wine $v: pinning the wine flavour needs a hand" body.md
+              exit 1
+            fi
+            cat pin.log
+            fetch_tarball "$v"
+            if ! { python3 build/patch_header.py && tools/patch check wine "$v"; } > check.log 2>&1; then
+              body "Wine $v pinned for the wine flavour, but the checks failed, so nothing was committed." check.log
+              issue "Wine $v: the wine flavour's checks fail" body.md
+              exit 1
+            fi
+            git add -A inputs flavours patches
+            git commit -q -m "Pin Wine $v for the wine flavour" -m "By the detect workflow: $run_url"
+            git push -q origin HEAD:main
+            gh workflow run build.yml --ref main -f flavour=wine -f version="$v"
+            echo "Pinned wine $v and started its build."
+
+            # macfixes: a branch to review.
+            [[ $v != *-rc* ]] || continue
+            base="$(git rev-parse HEAD)"
+            branch="pin/macfixes-$v"
+            git switch -q -c "$branch"
+            if tools/pin macfixes "$v" > pin.log 2>&1 && ! grep -q '^Not carried' pin.log &&
+                { python3 build/patch_header.py && tools/patch check macfixes "$v"; } >> pin.log 2>&1; then
+              git add -A inputs flavours patches
+              git commit -q -m "Pin Wine $v for the macfixes flavour" -m "By the detect workflow: $run_url"
+              git push -q origin "$branch"
+              body "Every macfixes patch carried over to Wine $v at fuzz 0, on the branch \`$branch\` ($GITHUB_SERVER_URL/$GH_REPO/compare/main...$branch). Check the copies whose Needed until is a condition (listed below, if any), merge it, then start build.yml for macfixes $v." pin.log
+              issue "Wine $v: review the macfixes pin" body.md
+            else
+              body "Some macfixes patches don't apply to Wine $v at fuzz 0. Port them by hand (AGENTS.md, \"Fixing a bug\"); nothing was pushed." pin.log
+              issue "Wine $v: macfixes patches to port" body.md
+            fi
+            git switch -q main
+            reset "$base"
+          done

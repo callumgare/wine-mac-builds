@@ -36,7 +36,11 @@ projects.
 - `flavours/` defines each flavour: its base, its patch sets
   (`PATCH_SETS`) and the Wine versions it's built for (`VERSIONS`).
   `inputs/<base>/<version>.sh` pins a version's sources. `tools/pin
-  <flavour> <version>` adds a version.
+  <flavour> <version>` adds a version. New WineHQ releases are found
+  daily by `.github/workflows/detect.yml` (`tools/new-releases`): it pins
+  them for `wine` on `main` and starts their builds, and pins them for
+  `macfixes` on a `pin/macfixes-<version>` branch with an issue to
+  review it, or an issue listing the patches to port.
 - `patches/<base>/<set>/<NNNN>-<name>/<name>@<versions>.patch`: each patch,
   one file per copy, in patch sets. The layout, the header format and the
   rules are in [patches/README.md](patches/README.md).

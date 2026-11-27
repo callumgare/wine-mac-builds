@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: LGPL-2.1-or-later
+"""tools/new-releases <flavour> [--release-candidates]
+
+Lists WineHQ releases newer than the newest version the flavour lists
+(VERSIONS in flavours/<flavour>.sh), oldest first, one per line. Read from
+the tags in WineHQ's git repository. Release candidates are left out unless
+--release-candidates is given. Older versions the flavour skips aren't
+listed: this finds new releases, not backfill.
+
+The detect workflow (.github/workflows/detect.yml) pins each with tools/pin.
+"""
+import pathlib
+import re
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "build"))
+import patches as P  # noqa: E402
+
+WINEHQ_GIT = "https://gitlab.winehq.org/wine/wine.git"
+TAG_RE = re.compile(r"refs/tags/wine-([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-rc[0-9]+)?)$")
+
+
+def upstream_versions():
+    out = subprocess.run(["git", "ls-remote", "--tags", WINEHQ_GIT],
+                         check=True, capture_output=True, text=True).stdout
+    vs = set()
+    for line in out.splitlines():
+        m = TAG_RE.search(line)
+        if m:
+            vs.add(m.group(1))
+    return sorted(vs, key=P.version_key)
+
+
+def main(argv):
+    rc = "--release-candidates" in argv
+    args = [a for a in argv if a != "--release-candidates"]
+    if len(args) != 1:
+        sys.exit(__doc__.strip().splitlines()[0])
+    have = P.flavour(args[0])["versions"]
+    if not have:
+        sys.exit(f"{args[0]} lists no versions")
+    newest = P.version_key(max(have, key=P.version_key))
+    for v in upstream_versions():
+        if P.version_key(v) <= newest or v in have:
+            continue
+        if "-rc" in v and not rc:
+            continue
+        print(v)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
