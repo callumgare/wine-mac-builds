@@ -278,7 +278,9 @@ projects.
   check in ("check-in of … failed"): `launchctl bootout` the old one first. `WMH_TESTHOST_STATES=1` makes it ask the
   program's window to minimize, restore and maximize; `WMH_TESTHOST_DROP=
   <file>` drags that file onto it (Notepad opens it, and its title shows
-  it). `WMH_TESTHOST_DISPLAYS="0,0,1512,945,0,0,1512,920"` answers
+  it). `WMH_TESTHOST_RESIZE=1` starts a live resize, asks about a 100x80
+  frame dragged by the bottom right corner and logs the
+  resize_size_reply: the frame the program's WM_SIZING chose. `WMH_TESTHOST_DISPLAYS="0,0,1512,945,0,0,1512,920"` answers
   displays_get with that display (frame, then optionally work area; `;`
   separates displays), and `WMH_TESTHOST_DISPLAYS2` switches to another
   answer 3 s after the first question and sends DISPLAYS_CHANGED; without

@@ -164,6 +164,11 @@ int main(int argc, char **argv)
      * first window, and act as an input method when the driver asks:
      * "a" gives the marked text U+3042, Return commits U+4E9C. */
     int ime = getenv("WMH_TESTHOST_IME") != NULL;
+    /* WMH_TESTHOST_RESIZE=1: start a live resize of the last connection's
+     * first window, ask the driver about a 100x80 frame dragged by its
+     * bottom right corner (QUERY_RESIZE_SIZE), then end the resize. The
+     * answer shows the frame the program's WM_SIZING chose. */
+    int resize = getenv("WMH_TESTHOST_RESIZE") != NULL;
     struct wmh_reply_displays displays, displays2;
     int have_displays = parse_displays(getenv("WMH_TESTHOST_DISPLAYS"), &displays);
     int have_displays2 = parse_displays(getenv("WMH_TESTHOST_DISPLAYS2"), &displays2);
@@ -271,6 +276,31 @@ int main(int argc, char **argv)
                     send_to(sc->driver, WMH_KIND_EVENT, &k, sizeof(k), 0, 0);
                     k.type = WMH_EV_KEY_RELEASE;
                     send_to(sc->driver, WMH_KIND_EVENT, &k, sizeof(k), 0, 0);
+                    break;
+                }
+            step++;
+            fflush(stdout);
+        }
+        if (resize && start && !closed && step < 3 && now() - start > 1.5 * (step + 1) && nconns)
+        {
+            static const uint32_t types[] = { WMH_EV_QUERY_RESIZE_START, WMH_EV_QUERY_RESIZE_SIZE, WMH_EV_WINDOW_RESIZE_ENDED };
+            static const char *names[] = { "query_resize_start", "query_resize_size", "window_resize_ended" };
+            struct conn *sc = &conns[nconns - 1];
+            for (uint32_t i = 1; i < MAXW; i++)
+                if (sc->visible[i] && sc->frames[i])
+                {
+                    struct wmh_event ev = { .type = types[step], .window = i };
+                    uint32_t serial;
+                    if (types[step] == WMH_EV_QUERY_RESIZE_SIZE)
+                    {
+                        ev.frame = (struct wmh_rect){ sc->wframe[i].x, sc->wframe[i].y, 100, 80 };
+                        ev.flags = WMH_WMSZ_BOTTOMRIGHT;
+                    }
+                    serial = send_to(sc->driver, WMH_KIND_EVENT, &ev, sizeof(ev), 0, 0);
+                    printf("host: sending %s (serial %u) to %s window %u", names[step], serial, sc->exe, i);
+                    if (types[step] == WMH_EV_QUERY_RESIZE_SIZE)
+                        printf(": %.0f,%.0f %.0fx%.0f", ev.frame.x, ev.frame.y, ev.frame.width, ev.frame.height);
+                    printf("\n");
                     break;
                 }
             step++;
@@ -458,6 +488,11 @@ int main(int argc, char **argv)
         case WMH_KIND_DRAG_DONE: {
             struct wmh_drag_done *dd = pl;
             printf("host: %s drag_done serial %u accepted %u ops %#x\n", c->exe, dd->serial, dd->accepted, dd->ops);
+            break; }
+        case WMH_KIND_RESIZE_SIZE_REPLY: {
+            struct wmh_resize_size_reply *rr = pl;
+            printf("host: %s resize_size_reply serial %u %.0f,%.0f %.0fx%.0f\n", c->exe, rr->serial,
+                   rr->frame.x, rr->frame.y, rr->frame.width, rr->frame.height);
             break; }
         case WMH_KIND_WINDOW_FEATURES: {
             struct wmh_window_flags *f = pl;

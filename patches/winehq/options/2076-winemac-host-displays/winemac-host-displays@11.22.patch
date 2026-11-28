@@ -154,19 +154,19 @@ index bbc47e0..fe717fe 100644
                  vendor_number = CGDisplayVendorNumber(monitors[monitor_count].id);
                  model_number = CGDisplayModelNumber(monitors[monitor_count].id);
 diff --git a/dlls/winemac.drv/cocoa_host.h b/dlls/winemac.drv/cocoa_host.h
-index ca766e0..199fa9e 100644
+index 46122e4..e68f77e 100644
 --- a/dlls/winemac.drv/cocoa_host.h
 +++ b/dlls/winemac.drv/cocoa_host.h
-@@ -53,3 +53,4 @@ extern void host_set_cursor(CFStringRef name, CFArrayRef frames);
+@@ -53,3 +53,4 @@ @interface WineHostWindow : NSObject
  extern int host_get_cursor_position(CGPoint *pos);
  extern int host_set_cursor_position(CGPoint pos);
  extern int host_clip_cursor(CGRect rect);
 +extern int host_get_displays(struct wmh_display *displays, int max);
 diff --git a/dlls/winemac.drv/cocoa_host.m b/dlls/winemac.drv/cocoa_host.m
-index 2e4a653..00bae32 100644
+index aba2082..70d487f 100644
 --- a/dlls/winemac.drv/cocoa_host.m
 +++ b/dlls/winemac.drv/cocoa_host.m
-@@ -613,6 +613,45 @@ void macdrv_host_set_ime_rect(CGRect rect)
+@@ -643,6 +643,45 @@ void macdrv_host_set_ime_rect(CGRect rect)
      host_send(WMH_KIND_IME_RECT, &msg, sizeof(msg));
  }
  
@@ -209,9 +209,9 @@ index 2e4a653..00bae32 100644
 +    return count;
 +}
 +
- void host_drag_done(macdrv_query *query)
- {
-     struct wmh_drag_done done = { query->host_serial, query->status ? 1 : 0, 0, 0 };
+ /* The answer to a question the host asked (a drag step or a resize size).
+  * query_resize_size changes the rect only when the program handled
+  * WM_SIZING, so it is the proposed frame otherwise. */
 diff --git a/dlls/winemac.drv/display.c b/dlls/winemac.drv/display.c
 index d045ff1..426aaeb 100644
 --- a/dlls/winemac.drv/display.c
@@ -322,10 +322,10 @@ index d045ff1..426aaeb 100644
              free(modes);
              macdrv_free_monitors(monitors, monitor_count);
 diff --git a/dlls/winemac.drv/macdrv_cocoa.h b/dlls/winemac.drv/macdrv_cocoa.h
-index 7b516cb..8ed63f5 100644
+index cbffd5a..1fced78 100644
 --- a/dlls/winemac.drv/macdrv_cocoa.h
 +++ b/dlls/winemac.drv/macdrv_cocoa.h
-@@ -245,6 +245,9 @@ struct macdrv_monitor
+@@ -245,6 +245,9 @@ static inline CGPoint cgpoint_win_from_mac(CGPoint point)
      unsigned char *edid;
      uint32_t edid_len;
      bool hdr_enabled;

@@ -115,6 +115,7 @@ enum {
     WMH_KIND_IME_RECT,                  /* struct wmh_ime_rect */
     WMH_KIND_QUIT_REPLY = 80,
     WMH_KIND_DRAG_DONE,                 /* struct wmh_drag_done: the answer to a drag */
+    WMH_KIND_RESIZE_SIZE_REPLY,         /* struct wmh_resize_size_reply: the answer to QUERY_RESIZE_SIZE */
 
     /* ---- host -> driver ---- */
     WMH_KIND_HELLO_REPLY = 1001,        /* PORTS: [0] send right to the host's port for this connection */
@@ -487,8 +488,39 @@ enum {
     /* Questions the driver answers with messages, not a reply:
      * QUERY_MIN_MAX_INFO: send window_min_max (the program's WM_GETMINMAXINFO);
      * QUERY_RESIZE_START: the user is starting to resize or move the window
-     * (WM_ENTERSIZEMOVE; WINDOW_RESIZE_ENDED ends it); window_min_max follows. */
-    WMH_EV_QUERY_MIN_MAX_INFO = 50, WMH_EV_QUERY_RESIZE_START,
+     * (WM_ENTERSIZEMOVE; WINDOW_RESIZE_ENDED ends it); window_min_max follows;
+     * QUERY_RESIZE_SIZE: see below. */
+    WMH_EV_QUERY_MIN_MAX_INFO = 50, WMH_EV_QUERY_RESIZE_START, WMH_EV_QUERY_RESIZE_SIZE,
+};
+
+/* QUERY_RESIZE_SIZE: during a live resize, the size the user is dragging
+ * the window to, before the host applies it, as the plain driver asks in
+ * windowWillResize:toSize:. The event's header serial is nonzero; frame is
+ * the proposed content area (protocol space, as in window_frame) and flags
+ * the edge being dragged, as WM_SIZING's WMSZ_* (1 left, 2 right, 3 top,
+ * 4 top left, 5 top right, 6 bottom, 7 bottom left, 8 bottom right). The
+ * driver sends the program WM_SIZING, which may change the rect (to keep a
+ * minimum size or an aspect ratio, say), and answers with
+ * resize_size_reply carrying the serial and the frame to use: the
+ * program's, or the proposed one if the program left it alone. The host
+ * waits up to 0.1 s for it, as the plain driver waits for its own query,
+ * and uses the proposed frame if none comes; a reply that comes later
+ * carries an older serial, and is ignored. A host sends it only while
+ * the window is in a live resize (after QUERY_RESIZE_START) and not
+ * MAXIMIZED. */
+#define WMH_WMSZ_LEFT        1u
+#define WMH_WMSZ_RIGHT       2u
+#define WMH_WMSZ_TOP         3u
+#define WMH_WMSZ_TOPLEFT     4u
+#define WMH_WMSZ_TOPRIGHT    5u
+#define WMH_WMSZ_BOTTOM      6u
+#define WMH_WMSZ_BOTTOMLEFT  7u
+#define WMH_WMSZ_BOTTOMRIGHT 8u
+
+struct wmh_resize_size_reply {
+    uint32_t        serial;             /* the event's header serial */
+    uint32_t        reserved;
+    struct wmh_rect frame;              /* the content area to resize to */
 };
 
 /* WINDOW_FRAME_CHANGED flags */
@@ -517,7 +549,8 @@ struct wmh_event {
     double          scroll_x, scroll_y; /* in WHEEL_DELTA units, as the plain driver sends */
     /* frame changed, restore, quit */
     struct wmh_rect frame;
-    uint32_t        flags;              /* FRAME_CHANGED: WMH_FRAME_*; RESTORE_REQUESTED: 1 keep frame */
+    uint32_t        flags;              /* FRAME_CHANGED: WMH_FRAME_*; RESTORE_REQUESTED: 1 keep frame;
+                                         * QUERY_RESIZE_SIZE: WMH_WMSZ_* */
     uint32_t        reason;             /* APP_QUIT_REQUESTED: WMH_QUIT_REASON_* */
 };
 
@@ -546,6 +579,7 @@ WMH_ASSERT_SIZE(wmh_reply_displays, 8 + 8 * 72);
 WMH_ASSERT_SIZE(wmh_event, 104);
 WMH_ASSERT_SIZE(wmh_drag, 160);
 WMH_ASSERT_SIZE(wmh_drag_done, 16);
+WMH_ASSERT_SIZE(wmh_resize_size_reply, 40);
 #undef WMH_ASSERT_SIZE
 
 #endif /* WMH_PROTOCOL_H */

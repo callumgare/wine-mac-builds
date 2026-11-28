@@ -194,6 +194,7 @@ yet; in host mode the driver does nothing for them.
 | `ime_clear` | `clear_ime_text` | done | discard the marked text |
 | `ime_rect` | `SetIMECompositionRect` | done | for the candidate window, in the protocol's space; the host maps it as it maps the window's picture |
 | `drag_done` | (dragging destination) | done | the answer to each `drag` step |
+| `resize_size_reply` | (`windowWillResize:toSize:`) | done | the answer to `QUERY_RESIZE_SIZE`: its serial and the frame the program's WM_SIZING chose |
 | `window_get_frame` (*call*) | `get_cocoa_window_frame` | defined | the driver uses its fallback, the last frame sent or reported, without asking |
 | `cursor_get` (*call*) | `get_cursor_position` | defined | the driver uses its fallback, the last position the host reported, without asking |
 | `window_shape`, `window_alpha`, `window_color_key` | `set_window_shape`, `window_shape_changed`, `set_window_alpha`, `window_use_per_pixel_alpha`, `set_window_mask` | planned | shaped and layered windows show as opaque rectangles until then |
@@ -249,8 +250,13 @@ operation to show). The host waits for those answers, as the plain
 driver's dragging methods do; the driver reads the dragged data from the
 drag pasteboard by name. The driver posts all of these to the window's
 event queue; its receive thread doesn't wait for the answer.
-`RESIZE_SIZE` (adjusting a size during a live resize) isn't in the
-protocol yet.
+`QUERY_RESIZE_SIZE` is asked during a live resize, before the host
+applies each new size, as the plain driver's `windowWillResize:toSize:`
+asks: the event's header serial, the proposed content frame and the edge
+being dragged (WMSZ_*). The driver sends the program WM_SIZING, through
+which a program keeps a minimum size or an aspect ratio, and answers with
+`resize_size_reply` (the serial and the frame to use). The host waits up
+to 0.1 s and uses the proposed frame if no answer comes.
 
 **Replies** to the driver's calls, and `surface_release`.
 
@@ -276,9 +282,6 @@ protocol yet.
   attach a Metal view to a host window, so such a program shows nothing in
   the host; use Wine's own Direct3D (wined3d over OpenGL), which host mode
   supports.
-- `RESIZE_SIZE`: a program adjusting the rectangle during a live resize
-  (WM_SIZING) sees the size the user dragged to and corrects it only after
-  the drag.
 - Windows whose owner is in another process.
 - The messages marked "planned" in the tables.
 
