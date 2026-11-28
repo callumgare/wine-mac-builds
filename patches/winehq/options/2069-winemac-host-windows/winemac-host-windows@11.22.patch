@@ -89,7 +89,8 @@ Status: 11.22: 2026-11-28: QUERY_RESIZE_SIZE (WM_SIZING during a live
  resize) added; host quick build quick20261128T010948 (meeka, M1 Max,
  macOS 26.7.2): wmh-testhost's 100x80 bottom-right question to a window
  that holds 640x480 in WM_SIZING was answered 640x480 (WM_SIZING edge 8);
- other edges, a real host and the regression suite not run.
+ with winemac-resize-size-unlocked, Old Clock in Second Chance's host kept
+ 640x480 through live resizes; other edges and the regression suite not run.
  11.22: 2026-11-26: review fixes (the GL FBO table keyed by a
  per-context id, a receive error ends host mode, and others); not yet in
  a build.

@@ -25,8 +25,10 @@ No test: needs a live resize driven from macOS or a host; reproduced with
  waits for a GL thread that presents twice under the same lock
 Status: 11.22: 2026-11-28: host quick build quick20261128T032344 (meeka, M1 Max,
  macOS 26.7.2), wmh-testhost with the GL test window: answered 4 of 4;
- quick20261128T010948 without it hung 4 of 4. Not yet tried with Old Clock,
- the plain driver or the regression suite.
+ quick20261128T010948 without it hung 4 of 4. Old Clock (cnc-ddraw) in
+ Second Chance's host on it: drags below 640x480 stopped at the minimum and
+ frames continued (Second Chance's report). Plain driver and regression
+ suite not run.
 
 diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
 --- a/dlls/winemac.drv/window.c
