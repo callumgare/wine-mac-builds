@@ -8,9 +8,10 @@
  * Guards: winemac-fwd-compat-gl-context
  *
  * macOS only offers forward-compatible OpenGL 3.2+ core contexts. Programs
- * written for Windows ask for 3.2-4.1 core without that flag, and Wine 10.0
- * refused them. With CX_FWD_COMPAT_GL_CTX=1, macfixes 10.0 upgrades the
- * request instead, as CrossOver does; Wine 11 does so without being asked.
+ * written for Windows ask for 3.2-4.1 core without that flag, and Wine
+ * 11.18 and earlier refuse them. With CX_FWD_COMPAT_GL_CTX=1, macfixes
+ * upgrades the request instead, as CrossOver does; Wine 11.19 and later do
+ * so without being asked.
  *
  * Passes when a 3.2 core context without the forward-compatible flag can be
  * created and made current. The window is never shown.

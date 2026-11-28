@@ -10,20 +10,23 @@ Origin: crossover
   Changes: verbatim (CrossOver 26.3.0 has the same lines)
   Note: Sikarugir 10.0_8 ships it: winemac.so has the string
     CX_FWD_COMPAT_GL_CTX
-Upstream: differently (Wine 11 accepts such requests without it: win32u
- fills in the core profile and winemac 11 no longer checks the flag; the
- commit that removed winemac's check wasn't identified)
-Why: macOS only offers forward-compatible 3.2+ core contexts, and Wine 10.0's
- Mac driver refuses a 3.2-4.1 context request without
+Upstream: differently (Wine 11.19 and later accept such requests without
+ it: 11.19 rewrote winemac's wglCreateContextAttribsARB without the check;
+ 11.18 still refuses them)
+Why: macOS only offers forward-compatible 3.2+ core contexts, and the Mac
+ driver of Wine 11.18 and earlier refuses a 3.2-4.1 context request without
  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB, as Windows programs usually send
  it. With CX_FWD_COMPAT_GL_CTX=1 in the environment the request is upgraded
  to forward-compatible instead, as CrossOver does. The only difference for
  the program is that deprecated features (wide lines) are unavailable,
- which a core context mostly lacks anyway. Wine 11 behaves this way without
- being asked, so the 11.x builds don't need the patch.
-Programs: none known; programs that ask Wine 10.0 for an OpenGL 3.2-4.1
+ which a core context mostly lacks anyway. Wine 11.19 and later behave this
+ way without being asked, so their builds don't need the patch.
+Programs: none known; programs that ask Wine 11.18 or earlier for an OpenGL 3.2-4.1
  context without the forward-compatible flag
 Enable: env CX_FWD_COMPAT_GL_CTX=1 (each process that creates a context; only a value starting with 1)
+Status: 11.18: 2026-11-28: carried from 10.0 (same hunk); macfixes 11.18
+ build1 (CI run 46126808397) failed gl-core-context without it ("3.2 core
+ context without the forward-compatible flag: refused")
 
 diff --git a/dlls/winemac.drv/opengl.c b/dlls/winemac.drv/opengl.c
 index 68de39f..b5e747f 100644
