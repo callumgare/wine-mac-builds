@@ -8,8 +8,9 @@
 # smoke test opens windows, and Wine started from SSH can't reach the
 # window server. A LaunchAgent can't read a removable volume either, so
 # everything is on the internal disk, in WMB_HOST_DIR (default
-# ~/Library/Caches/wmb-host): a copy of the repo, the downloads cache, and
-# the work directories. A quick build's (work-quick, about 7 GB per Wine
+# ~/Library/Caches/wmb-host): a copy of the repo for each run (repo-<mode>-
+# <pid>, removed when the run ends, so a quick build and a CI build can run
+# at once), the downloads cache, and the work directories. A quick build's (work-quick, about 7 GB per Wine
 # version) is kept, so the next one compiles only what changed. A full
 # build's (work-build) is deleted once it succeeds.
 #
@@ -46,11 +47,13 @@ load_build_inputs "$1" "$2"
 [[ -d "$WMB_TOOLCHAINS_DIR/$TOOLCHAIN" ]] ||
     die "host: toolchain $TOOLCHAIN isn't installed in $WMB_TOOLCHAINS_DIR (./wmb toolchain $TOOLCHAIN)"
 work="$H/work-$mode"
+repo="$H/repo-$mode-$$"
 log "host: wmb $mode $1 $2 -> $BUILD_ID, in the GUI session, work in $work"
 
-mkdir -p "$H/repo" "$H/cache" "$work" "$H/out"
+mkdir -p "$repo" "$H/cache" "$work" "$H/out"
+trap 'rm -rf "$repo"' EXIT
 rsync -a --delete --exclude /.local --exclude /vm-share --exclude /work \
-    --exclude /out --exclude /.cache --exclude /up "$REPO/" "$H/repo/"
+    --exclude /out --exclude /.cache --exclude /up "$REPO/" "$repo/"
 rm -f "$H/out/$BUILD_ID".* "$H/out/$BUILD_ID"-*
 
 # Tests that take a screenshot need the screen: skip them unless it's ours.
@@ -71,7 +74,7 @@ rc=0
     if [[ $mode == build && ${WMB_HOST_CCACHE:-0} == 1 ]]; then
         printf 'export WMB_CCACHE_DIR=%q WMB_CCACHE_MAXSIZE=%q\n' "$H/ccache" "${WMB_CCACHE_MAXSIZE:-10G}"
     fi
-    printf 'cd %q && exec ./wmb %q %q %q\n' "$H/repo" "$mode" "$1" "$2"
+    printf 'cd %q && exec ./wmb %q %q %q\n' "$repo" "$mode" "$1" "$2"
 } | gui_job "$H" "host$mode" $((6 * 3600)) || rc=$?
 [[ $rc != 124 ]] || die "host: wmb $mode didn't finish within 6 hours"
 [[ $rc == 0 ]] || die "host: wmb $mode failed (exit $rc)"
