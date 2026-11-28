@@ -24,7 +24,10 @@ No test: needs a live resize driven from macOS or a host; reproduced with
  waits for a GL thread that presents twice under the same lock
 Status: 11.19-11.21: 2026-11-28: ported from 11.22 (plain driver context, no
  winemac-host-windows); window.c compile-checked with clang -fsyntax-only on
- each version; not yet in a build.
+ each version.
+ 11.21, 11.20: 2026-11-28: macfixes build2 of each (host builds, meeka,
+ from acc62fe): smoke passed; suite 60 and 52 passed, 3 skipped, 0 failed.
+ Live resize not rerun on them.
 
 diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
 --- a/dlls/winemac.drv/window.c
