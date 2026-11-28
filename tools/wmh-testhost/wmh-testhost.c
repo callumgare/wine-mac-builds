@@ -286,6 +286,7 @@ int main(int argc, char **argv)
             static const uint32_t types[] = { WMH_EV_QUERY_RESIZE_START, WMH_EV_QUERY_RESIZE_SIZE, WMH_EV_WINDOW_RESIZE_ENDED };
             static const char *names[] = { "query_resize_start", "query_resize_size", "window_resize_ended" };
             struct conn *sc = &conns[nconns - 1];
+            int sent = 0;
             for (uint32_t i = 1; i < MAXW; i++)
                 if (sc->visible[i] && sc->frames[i])
                 {
@@ -301,9 +302,10 @@ int main(int argc, char **argv)
                     if (types[step] == WMH_EV_QUERY_RESIZE_SIZE)
                         printf(": %.0f,%.0f %.0fx%.0f", ev.frame.x, ev.frame.y, ev.frame.width, ev.frame.height);
                     printf("\n");
+                    sent = 1;
                     break;
                 }
-            step++;
+            if (sent) step++;  /* a window still starting is asked later */
             fflush(stdout);
         }
         if (kr == MACH_RCV_TIMED_OUT) continue;

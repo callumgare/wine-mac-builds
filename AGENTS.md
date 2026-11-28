@@ -286,7 +286,15 @@ projects.
   <file>` drags that file onto it (Notepad opens it, and its title shows
   it). `WMH_TESTHOST_RESIZE=1` starts a live resize, asks about a 100x80
   frame dragged by the bottom right corner and logs the
-  resize_size_reply: the frame the program's WM_SIZING chose. `WMH_TESTHOST_DISPLAYS="0,0,1512,945,0,0,1512,920"` answers
+  resize_size_reply: the frame the program's WM_SIZING chose. A query the
+  driver answers on the program's thread can deadlock against the program's
+  own threads: `winemac-resize-size-unlocked` was found with a test window
+  (`tools/wmh-testhost/sizing-gl.c`)
+  whose WM_SIZING takes a critical section that an OpenGL thread holds
+  across two `SwapBuffers` (every present takes the driver's `win_data`
+  lock). It hung 4 of 4 runs without the fix, and "blocked by" in an
+  `err+all` log names the other thread. One `SwapBuffers` under the lock
+  didn't hang. `WMH_TESTHOST_DISPLAYS="0,0,1512,945,0,0,1512,920"` answers
   displays_get with that display (frame, then optionally work area; `;`
   separates displays), and `WMH_TESTHOST_DISPLAYS2` switches to another
   answer 3 s after the first question and sends DISPLAYS_CHANGED; without
