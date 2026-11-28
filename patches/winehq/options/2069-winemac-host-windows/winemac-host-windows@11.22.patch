@@ -88,7 +88,9 @@ Related: winemac-clip-follows-window, winemac-cocoa-start-wait; cursor
 Status: 11.22: 2026-11-28: QUERY_RESIZE_SIZE added; quick20261128T010948
  (meeka, M1 Max, macOS 26.7.2): wmh-testhost's bottom-right question was
  answered from WM_SIZING; with winemac-resize-size-unlocked, Old Clock in
- Second Chance's host kept 640x480; other edges and the suite not run.
+ Second Chance's host kept 640x480; other edges not run.
+ 11.22: 2026-11-28: build2 (host build, meeka): smoke passed; regression
+ suite 64 passed, 3 skipped (two screen tests, desktop-wait), 0 failed.
  11.22: 2026-11-26: quick builds 20261126T002454 and T025644 (same Mac),
  with the review fixes: smoke and the regression suite passed; a GL program
  recreating its context drew every frame right (stale FBO not reproduced).
