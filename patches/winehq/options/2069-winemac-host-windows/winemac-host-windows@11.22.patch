@@ -86,7 +86,10 @@ Related: winemac-clip-follows-window, winemac-cocoa-start-wait; cursor
  clips go through macdrv_clip_cursor, which host mode hooks, and host mode
  still waits for Cocoa to start
 Status: 11.22: 2026-11-28: QUERY_RESIZE_SIZE (WM_SIZING during a live
- resize) added; compiled (syntax only); not yet in a build.
+ resize) added; host quick build quick20261128T010948 (meeka, M1 Max,
+ macOS 26.7.2): wmh-testhost's 100x80 bottom-right question to a window
+ that holds 640x480 in WM_SIZING was answered 640x480 (WM_SIZING edge 8);
+ other edges, a real host and the regression suite not run.
  11.22: 2026-11-26: review fixes (the GL FBO table keyed by a
  per-context id, a receive error ends host mode, and others); not yet in
  a build.
