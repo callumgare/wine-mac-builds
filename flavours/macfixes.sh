@@ -11,4 +11,4 @@ source "$WMB_ROOT/flavours/wine.sh"
 FLAVOUR_DESCRIPTION="WineHQ's release with fixes for macOS, and options that do nothing until enabled"
 
 PATCH_SETS=(build packaging version-label essential-fixes backports targeted-fixes improvements options programs)
-VERSIONS=(10.0 11.21 11.22)
+VERSIONS=(10.0 11.20 11.21 11.22)

@@ -18,15 +18,15 @@
         tools/pin runs this.
     tools/patch extend <flavour> <version> <wine source dir>
         Carry the flavour's patches into a newly pinned version: in order,
-        each patch the flavour applies at its previous or next version
-        (the nearest listed versions either side) gets <version> added to
-        the first of its copies that applies without fuzz, nearest version
-        first (git mv). A copy that needs fuzz isn't carried, and nor is one
+        each patch the flavour applies at the nearer of its neighbours (the
+        nearest listed versions either side, by pinned order; on a tie the
+        previous one) gets <version> added to the first of its copies that
+        applies without fuzz, nearest version first (git mv). A copy that needs fuzz isn't carried, and nor is one
         whose Needed until is <version> or earlier. Patches that don't apply
         are listed: port them by hand (AGENTS.md). Listed to check by hand:
-        copies whose Needed until is a condition, and patches only one
-        neighbour applies (pinning backwards, a fix may be for a change
-        made after <version>; forwards, a backport may already be in it).
+        copies whose Needed until is a condition. Patches only the farther
+        neighbour applies are listed, not carried: the nearer version
+        usually dropped them on purpose.
         The source directory is changed: pass a scratch copy. tools/pin
         runs this.
     tools/patch rename <old name> <new name> [--base winehq]
@@ -194,18 +194,27 @@ def cmd_extend(argv):
     have = {c.patch.name: c for c in P.resolve(base, sets, version)}
     at_prev = {c.patch.name: c for c in P.resolve(base, sets, prev)} if prev else {}
     at_next = {c.patch.name: c for c in P.resolve(base, sets, nxt)} if nxt else {}
-    patches = {c.patch.name: c.patch for c in [*at_prev.values(), *at_next.values()]}
+    # The nearer neighbour's patches are the ones to carry (on a tie, the
+    # previous version's); the other's extras are listed, not carried: a
+    # patch the nearer version doesn't take was usually dropped on purpose.
+    def gap(v):
+        return abs(pinned.index(v) - pinned.index(version))
+    near_next = nxt is not None and (prev is None or gap(nxt) < gap(prev))
+    near, near_v, far, far_v = ((at_next, nxt, at_prev, prev) if near_next else
+                                (at_prev, prev, at_next, nxt))
+    patches = {c.patch.name: c.patch for c in near.values()}
+    extras = sorted(n for n in far if n not in near and n not in have)
 
     def distance(c):
         return min(abs(pinned.index(v) - pinned.index(version))
                    for v in c.versions)
 
-    carried, missing, ended, conditions, newer, older = [], [], [], [], [], []
+    carried, missing, ended, conditions = [], [], [], []
     for p in sorted(patches.values(), key=lambda p: p.number):
         name = p.name
         use = have.get(name)
         if use is None:
-            h = patch_header.parse((at_prev.get(name) or at_next[name]).path)
+            h = patch_header.parse(near[name].path)
             until = h.fields.get("Needed until")
             nu = patch_header.needed_until(h)
             if nu and key >= P.version_key(nu):
@@ -226,17 +235,12 @@ def cmd_extend(argv):
                 git_mv(use.path, dst)
                 use.path = dst
                 carried.append(name)
-                if name not in at_prev and prev:
-                    newer.append(name)
-                if name not in at_next and nxt:
-                    older.append(name)
         if use is None:
             missing.append(name)
             continue
         if not apply(use, src, dry=False):
             sys.exit(f"{use.file} passed its dry run but didn't apply")
-    sides = " and ".join(v for v in (prev, nxt) if v)
-    print(f"{flavour} {version}: carried {len(carried)} patches from {sides}; "
+    print(f"{flavour} {version}: carried {len(carried)} patches from {near_v}; "
           f"{len(have)} already had a copy for {version}")
     if ended:
         print(f"Not carried (their Needed until is {version} or earlier):")
@@ -252,15 +256,10 @@ def cmd_extend(argv):
               "copy from this version if not:")
         for n in conditions:
             print(f"  {n}")
-    if newer:
-        print(f"Carried from {nxt} although {prev} doesn't apply them: check each is "
-              f"needed at {version}, and drop the copy from this version if not:")
-        for n in newer:
-            print(f"  {n}")
-    if older:
-        print(f"Carried from {prev} although {nxt} doesn't apply them: check each is "
-              f"needed at {version}, and drop the copy from this version if not:")
-        for n in older:
+    if extras:
+        print(f"Not carried ({far_v} applies them but {near_v}, the nearer version, doesn't; "
+              f"add a copy by hand if {version} needs one):")
+        for n in extras:
             print(f"  {n}")
 
 

@@ -1,0 +1,151 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Add command-line flags so CEF-based launchers (Steam, Battle.net, EA app and others) render
+Category: graphics
+Kind: workaround
+Origin: reconstructed
+  Version: Sikarugir 10.0_8
+  Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64 and i386)
+  Functions: hack_append_command_line's table (x86_64 file offset 0x9c1a0)
+  Covers: the table's seven entries and their flags; EADesktop, the three
+    GOG Galaxy entries and the SocialClubHelper flags are Sikarugir's own
+  Changes: matches the program's file name, in any case (10.0_8 looks for
+    the name anywhere in the path, case-sensitively)
+Origin: crossover (ported here)
+  Version: 24.0.7
+  CW-Hacks: 13322, 17315, 21883, 19610
+  URL: https://media.codeweavers.com/pub/crossover/source/crossover-sources-24.0.7.tar.gz
+  Files: dlls/kernelbase/process.c
+  Covers: the mechanism (hack_append_command_line and its call) and the
+    steamwebhelper and Battle.net entries
+  Changes: the function and its call; steamwebhelper and Battle.net entries
+    as in CX. CX's other 15 entries left out (10.0_8 has none of them).
+    Matches the file name with wcsicmp (CX: wcsstr on the path). The new
+    command line is sized from tidy_cmdline and checked for failure (CX
+    sizes it from cmd_line, which overflows when cmd_line is NULL or
+    shorter). No FIXME when it appends (CX logs one; 10.0_8 doesn't)
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: the same code, re-placed by hand: 11.21's CreateProcessInternalW
+    lost the parent/machine locals the 10.0 hunk used as context, so the
+    'append' local now follows nt_flags
+Upstream: no
+Why: The Chromium (CEF) interfaces of Steam, Battle.net, the EA app, GOG
+ Galaxy and Rockstar's Social Club render blank or crash in Wine unless
+ their GPU process runs in-process with a software GL. When the program
+ being created has one of these file names (in any case), kernelbase
+ appends the switches for it (not to Steam's or GOG's crash reporter). A
+ user's CommandLineAppend (kernelbase-commandline-append) comes after
+ them, so a switch the user sets wins. It applies only to processes
+ another Windows process creates (a launcher, start.exe, a shortcut), not
+ to the one `wine <exe>` starts: start that with `wine start` instead.
+Programs: Steam, Battle.net, EA app, GOG Galaxy, Rockstar Social Club: their
+ CEF UIs render blank or crash
+Matches: exe Battle.net.exe, EADesktop.exe, GalaxyClient.exe, GalaxyClient
+ Helper.exe, GOG Galaxy Notifications Renderer.exe, steamwebhelper.exe,
+ SocialClubHelper.exe (the started program's file name, any case); cmdline
+ --type=crashpad-handler (the GOG Galaxy and steamwebhelper entries skip a
+ command line containing it)
+Risk: always on: changes the command line of the seven named programs,
+ forcing software GL; --no-sandbox turns off steamwebhelper's renderer
+ sandbox, which in Wine isolates nothing anyway (CX did the same)
+Uncertain: whether the other entries are still needed on Wine 11.x or
+ with current launcher versions: each needs retesting with the launcher in
+ a GUI session (review decision 14). The steamwebhelper entry is on
+ 11.22 (Status, 2026-11-26); the others are kept on their sources' word,
+ untested (2026-11-26).
+ CrossOver dropped the function after 24.x (26.3.0 has none); why isn't
+ known. Sikarugir's reasons for the EA, GOG and Social Club flags aren't
+ recorded.
+Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry
+ {exe_name, append, required_args, forbidden_args} table in .rdata (x86_64
+ file offset 0x9c1a0) with exactly these strings and
+ NULL/'--type=crashpad-handler' fields; no 'HACK: appending' string.
+Expects before it: kernelbase-replace-launchers (context)
+Related: ntdll-cef-command-line-args; it makes Epic's and Ubisoft's CEF
+ honour command-line switches (this table has no entry for either)
+Status: 11.20: 2026-11-28: ported from the 11.21 copy (context only: 11.20's
+ CreateProcessInternalW declares parent and machine); kernelbase
+ syntax-checked (llvm-mingw, both arches); not built yet
+
+diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
+index a9bd78e..27b97f3 100644
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -520,6 +520,46 @@ done:
+     return ret;
+ }
+ 
++/* CROSSOVER HACK: append flags that CEF-based launchers and helpers need to
++ * render in Wine. Modelled on CrossOver 24.0.7's table (CW HACKs 13322,
++ * 17315, 21883 for steamwebhelper; 19610 for Battle.net); the entries and
++ * flags are those of Sikarugir 10.0_8. Matches the file name of the program
++ * being started, in any case. */
++static const WCHAR *hack_append_command_line( const WCHAR *cmd, const WCHAR *cmd_line )
++{
++    static const struct
++    {
++        const WCHAR *exe_name;
++        const WCHAR *append;
++        const WCHAR *required_args;
++        const WCHAR *forbidden_args;
++    }
++    options[] =
++    {
++        {L"Battle.net.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, NULL},
++        {L"EADesktop.exe", L" --in-process-gpu --use-gl=angle", NULL, NULL},
++        {L"GalaxyClient.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"GalaxyClient Helper.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"GOG Galaxy Notifications Renderer.exe", L" --in-process-gpu --use-gl=swiftshader", NULL, L"--type=crashpad-handler"},
++        {L"steamwebhelper.exe", L" --no-sandbox --in-process-gpu --disable-gpu", NULL, L"--type=crashpad-handler"},
++        {L"SocialClubHelper.exe", L" --in-process-gpu --use-gl=angle --use-angle=swiftshader", NULL, NULL},
++    };
++    const WCHAR *p, *exe;
++    unsigned int i;
++
++    if (!cmd) return NULL;
++    for (p = exe = cmd; *p; p++) if (*p == '\\' || *p == '/') exe = p + 1;
++
++    for (i = 0; i < ARRAY_SIZE(options); ++i)
++    {
++        if (!wcsicmp( exe, options[i].exe_name )
++            && (!options[i].required_args || wcsstr( cmd_line, options[i].required_args ))
++            && (!options[i].forbidden_args || !wcsstr( cmd_line, options[i].forbidden_args )))
++            return options[i].append;
++    }
++    return NULL;
++}
++
+ /* CROSSOVER HACK: start the game itself instead of a launcher that doesn't
+  * work in Wine; see the table for the bugs. Only the program being started
+  * is matched (the end of its path, in any case), and only when the game's
+@@ -620,7 +660,8 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     RTL_USER_PROCESS_INFORMATION rtl_info = { 0 };
+     HANDLE parent = 0, debug = 0;
+     ULONG nt_flags = 0;
+     USHORT machine = 0;
++    const WCHAR *append;
+     NTSTATUS status;
+ 
+     /* Process the AppName and/or CmdLine to get module name and path */
+@@ -643,6 +684,21 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+         app_name = name;
+     }
+ 
++    /* CROSSOVER HACK: see hack_append_command_line */
++    if ((append = hack_append_command_line( app_name, tidy_cmdline )))
++    {
++        WCHAR *new_cmdline = RtlAllocateHeap( GetProcessHeap(), 0,
++                                              sizeof(WCHAR) * (lstrlenW(tidy_cmdline) + lstrlenW(append) + 1) );
++        if (new_cmdline)
++        {
++            lstrcpyW( new_cmdline, tidy_cmdline );
++            lstrcatW( new_cmdline, append );
++            if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++            tidy_cmdline = new_cmdline;
++        }
++    }
++    /* end CROSSOVER HACK */
++
+     /* CROSSOVER HACK: see hack_replace_launcher */
+     {
+         WCHAR new_app[MAX_PATH], *new_cmd;

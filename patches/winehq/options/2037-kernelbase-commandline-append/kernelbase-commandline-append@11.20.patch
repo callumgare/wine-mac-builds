@@ -1,0 +1,123 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Per-program extra command-line arguments from the registry (CommandLineAppend)
+Category: system
+Kind: feature
+Origin: reconstructed
+  Version: Sikarugir 10.0_8
+  Binary: Sikarugir WS12WineSikarugir10.0_8 kernelbase.dll (x86_64)
+  Functions: sikarugir_append_command_line, inlined into
+    CreateProcessInternalW (x86_64 0x174015cc8-0x174015ed6)
+  Note: no published source; behaviour read from the compiled binary
+  Changes: the lookup runs after the CEF flags
+    (kernelbase-cef-append-flags), so a user's switches come last and win
+    (10.0_8 runs it before them); still before the launcher replacement,
+    so the key is looked up by the name before any replacement, as in
+    10.0_8. REG_EXPAND_SZ values are expanded (10.0_8 ignores them)
+Origin: wine-mac-builds
+  Version: 10.0
+  Changes: the same code; only the #include "winreg.h" hunk moved, because
+    11.21 added processsnapshot.h after winternl.h
+Upstream: no
+Why: Lets a user or a host add a program's options without editing its
+ shortcut. Set the value CommandLineAppend (REG_SZ, or REG_EXPAND_SZ to
+ expand environment variables) under
+ HKCU\Software\Wine\AppDefaults\<exe file name> (e.g. eldenring.exe); when
+ a Windows process creates a process from that exe, the value is appended
+ to its command line after a space, and a FIXME is logged. It comes after
+ the flags kernelbase-cef-append-flags adds, so for a switch both set,
+ Chromium takes the user's. It doesn't apply to the process `wine <exe>`
+ starts directly: start it with `wine start` instead. For a launcher that
+ kernelbase-replace-launchers swaps for the game, set it for the
+ launcher's name.
+Programs: none known
+Enable: reg HKCU\Software\Wine\AppDefaults\<exe file name>\CommandLineAppend = <arguments> (REG_SZ or REG_EXPAND_SZ) (per program; processes started by CreateProcess, not the one `wine <exe>` starts)
+Messages: "Sikarugir: appended %s to the command line of %s" (FIXME, channel
+ process; WINEDEBUG=-all or fixme-all hides it)
+Risk: adds the value's text to the program's command line; any program in
+ the prefix can set it for another exe (same user and prefix, so no
+ boundary is crossed)
+Uncertain: limits copied from 10.0_8: exe names of 260+ characters are
+ skipped and values over 2048 bytes (1023 characters), or over 1023
+ characters once expanded, are ignored.
+Expects before it: kernelbase-replace-launchers (context),
+ kernelbase-cef-append-flags (context)
+Related: ntdll-cef-command-line-args; Epic Games Launcher's and Ubisoft
+ Connect's CEF take switches from the command line only with it
+Status: 11.20: 2026-11-28: ported from the 11.21 copy (context only); hunks
+ land in the same functions; not built yet
+
+diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
+index 27b97f3..6659fc3 100644
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -27,6 +27,7 @@
+ #include "winnls.h"
+ #include "wincontypes.h"
+ #include "winternl.h"
++#include "winreg.h"
+ #include "processsnapshot.h"
+ 
+ #include "kernelbase.h"
+@@ -643,6 +644,47 @@ static BOOL hack_replace_launcher( const WCHAR *app_name, const WCHAR *cmdline,
+     return TRUE;
+ }
+ 
++/***********************************************************************
++ *           sikarugir_append_command_line
++ *
++ * Sikarugir: append the value CommandLineAppend (REG_SZ or REG_EXPAND_SZ)
++ * from HKCU\Software\Wine\AppDefaults\<exe name> to the command line of a
++ * new process. Returns a newly allocated command line, or NULL if there is
++ * nothing to append.
++ */
++static WCHAR *sikarugir_append_command_line( const WCHAR *app_name, const WCHAR *cmd_line )
++{
++    WCHAR key_name[300], append[1024], expanded[1024], *ret;
++    const WCHAR *p, *exe = app_name;
++    DWORD type, size = sizeof(append);
++    LSTATUS res;
++    HKEY key;
++    int len;
++
++    for (p = app_name; *p; p++) if (*p == '\\' || *p == '/') exe = p + 1;
++    if (!*exe || lstrlenW( exe ) >= MAX_PATH) return NULL;
++
++    swprintf( key_name, ARRAY_SIZE(key_name), L"Software\\Wine\\AppDefaults\\%s", exe );
++    if (RegOpenKeyExW( HKEY_CURRENT_USER, key_name, 0, KEY_QUERY_VALUE, &key )) return NULL;
++    res = RegQueryValueExW( key, L"CommandLineAppend", NULL, &type, (BYTE *)append, &size );
++    RegCloseKey( key );
++    if (res || (type != REG_SZ && type != REG_EXPAND_SZ) || size < sizeof(WCHAR)) return NULL;
++    append[ARRAY_SIZE(append) - 1] = 0;
++    if (type == REG_EXPAND_SZ)
++    {
++        size = ExpandEnvironmentStringsW( append, expanded, ARRAY_SIZE(expanded) );
++        if (!size || size > ARRAY_SIZE(expanded)) return NULL;
++        lstrcpyW( append, expanded );
++    }
++    if (!append[0]) return NULL;
++
++    len = lstrlenW( cmd_line ) + 1 + lstrlenW( append ) + 1;
++    if (!(ret = RtlAllocateHeap( GetProcessHeap(), 0, len * sizeof(WCHAR) ))) return NULL;
++    swprintf( ret, len, L"%s %s", cmd_line, append );
++    FIXME( "Sikarugir: appended %s to the command line of %s\n", debugstr_w(append), debugstr_w(exe) );
++    return ret;
++}
++
+ /**********************************************************************
+  *           CreateProcessInternalW   (kernelbase.@)
+  */
+@@ -699,6 +741,14 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     }
+     /* end CROSSOVER HACK */
+ 
++    /* Sikarugir: per-application command line additions from the registry,
++     * after the CEF flags so that a user's switches win */
++    if ((p = sikarugir_append_command_line( app_name, tidy_cmdline )))
++    {
++        if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++        tidy_cmdline = p;
++    }
++
+     /* CROSSOVER HACK: see hack_replace_launcher */
+     {
+         WCHAR new_app[MAX_PATH], *new_cmd;
