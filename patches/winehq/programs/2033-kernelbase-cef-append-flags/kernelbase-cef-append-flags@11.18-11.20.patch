@@ -63,18 +63,20 @@ Evidence: Sikarugir 10.0_8: kernelbase.dll (both arches): a 7-entry
 Expects before it: kernelbase-replace-launchers (context)
 Related: ntdll-cef-command-line-args; it makes Epic's and Ubisoft's CEF
  honour command-line switches (this table has no entry for either)
-Status: 11.20: 2026-11-28: ported from the 11.21 copy (context only: 11.20's
- CreateProcessInternalW declares parent and machine); kernelbase
- syntax-checked (llvm-mingw, both arches); not built yet
+Status: 11.18-11.20: 2026-11-28: ported from the 11.21 copy (context only:
+ these versions' CreateProcessInternalW also declares parent and machine);
+ diff regenerated against each version's tree (identical for all three);
+ kernelbase syntax-checked at 11.20 (llvm-mingw, both arches); not built yet
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
-index a9bd78e..27b97f3 100644
 --- a/dlls/kernelbase/process.c
 +++ b/dlls/kernelbase/process.c
-@@ -520,6 +520,46 @@ done:
+@@ -500,6 +500,46 @@
+     RtlFreeUnicodeString( &desktopW );
+     RtlFreeUnicodeString( &titleW );
      return ret;
- }
- 
++}
++
 +/* CROSSOVER HACK: append flags that CEF-based launchers and helpers need to
 + * render in Wine. Modelled on CrossOver 24.0.7's table (CW HACKs 13322,
 + * 17315, 21883 for steamwebhelper; 19610 for Battle.net); the entries and
@@ -113,13 +115,10 @@ index a9bd78e..27b97f3 100644
 +            return options[i].append;
 +    }
 +    return NULL;
-+}
-+
+ }
+ 
  /* CROSSOVER HACK: start the game itself instead of a launcher that doesn't
-  * work in Wine; see the table for the bugs. Only the program being started
-  * is matched (the end of its path, in any case), and only when the game's
-@@ -620,7 +660,8 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
-     RTL_USER_PROCESS_INFORMATION rtl_info = { 0 };
+@@ -603,6 +643,7 @@
      HANDLE parent = 0, debug = 0;
      ULONG nt_flags = 0;
      USHORT machine = 0;
@@ -127,7 +126,7 @@ index a9bd78e..27b97f3 100644
      NTSTATUS status;
  
      /* Process the AppName and/or CmdLine to get module name and path */
-@@ -643,6 +684,21 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+@@ -626,6 +667,21 @@
          app_name = name;
      }
  

@@ -60,12 +60,14 @@ diff --git a/configure.ac b/configure.ac
  WINE_CONFIG_MAKEFILE(dlls/wineps.drv)
  WINE_CONFIG_MAKEFILE(dlls/wineps16.drv16)
 diff --git a/dlls/winemetal/Makefile.in b/dlls/winemetal/Makefile.in
---- a/dlls/winemetal/Makefile.in
+new file mode 100644
+--- /dev/null
 +++ b/dlls/winemetal/Makefile.in
 @@ -0,0 +1 @@
 +MODULE = winemetal.dll
 diff --git a/dlls/winemetal/winemetal.spec b/dlls/winemetal/winemetal.spec
---- a/dlls/winemetal/winemetal.spec
+new file mode 100644
+--- /dev/null
 +++ b/dlls/winemetal/winemetal.spec
 @@ -0,0 +1 @@
 +@ stub WineMetalEntry

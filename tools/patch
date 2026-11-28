@@ -294,6 +294,8 @@ def cmd_rename(argv):
 def cmd_refresh(argv):
     import tempfile
     fuzz = opt(argv, "--fuzz", None)
+    force = "--force" in argv
+    argv = [a for a in argv if a != "--force"]
     flavour, version, *names = argv
     fl = P.flavour(flavour)
     copies = P.resolve(fl["base"], fl["sets"], version)
@@ -305,7 +307,7 @@ def cmd_refresh(argv):
         refreshed = []
         for c in copies:
             wanted = not names or c.patch.name in names
-            if apply(c, src, dry=True):
+            if not (force and names and wanted) and apply(c, src, dry=True):
                 apply(c, src, dry=False)
                 continue
             if not wanted:
@@ -345,10 +347,16 @@ def cmd_refresh(argv):
             for f in files:
                 a = before / f if (before / f).exists() else pathlib.Path("/dev/null")
                 b = src / f if (src / f).exists() else pathlib.Path("/dev/null")
-                d = subprocess.run(["diff", "-u", "--label", f"a/{f}", "--label", f"b/{f}", str(a), str(b)],
+                # A created or deleted file is labelled /dev/null, as git does,
+                # so every patch(1) knows to create or remove it.
+                old = "/dev/null" if str(a) == "/dev/null" else f"a/{f}"
+                new = "/dev/null" if str(b) == "/dev/null" else f"b/{f}"
+                d = subprocess.run(["diff", "-u", "--label", old, "--label", new, str(a), str(b)],
                                    capture_output=True, text=True).stdout
                 if d:
-                    diff.append(f"diff --git a/{f} b/{f}\n{d}")
+                    mode = ("new file mode 100644\n" if old == "/dev/null" else
+                            "deleted file mode 100644\n" if new == "/dev/null" else "")
+                    diff.append(f"diff --git a/{f} b/{f}\n{mode}{d}")
             c.path.write_text(head + "\n\n" + "".join(diff))
             refreshed.append(c.file)
     for f in refreshed:
