@@ -83,7 +83,13 @@ projects.
    patch calls already exists in that version, and leave compiling it to
    the build. Unix-side files (`dlls/ntdll/unix`) can be checked with
    `clang -arch x86_64 -fsyntax-only` and the flags `make -n` shows in a
-   configured tree, borrowing that tree's `config.h`. Then build the ports
+   configured tree, borrowing that tree's `config.h`. When they include
+   `.idl`-generated headers (winemac.drv does), generate them in the
+   unbuilt tree's `include/` with the configured tree's `tools/widl/widl
+   -I. -h -o X.h X.idl`, repeating until none is missing; copying that
+   tree's generated headers instead clashes (`IActivationFilter`, 10.15's
+   against 11.22). winemac.drv's files check with `-D__WINESRC__
+   -DWINE_UNIX_LIB -D_DARWIN_C_SOURCE -I. -I../../include`. Then build the ports
    together. Each
    full build takes over an hour, and a fix whose premise turns out wrong
    costs one build instead of several.
