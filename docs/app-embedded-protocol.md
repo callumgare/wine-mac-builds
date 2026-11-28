@@ -256,7 +256,14 @@ asks: the event's header serial, the proposed content frame and the edge
 being dragged (WMSZ_*). The driver sends the program WM_SIZING, through
 which a program keeps a minimum size or an aspect ratio, and answers with
 `resize_size_reply` (the serial and the frame to use). The host waits up
-to 0.1 s and uses the proposed frame if no answer comes.
+to 0.1 s and uses the proposed frame if no answer comes. The wait runs
+inside `windowWillResize:toSize:`, on the main thread, so the reply has
+to reach it without going through the main thread or its dispatch queue:
+a host that hands every message to the main queue gets each reply only
+after the wait has given up. Second Chance's host keeps the latest reply
+where its receive thread put it, and the wait reads it there. The driver
+answers within about a millisecond when the program's thread is
+pumping messages.
 
 **Replies** to the driver's calls, and `surface_release`.
 
