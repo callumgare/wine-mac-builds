@@ -1,0 +1,60 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: configure finds macOS's PCSC framework again (smart cards)
+Category: build
+Kind: fix
+Origin: winehq
+  Commit: e5c902a41ff7c0f8dcd546b1564c11117da5185d
+  URL: https://gitlab.winehq.org/wine/wine/-/commit/e5c902a41ff7c0f8dcd546b1564c11117da5185d
+  Authors: Sven Baars
+  Changes: verbatim (configure and configure.ac, as committed)
+Upstream: yes (Wine 11.13)
+Needed until: 11.13 (WineHQ has the commit from then)
+Why: 11.12 moved configure's libpcsclite check to WINE_PACKAGE_FLAGS, where
+ the macOS fallback to -framework PCSC sits in an argument that never runs
+ when the function check fails. So on macOS PCSCLITE_LIBS stays empty, and
+ with --with-pcsclite (flavours/wine.sh) configure stops: "libpcsclite not
+ found, smart cards won't be supported". 11.11 and earlier, and 11.13 and
+ later, find the framework. The patch sets it in the check's failure case.
+ It doesn't change what Wine does at run time: winscard is built against
+ the PCSC framework as in every other version.
+Programs: none (build)
+No test: build only; wine 11.12 build1 (CI run 46146369192) stopped in
+ configure without it
+Status: 11.12: 2026-11-28: written; not yet in a build
+
+diff --git a/configure b/configure
+index 186641c73a9..1834f20d30d 100755
+--- a/configure
++++ b/configure
+@@ -17276,7 +17276,10 @@ if test "x$ac_cv_func_SCardEstablishContext" = xyes
+ then :
+   :
+ else case e in #(
+-  e) PCSCLITE_LIBS="" ;;
++  e) case $host_os in
++                        darwin*) PCSCLITE_LIBS="-framework PCSC" ;;
++                        *) PCSCLITE_LIBS="";;
++                     esac ;;
+ esac
+ fi
+ 
+diff --git a/configure.ac b/configure.ac
+index b11bfefa3dc..ee0b1c483d4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1522,10 +1522,11 @@ dnl **** Check for libpcsclite ****
+ if test "x$with_pcsclite" != "xno"
+ then
+     WINE_PACKAGE_FLAGS(PCSCLITE,[libpcsclite],[-lpcsclite],,,
+-                 [AC_CHECK_FUNC(SCardEstablishContext,[:],[PCSCLITE_LIBS=""])],
+-                 [case $host_os in
+-                    darwin*) AC_SUBST(PCSCLITE_LIBS,"-framework PCSC") ;;
+-                  esac])
++                 [AC_CHECK_FUNC(SCardEstablishContext,[:],
++                    [case $host_os in
++                        darwin*) PCSCLITE_LIBS="-framework PCSC" ;;
++                        *) PCSCLITE_LIBS="";;
++                     esac])])
+ fi
+ WINE_NOTICE_WITH(pcsclite,[test "x$PCSCLITE_LIBS" = x],
+                  [libpcsclite not found, smart cards won't be supported.],
