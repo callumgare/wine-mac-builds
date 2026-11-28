@@ -20,14 +20,13 @@
         Carry the flavour's patches into a newly pinned version: in order,
         each patch the flavour applies at its previous or next version
         (the nearest listed versions either side) gets <version> added to
-        the first of its copies that applies without fuzz, trying the
-        previous version's copy, then the next's, then the others nearest
+        the first of its copies that applies without fuzz, nearest version
         first (git mv). A copy that needs fuzz isn't carried, and nor is one
         whose Needed until is <version> or earlier. Patches that don't apply
         are listed: port them by hand (AGENTS.md). Listed to check by hand:
-        copies whose Needed until is a condition, and patches carried from
-        the next version that the previous one doesn't apply (when pinning
-        backwards, a fix may be for a change made after <version>).
+        copies whose Needed until is a condition, and patches only one
+        neighbour applies (pinning backwards, a fix may be for a change
+        made after <version>; forwards, a backport may already be in it).
         The source directory is changed: pass a scratch copy. tools/pin
         runs this.
     tools/patch rename <old name> <new name> [--base winehq]
@@ -201,7 +200,7 @@ def cmd_extend(argv):
         return min(abs(pinned.index(v) - pinned.index(version))
                    for v in c.versions)
 
-    carried, missing, ended, conditions, newer = [], [], [], [], []
+    carried, missing, ended, conditions, newer, older = [], [], [], [], [], []
     for p in sorted(patches.values(), key=lambda p: p.number):
         name = p.name
         use = have.get(name)
@@ -214,8 +213,9 @@ def cmd_extend(argv):
                 continue
             if until and not nu:
                 conditions.append(f"{name} (Needed until: {until})")
-            tries = [c for c in (at_prev.get(name), at_next.get(name)) if c]
-            tries += sorted((c for c in p.copies if c.versions and c not in tries), key=distance)
+            # Nearest version first; on a tie, the previous version's copy.
+            tries = sorted((c for c in p.copies if c.versions),
+                           key=lambda c: (distance(c), c is not at_prev.get(name)))
             for c in tries:
                 if apply(c, src, dry=True):
                     use = c
@@ -228,6 +228,8 @@ def cmd_extend(argv):
                 carried.append(name)
                 if name not in at_prev and prev:
                     newer.append(name)
+                if name not in at_next and nxt:
+                    older.append(name)
         if use is None:
             missing.append(name)
             continue
@@ -254,6 +256,11 @@ def cmd_extend(argv):
         print(f"Carried from {nxt} although {prev} doesn't apply them: check each is "
               f"needed at {version}, and drop the copy from this version if not:")
         for n in newer:
+            print(f"  {n}")
+    if older:
+        print(f"Carried from {prev} although {nxt} doesn't apply them: check each is "
+              f"needed at {version}, and drop the copy from this version if not:")
+        for n in older:
             print(f"  {n}")
 
 
