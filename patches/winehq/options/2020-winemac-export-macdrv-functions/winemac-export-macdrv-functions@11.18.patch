@@ -62,7 +62,12 @@ Uncertain: the Wine 11 adaptation hasn't run with DXMT (it needs a GUI
 Status: 11.18: 2026-11-28: ported from the 11.19 copy (context only: 11.18
  still has the IM_SET_TEXT event, so CLIENT_SURFACE_PRESENTED goes after
  APP_QUIT_REQUESTED in the enum, the names, the mask and the switch, as in
- 11.19); not built yet
+ 11.19)
+ 11.18: 2026-11-28: build1 (CI run 46125706940) failed to compile: 11.18
+ names the Metal device type id_MTLDevice (MTLDevice_id from 11.19), and its
+ macdrv.h can't be included from Objective-C (11.19 made it so), so
+ d3dmetal_objc.m includes macdrv_cocoa.h; the changed files pass
+ clang -fsyntax-only
 
 diff --git a/dlls/winemac.drv/Makefile.in b/dlls/winemac.drv/Makefile.in
 --- a/dlls/winemac.drv/Makefile.in
@@ -186,9 +191,9 @@ new file mode 100644
 +    struct d3dmetal_macdrv_win_data* (*get_win_data)(HWND hwnd);
 +    void (*release_win_data)(struct d3dmetal_macdrv_win_data *data);
 +    WineWindow *(*macdrv_get_cocoa_window)(HWND hwnd, BOOL require_on_screen);
-+    MTLDevice_id (*macdrv_create_metal_device)(void);
-+    void (*macdrv_release_metal_device)(MTLDevice_id d);
-+    WineMetalView *(*macdrv_view_create_metal_view)(WineContentView *v, MTLDevice_id d);
++    id_MTLDevice (*macdrv_create_metal_device)(void);
++    void (*macdrv_release_metal_device)(id_MTLDevice d);
++    WineMetalView *(*macdrv_view_create_metal_view)(WineContentView *v, id_MTLDevice d);
 +    CAMetalLayer *(*macdrv_view_get_metal_layer)(WineMetalView *v);
 +    void (*macdrv_view_release_metal_view)(WineMetalView *v);
 +    void (*on_main_thread)(dispatch_block_t b);
@@ -280,19 +285,19 @@ new file mode 100644
 +    return macdrv_get_cocoa_window(hwnd, require_on_screen);
 +}
 +
-+static MTLDevice_id my_macdrv_create_metal_device(void)
++static id_MTLDevice my_macdrv_create_metal_device(void)
 +{
 +    TRACE("macdrv_create_metal_device\n");
 +    return macdrv_create_metal_device();
 +}
 +
-+static void my_macdrv_release_metal_device(MTLDevice_id d)
++static void my_macdrv_release_metal_device(id_MTLDevice d)
 +{
 +    TRACE("macdrv_release_metal_device %p\n", d);
 +    macdrv_release_metal_device(d);
 +}
 +
-+static WineMetalView *my_macdrv_view_create_metal_view(WineContentView *v, MTLDevice_id d)
++static WineMetalView *my_macdrv_view_create_metal_view(WineContentView *v, id_MTLDevice d)
 +{
 +    TRACE("macdrv_view_create_metal_view %p %p\n", v, d);
 +    return macdrv_view_create_metal_view(v, d);
@@ -405,7 +410,7 @@ new file mode 100644
 +#if defined(__x86_64__)
 +
 +#import "config.h"
-+#import "macdrv.h"
++#import "macdrv_cocoa.h"
 +
 +#import <AppKit/AppKit.h>
 +#import <QuartzCore/QuartzCore.h>
