@@ -1,0 +1,67 @@
+SPDX-License-Identifier: LGPL-2.1-or-later
+Summary: Don't hold the Mac driver's window lock across WM_SIZING
+Category: input
+Kind: fix
+Origin: wine-mac-builds
+Upstream: candidate (draft in .local/bug-reports/)
+Why: During a live resize the Mac driver asks the program about each new
+ size (query_resize_size, WM_SIZING). It sent WM_SIZING while holding its
+ process-wide window data lock (get_win_data), which every GL present also
+ takes (macdrv_client_surface_update and _present; on 10.0,
+ macdrv_wglSwapBuffers and sync_context). A program whose WM_SIZING handler
+ waits for its renderer thread, while that thread holds the
+ program's own lock and presents, deadlocks both threads for good, and the
+ resize query is never answered. Now the driver copies the window's rects
+ and releases the lock before sending WM_SIZING.
+Programs: Old Clock under cnc-ddraw (OpenGL renderer) in Second Chance's
+ host (app-embedded protocol, 2026-11-28): the first live resize hung the
+ game's window thread and its renderer, with no resize_size_reply and no
+ frames after it.
+Uncertain: Seen only through a host; the plain driver's windowWillResize:toSize:
+ sends the same query, so it should hang the same way, but that hasn't been
+ shown.
+No test: needs a live resize driven from macOS or a host; reproduced with
+ tools/wmh-testhost (WMH_TESTHOST_RESIZE=1) and a window whose WM_SIZING
+ waits for a GL thread that presents twice under the same lock
+Status: 10.0, 11.18: 2026-11-28: ported from 11.22 (plain driver context, no
+ winemac-host-windows); window.c compile-checked with clang -fsyntax-only on
+ each version; not yet in a build.
+
+diff --git a/dlls/winemac.drv/window.c b/dlls/winemac.drv/window.c
+--- a/dlls/winemac.drv/window.c
++++ b/dlls/winemac.drv/window.c
+@@ -2230,14 +2230,19 @@
+ BOOL query_resize_size(HWND hwnd, macdrv_query *query)
+ {
+     struct macdrv_win_data *data = get_win_data(hwnd);
++    struct window_rects rects;
+     RECT rect;
+     int corner;
+     BOOL ret = FALSE;
+ 
+     if (!data) return FALSE;
++    /* Not held across WM_SIZING: a program's handler may wait for its own
++     * thread that is presenting GL, which takes this lock too. */
++    rects = data->rects;
++    release_win_data(data);
+ 
+     rect = rect_from_cgrect(query->resize_size.rect);
+-    rect = window_rect_from_visible(&data->rects, rect);
++    rect = window_rect_from_visible(&rects, rect);
+ 
+     if (query->resize_size.from_left)
+     {
+@@ -2253,12 +2258,11 @@
+ 
+     if (send_message(hwnd, WM_SIZING, corner, (LPARAM)&rect))
+     {
+-        rect = visible_rect_from_window(&data->rects, rect);
++        rect = visible_rect_from_window(&rects, rect);
+         query->resize_size.rect = cgrect_from_rect(rect);
+         ret = TRUE;
+     }
+ 
+-    release_win_data(data);
+     return ret;
+ }
+ 
