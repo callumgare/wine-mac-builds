@@ -56,11 +56,19 @@ rsync -a --delete --exclude /.local --exclude /vm-share --exclude /work \
     --exclude /out --exclude /.cache --exclude /up "$REPO/" "$repo/"
 rm -f "$H/out/$BUILD_ID".* "$H/out/$BUILD_ID"-*
 
-# Tests that take a screenshot need the screen: skip them unless it's ours.
+# Tests that take a screenshot need the screen: skip them unless it's ours
+# and unlocked (screencapture fails on a locked screen). The console
+# session's CGSSessionScreenIsLocked is in IOConsoleUsers.
 no_screen=""
-if [[ -z ${WMB_REGRESS_NO_SCREEN:-} && "$(stat -f %Su /dev/console)" != "$(id -un)" ]]; then
-    log "host: the screen belongs to $(stat -f %Su /dev/console); tests that take it over are skipped"
-    no_screen=1
+if [[ -z ${WMB_REGRESS_NO_SCREEN:-} ]]; then
+    if [[ "$(stat -f %Su /dev/console)" != "$(id -un)" ]]; then
+        log "host: the screen belongs to $(stat -f %Su /dev/console); tests that take it over are skipped"
+        no_screen=1
+    elif ioreg -n Root -d1 -a | plutil -extract IOConsoleUsers json -o - - |
+            /usr/bin/python3 -I -c 'import json, sys; sys.exit(not any(u.get("kCGSSessionOnConsoleKey") and u.get("CGSSessionScreenIsLocked") for u in json.load(sys.stdin)))'; then
+        log "host: the screen is locked; tests that take it over are skipped"
+        no_screen=1
+    fi
 fi
 
 rc=0
